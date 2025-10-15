@@ -68,7 +68,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-03.
   - Estimate: 30m
 
-- [ ] T-serverless-podcast-tracker-09: DataStack DynamoDB single-table + TTL (60m)
+- [x] T-serverless-podcast-tracker-09: DataStack DynamoDB single-table + TTL (60m)
 
   - Goal: Create on-demand table with PK/SK and TTL on `expiresAt` for Cache.
   - Files/paths: `/infra/lib/ApiDataStack.ts`.
@@ -76,7 +76,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-03.
   - Estimate: 60m
 
-- [ ] T-serverless-podcast-tracker-10: AppSync API skeleton + Cognito auth (60m)
+- [x] T-serverless-podcast-tracker-10: AppSync API skeleton + Cognito auth (60m)
 
   - Goal: Create AppSync API with Cognito primary auth; add schema placeholder; enable subscriptions.
   - Files/paths: `/infra/lib/ApiDataStack.ts`, `/apps/api/schema/schema.graphql`.
