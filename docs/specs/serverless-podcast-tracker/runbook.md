@@ -59,7 +59,8 @@ List stacks recognized by CDK:
 npm run --workspace infra cdk ls --profile Personal
 ```
 
-Expected output (placeholders until stacks are implemented):
+-Expected output (placeholders until stacks are implemented):
+- `PodcastTrackerConfigStack`
 - `PodcastTrackerEdgeStack`
 
 Bootstrap stacks can also be confirmed via the AWS Console (CloudFormation Stacks named `CDKToolkit` in each region).

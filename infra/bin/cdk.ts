@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
+import 'dotenv/config';
 import * as cdk from 'aws-cdk-lib';
 import { CertificateStack } from '../lib/cert-stack.js';
 import { EdgeStack } from '../lib/edge-stack.js';
+import { ConfigStack } from '../lib/config-stack.js';
 
 const app = new cdk.App();
 
@@ -16,6 +18,10 @@ const certificateRegion = 'us-east-1';
 
 const certificateStack = new CertificateStack(app, 'PodcastTrackerCertificateStack', {
   env: { account, region: certificateRegion }
+});
+
+new ConfigStack(app, 'PodcastTrackerConfigStack', {
+  env: { account, region: primaryRegion }
 });
 
 new EdgeStack(app, 'PodcastTrackerEdgeStack', {

@@ -60,7 +60,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-06.
   - Estimate: 30m
 
-- [ ] T-serverless-podcast-tracker-08: ConfigStack for SSM parameters (30m)
+- [x] T-serverless-podcast-tracker-08: ConfigStack for SSM parameters (30m)
 
   - Goal: Define SSM paths for secrets and config (Spotify client ID/secret, shared production settings).
   - Files/paths: `/infra/lib/ConfigStack.ts`.
