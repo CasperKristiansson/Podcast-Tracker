@@ -1,6 +1,8 @@
 import * as cdk from 'aws-cdk-lib';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 
@@ -15,6 +17,11 @@ export interface EdgeStackProps extends cdk.StackProps {
    * Fully-qualified domain name the distribution should respond to.
    */
   readonly siteDomain: string;
+
+  /**
+   * Hosted zone domain that owns the siteDomain.
+   */
+  readonly hostedZoneDomain: string;
 }
 
 export class EdgeStack extends cdk.Stack {
@@ -30,6 +37,10 @@ export class EdgeStack extends cdk.Stack {
 
     if (!props.siteDomain) {
       throw new Error('siteDomain is required so the distribution can be addressed via a custom domain.');
+    }
+
+    if (!props.hostedZoneDomain) {
+      throw new Error('hostedZoneDomain is required to create Route 53 alias records.');
     }
 
     this.siteBucket = new s3.Bucket(this, 'SiteBucket', {
@@ -97,6 +108,29 @@ export class EdgeStack extends cdk.Stack {
         },
         httpVersion: 'http2and3'
       }
+    });
+
+    const distributionRef = cloudfront.Distribution.fromDistributionAttributes(this, 'DistributionRef', {
+      distributionId: this.distribution.attrId,
+      domainName: this.distribution.attrDomainName
+    });
+
+    const hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
+      domainName: props.hostedZoneDomain
+    });
+
+    const aliasTarget = route53.RecordTarget.fromAlias(new route53Targets.CloudFrontTarget(distributionRef));
+
+    new route53.ARecord(this, 'SiteAliasRecord', {
+      zone: hostedZone,
+      recordName: props.siteDomain,
+      target: aliasTarget
+    });
+
+    new route53.AaaaRecord(this, 'SiteAliasRecordAAAA', {
+      zone: hostedZone,
+      recordName: props.siteDomain,
+      target: aliasTarget
     });
 
     this.siteBucket.addToResourcePolicy(

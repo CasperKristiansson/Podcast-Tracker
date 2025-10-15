@@ -21,5 +21,6 @@ const certificateStack = new CertificateStack(app, 'PodcastTrackerCertificateSta
 new EdgeStack(app, 'PodcastTrackerEdgeStack', {
   env: { account, region: primaryRegion },
   certificateArn: certificateStack.certificateArn,
-  siteDomain: 'podcast.casperkristiansson.com'
+  siteDomain: 'podcast.casperkristiansson.com',
+  hostedZoneDomain: 'casperkristiansson.com'
 });
