@@ -20,7 +20,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-01.
   - Estimate: 45m
 
-- [ ] T-serverless-podcast-tracker-03: CDK app init (eu-north-1) (30m)
+- [x] T-serverless-podcast-tracker-03: CDK app init (eu-north-1) (30m)
 
   - Goal: Initialize CDK v2 TS app under `/infra` with basic bin/stack wiring.
   - Files/paths: `/infra/bin/cdk.ts`, `/infra/lib/`.
