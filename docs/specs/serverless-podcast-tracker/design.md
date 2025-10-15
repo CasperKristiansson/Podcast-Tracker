@@ -24,12 +24,12 @@ Stacks (AWS CDK v2, TypeScript)
 - AuthStack: Cognito User Pool, Google IdP, user pool domain, app client (Auth Code + PKCE), callback/logout URLs; self-registration disabled.
 - ApiDataStack: AppSync GraphQL API (Cognito primary auth, IAM additional), DynamoDB single-table with TTL for cache, data sources (DDB direct resolvers and Lambda for Spotify), GraphQL schema.
 - JobsStack: EventBridge Scheduler rule targeting the nightly refresh Lambda.
-- ConfigStack: SSM parameters for Spotify client ID/secret and environment configuration.
+- ConfigStack: SSM parameters for Spotify client ID/secret and shared configuration (single production environment).
 
 Deployment Conventions
 - Local developer deployments use AWS CLI/SDK profile `Personal` for `cdk bootstrap` and `cdk deploy`.
 - Bootstrap accounts in both `eu-north-1` (application stacks) and `us-east-1` (certificate stack).
-- CI/CD remains GitHub Actions with OIDC to AWS (no long-lived credentials in repo). Workflows specify `eu-north-1` for infra and web deploys, and `us-east-1` for certificate provisioning if included.
+- Operate a single production environment. CI/CD remains GitHub Actions with OIDC to AWS; workflows deploy infrastructure and web assets directly to production in `eu-north-1` (certificate provisioning in `us-east-1`).
 
 Services / Packages
 - packages/lambdas/spotifyProxy: Handles `search`, `getShow`, `getEpisodes`. Obtains and caches Spotify token (client credentials) and response payloads. Respects rate limits with retry-after.

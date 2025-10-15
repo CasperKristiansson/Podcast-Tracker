@@ -1,0 +1,27 @@
+# Node / TypeScript
+node_modules/
+**/node_modules/
+dist/
+build/
+tmp/
+.turbo/
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# Env
+.env
+.env.*
+.env.local
+.envrc
+# CDK / AWS
+cdk.out/
+.aws-sam/
+# Editor
+.DS_Store
+.idea/
+.vscode/
+# Generated docs/artifacts
+coverage/
+.nyc_output/

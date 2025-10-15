@@ -12,6 +12,7 @@ Primary Region: All workloads (Cognito, AppSync, DynamoDB, Lambda, EventBridge, 
 - Keep cost ≈ $0 by relying on static hosting and on-demand serverless services (no always-on compute).
 - Ship backend first so core capabilities (auth, data, API, integration, jobs) are production-ready before adding a polished UI.
 - Maintain a single repository with clear, repeatable IaC (AWS CDK v2 TypeScript) and CI/CD via GitHub Actions using OIDC to AWS.
+- Operate a single production environment (no separate staging/pre-production stacks).
 
 ## 3. In Scope and Out of Scope
 
@@ -57,7 +58,7 @@ Architecture
 - Data: DynamoDB tables (on-demand). TTL on Cache table items for spotify response caching.
 - Integrations: Spotify Web API via Lambda using Client Credentials (no secret in browser). Aggressive caching in DynamoDB and rate-limit handling (429 backoff, retry).
 - Jobs: EventBridge Scheduler triggers nightly Lambda to refresh and upsert newest episodes for user subscriptions.
-- Secrets: SSM Parameter Store (standard tier) with AWS-managed KMS for encryption at rest.
+- Secrets: SSM Parameter Store (standard tier) with AWS-managed KMS for encryption at rest. Single production namespace (for example `/podcast/prod/...`); no additional stages.
 - Regions: Deploy all regional services to `eu-north-1` (Cognito, AppSync, DynamoDB, Lambda, EventBridge, SSM, S3 origin). Provision the CloudFront ACM certificate in `us-east-1` (required for CloudFront). CloudFront is global; Route 53 hosted zone is global.
 
 Data Model (DynamoDB)
@@ -94,7 +95,7 @@ CI/CD (GitHub Actions)
 - Local development uses AWS CLI/SDK profile `Personal` for CDK bootstrap/deploy and any manual S3 sync operations. Use region `eu-north-1` for all stacks except the ACM certificate stack in `us-east-1`.
 - Workflows:
   - `ci.yml`: install, build, type-check (`tsc --noEmit`), lint, test on PRs.
-  - `deploy-infra.yml`: configure AWS credentials (pinned action), `cdk synth`, `cdk deploy --require-approval never` to dev on push to `main`.
+  - `deploy-infra.yml`: configure AWS credentials (pinned action), `cdk synth`, `cdk deploy --require-approval never` to the single production environment (eu-north-1) on push to `main`.
   - `deploy-web.yml`: build Astro, `aws s3 sync` to site bucket (private), CloudFront invalidation.
 
 Type Safety & Quality
@@ -195,7 +196,7 @@ Then install, build, `tsc --noEmit`, lint, and tests complete successfully
 Scenario: AC-serverless-podcast-tracker-18 — Infra deploy on main
 Given a push to `main`
 When `deploy-infra.yml` runs with OIDC
-Then `cdk synth` and `cdk deploy --require-approval never` apply to dev successfully
+Then `cdk synth` and `cdk deploy --require-approval never` apply to the production stack in `eu-north-1` successfully
 
 Scenario: AC-serverless-podcast-tracker-19 — Web deploy invalidates CDN
 Given a push to `main` affecting the web app
@@ -299,7 +300,7 @@ Quality
 - Which AWS region(s) should host Cognito, AppSync, and DynamoDB?
 - Exact TTL durations for `Cache` (token vs. response caching) and episode refresh policies.
 - Final GraphQL pagination shape for `episodes` (cursor format, max limit).
-- Required callback and logout URLs per environment (dev/prod); how many environments to support initially?
+- Confirm final callback and logout URLs for the single production Cognito app client.
 - Naming conventions for SSM parameters; secret rotation cadence.
 - Should we store/display minimal show/episode metadata only from Spotify, or also enrich from RSS if available (`feedUrl`)?
 - What minimum logging/metrics dashboards are required for MVP?
