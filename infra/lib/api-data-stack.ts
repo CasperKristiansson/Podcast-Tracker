@@ -2,8 +2,16 @@ import * as cdk from 'aws-cdk-lib';
 import * as appsync from 'aws-cdk-lib/aws-appsync';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
 import * as path from 'path';
+import {
+  NodeLambda,
+  grantParameterRead,
+  grantTableReadWrite,
+  resolveLambdaEntry
+} from './constructs/node-lambda.js';
 
 export interface ApiDataStackProps extends cdk.StackProps {
   readonly userPool: cognito.IUserPool;
@@ -13,6 +21,7 @@ export interface ApiDataStackProps extends cdk.StackProps {
 export class ApiDataStack extends cdk.Stack {
   public readonly table: dynamodb.Table;
   public readonly api: appsync.GraphqlApi;
+  public readonly spotifyProxyLambda: lambda.IFunction;
 
   constructor(scope: Construct, id: string, props: ApiDataStackProps) {
     super(scope, id, props);
@@ -53,6 +62,32 @@ export class ApiDataStack extends cdk.Stack {
 
     const tableDataSource = this.api.addDynamoDbDataSource('TableDataSource', this.table);
     const noneDataSource = this.api.addNoneDataSource('NoneDataSource');
+
+    const spotifyClientIdParameter = ssm.StringParameter.fromStringParameterName(
+      this,
+      'SpotifyClientIdParameter',
+      '/podcast/prod/spotify/client_id'
+    );
+
+    const spotifyClientSecretParameter = ssm.StringParameter.fromStringParameterName(
+      this,
+      'SpotifyClientSecretParameter',
+      '/podcast/prod/spotify/client_secret'
+    );
+
+    this.spotifyProxyLambda = new NodeLambda(this, 'SpotifyProxyLambda', {
+      entry: resolveLambdaEntry('spotifyProxy', 'src', 'index.ts'),
+      handler: 'handler',
+      environment: {
+        TABLE_NAME: this.table.tableName,
+        SPOTIFY_CLIENT_ID_PARAM: spotifyClientIdParameter.parameterName,
+        SPOTIFY_CLIENT_SECRET_PARAM: spotifyClientSecretParameter.parameterName,
+        SPOTIFY_MARKET: this.node.tryGetContext('spotifyMarket') ?? 'US'
+      }
+    });
+
+    grantTableReadWrite(this.spotifyProxyLambda, this.table);
+    grantParameterRead(this.spotifyProxyLambda, [spotifyClientIdParameter, spotifyClientSecretParameter]);
 
     noneDataSource.createResolver('HealthResolver', {
       typeName: 'Query',

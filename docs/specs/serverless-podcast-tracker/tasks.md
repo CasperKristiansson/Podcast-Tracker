@@ -108,7 +108,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-03, T-09, T-08.
   - Estimate: 45m
 
-- [ ] T-serverless-podcast-tracker-14: spotifyProxy Lambda + caching (90m)
+- [x] T-serverless-podcast-tracker-14: spotifyProxy Lambda + caching (90m)
 
   - Goal: Implement Client Credentials, cache token and responses in DDB `Cache`, handle 429 with backoff.
   - Files/paths: `/packages/lambdas/spotifyProxy/src/index.ts`, `/packages/shared/src/types.ts`.

@@ -26,7 +26,8 @@ export class NodeLambda extends nodejs.NodejsFunction {
         NODE_OPTIONS: '--enable-source-maps',
         ...environment
       },
-      depsLockFilePath: depsLockFilePath ?? path.join(__dirname, '..', '..', '..', 'package-lock.json'),
+      depsLockFilePath:
+        depsLockFilePath ?? path.join(__dirname, '..', '..', '..', 'package-lock.json'),
       ...rest
     });
   }
@@ -37,9 +38,20 @@ export function grantTableReadWrite(fn: lambda.IFunction, table: dynamodb.ITable
 }
 
 export function grantParameterRead(fn: lambda.IFunction, parameters: ssm.IParameter[]): void {
-  parameters.forEach((parameter) => parameter.grantRead(fn));
+  for (const parameter of parameters) {
+    parameter.grantRead(fn);
+  }
 }
 
 export function resolveLambdaEntry(...segments: string[]): string {
-  return path.join(__dirname, '..', ...segments);
+  const resolvedPath: string = path.join(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    'packages',
+    'lambdas',
+    ...segments
+  );
+  return resolvedPath;
 }
