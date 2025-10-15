@@ -100,7 +100,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-10, T-09.
   - Estimate: 60m
 
-- [ ] T-serverless-podcast-tracker-13: Lambda bundling utility + IAM roles (45m)
+- [x] T-serverless-podcast-tracker-13: Lambda bundling utility + IAM roles (45m)
 
   - Goal: Set up CDK `NodejsFunction` defaults (Node 20, esbuild) and least-privilege roles for table/SSM access.
   - Files/paths: `/infra/lib/constructs/LambdaDefaults.ts`, `/infra/lib/ApiDataStack.ts`.
