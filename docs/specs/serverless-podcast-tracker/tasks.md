@@ -44,7 +44,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-03, T-04.
   - Estimate: 60m
 
-- [x] T-serverless-podcast-tracker-06: EdgeStack (eu-north-1) S3+CloudFront+OAC (90m)
+- [ ] T-serverless-podcast-tracker-06: EdgeStack (eu-north-1) S3+CloudFront+OAC (90m)
 
   - Goal: Private S3 origin, CloudFront with OAC, default index/error, attach ACM cert ARN, security headers function (optional).
   - Files/paths: `/infra/lib/EdgeStack.ts`.

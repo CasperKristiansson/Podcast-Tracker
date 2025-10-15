@@ -4,22 +4,33 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 
-export interface PodcastTrackerStackProps extends cdk.StackProps {
-  readonly certificateArn?: string;
+export interface EdgeStackProps extends cdk.StackProps {
+  /**
+   * ACM certificate ARN to attach to the CloudFront distribution.
+   * Must be issued in us-east-1.
+   */
+  readonly certificateArn: string;
+
+  /**
+   * Fully-qualified domain name the distribution should respond to.
+   */
+  readonly siteDomain: string;
 }
 
-export class PodcastTrackerStack extends cdk.Stack {
+export class EdgeStack extends cdk.Stack {
   public readonly siteBucket: s3.Bucket;
   public readonly distribution: cloudfront.CfnDistribution;
 
-  constructor(scope: Construct, id: string, props: PodcastTrackerStackProps = {}) {
+  constructor(scope: Construct, id: string, props: EdgeStackProps) {
     super(scope, id, props);
 
     if (!props.certificateArn) {
       throw new Error('certificateArn is required to configure the CloudFront distribution.');
     }
 
-    const siteDomain = 'podcast.casperkristiansson.com';
+    if (!props.siteDomain) {
+      throw new Error('siteDomain is required so the distribution can be addressed via a custom domain.');
+    }
 
     this.siteBucket = new s3.Bucket(this, 'SiteBucket', {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -45,7 +56,7 @@ export class PodcastTrackerStack extends cdk.Stack {
       distributionConfig: {
         enabled: true,
         comment: 'Podcast Tracker static assets distribution',
-        aliases: [siteDomain],
+        aliases: [props.siteDomain],
         defaultRootObject: 'index.html',
         origins: [
           {

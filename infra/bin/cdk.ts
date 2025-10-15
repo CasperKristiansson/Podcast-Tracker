@@ -2,7 +2,7 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { CertificateStack } from '../lib/cert-stack.js';
-import { PodcastTrackerStack } from '../lib/podcast-tracker-stack.js';
+import { EdgeStack } from '../lib/edge-stack.js';
 
 const app = new cdk.App();
 
@@ -18,7 +18,8 @@ const certificateStack = new CertificateStack(app, 'PodcastTrackerCertificateSta
   env: { account, region: certificateRegion }
 });
 
-new PodcastTrackerStack(app, 'PodcastTrackerStack', {
+new EdgeStack(app, 'PodcastTrackerEdgeStack', {
   env: { account, region: primaryRegion },
-  certificateArn: certificateStack.certificateArn
+  certificateArn: certificateStack.certificateArn,
+  siteDomain: 'podcast.casperkristiansson.com'
 });
