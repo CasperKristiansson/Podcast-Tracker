@@ -28,11 +28,12 @@ export class ApiDataStack extends cdk.Stack {
       timeToLiveAttribute: 'expiresAt'
     });
 
+    const schemaDir = path.join(__dirname, '..', '..', '..', 'apps', 'api', 'schema');
+    const resolverDir = path.join(__dirname, '..', '..', '..', 'apps', 'api', 'resolvers');
+
     this.api = new appsync.GraphqlApi(this, 'PodcastTrackerApi', {
       name: 'PodcastTrackerApi',
-      definition: appsync.Definition.fromFile(
-        path.join(__dirname, '..', '..', '..', 'apps', 'api', 'schema', 'schema.graphql')
-      ),
+      definition: appsync.Definition.fromFile(path.join(schemaDir, 'schema.graphql')),
       authorizationConfig: {
         defaultAuthorization: {
           authorizationType: appsync.AuthorizationType.USER_POOL,
@@ -48,6 +49,86 @@ export class ApiDataStack extends cdk.Stack {
         ]
       },
       xrayEnabled: true
+    });
+
+    const tableDataSource = this.api.addDynamoDbDataSource('TableDataSource', this.table);
+    const noneDataSource = this.api.addNoneDataSource('NoneDataSource');
+
+    noneDataSource.createResolver('HealthResolver', {
+      typeName: 'Query',
+      fieldName: 'health',
+      requestMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, 'Query.health.request.vtl')
+      ),
+      responseMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, 'Query.health.response.vtl')
+      )
+    });
+
+    tableDataSource.createResolver('MySubscriptionsResolver', {
+      typeName: 'Query',
+      fieldName: 'mySubscriptions',
+      requestMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, 'Query.mySubscriptions.request.vtl')
+      ),
+      responseMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, 'Query.mySubscriptions.response.vtl')
+      )
+    });
+
+    tableDataSource.createResolver('EpisodesResolver', {
+      typeName: 'Query',
+      fieldName: 'episodes',
+      requestMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, 'Query.episodes.request.vtl')
+      ),
+      responseMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, 'Query.episodes.response.vtl')
+      )
+    });
+
+    tableDataSource.createResolver('SubscribeResolver', {
+      typeName: 'Mutation',
+      fieldName: 'subscribe',
+      requestMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, 'Mutation.subscribe.request.vtl')
+      ),
+      responseMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, 'Mutation.subscribe.response.vtl')
+      )
+    });
+
+    tableDataSource.createResolver('MarkProgressResolver', {
+      typeName: 'Mutation',
+      fieldName: 'markProgress',
+      requestMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, 'Mutation.markProgress.request.vtl')
+      ),
+      responseMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, 'Mutation.markProgress.response.vtl')
+      )
+    });
+
+    noneDataSource.createResolver('PublishProgressResolver', {
+      typeName: 'Mutation',
+      fieldName: 'publishProgress',
+      requestMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, 'Mutation.publishProgress.request.vtl')
+      ),
+      responseMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, 'Mutation.publishProgress.response.vtl')
+      )
+    });
+
+    noneDataSource.createResolver('OnProgressResolver', {
+      typeName: 'Subscription',
+      fieldName: 'onProgress',
+      requestMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, 'Subscription.onProgress.request.vtl')
+      ),
+      responseMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, 'Subscription.onProgress.response.vtl')
+      )
     });
 
     new cdk.CfnOutput(this, 'TableName', {

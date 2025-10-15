@@ -92,7 +92,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-08 (SSM params), T-03.
   - Estimate: 90m
 
-- [ ] T-serverless-podcast-tracker-12: DDB direct resolvers for core queries (60m)
+- [x] T-serverless-podcast-tracker-12: DDB direct resolvers for core queries (60m)
 
   - Goal: Configure VTL for `subscriptions` and `episodes` queries and `subscribe`/`markProgress` mutations against DDB.
   - Files/paths: `/infra/lib/ApiDataStack.ts`, `/apps/api/schema/*.graphql`, `/apps/api/resolvers/*.vtl`.

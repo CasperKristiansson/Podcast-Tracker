@@ -1,7 +1,61 @@
+scalar AWSDateTime
+
 schema {
   query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+interface PaginatedResult {
+  nextToken: String
+}
+
+type UserSubscription {
+  showId: ID!
+  title: String!
+  publisher: String!
+  image: String!
+  addedAt: AWSDateTime!
+}
+
+type Episode {
+  showId: ID!
+  episodeId: ID!
+  title: String!
+  audioUrl: String!
+  publishedAt: AWSDateTime!
+  durationSec: Int!
+}
+
+type Progress {
+  episodeId: ID!
+  positionSec: Int!
+  completed: Boolean!
+  updatedAt: AWSDateTime!
+}
+
+type SubscriptionConnection implements PaginatedResult {
+  items: [UserSubscription!]!
+  nextToken: String
+}
+
+type EpisodeConnection implements PaginatedResult {
+  items: [Episode!]!
+  nextToken: String
 }
 
 type Query {
   health: String!
+  mySubscriptions(limit: Int, nextToken: String): SubscriptionConnection!
+  episodes(showId: ID!, limit: Int, nextToken: String): EpisodeConnection!
+}
+
+type Mutation {
+  subscribe(showId: ID!, title: String!, publisher: String!, image: String!): UserSubscription!
+  markProgress(episodeId: ID!, positionSec: Int!, completed: Boolean!): Progress!
+  publishProgress(episodeId: ID!, positionSec: Int!, completed: Boolean!): Progress!
+}
+
+type Subscription {
+  onProgress(episodeId: ID!): Progress! @aws_subscribe(mutations: ["publishProgress"])
 }

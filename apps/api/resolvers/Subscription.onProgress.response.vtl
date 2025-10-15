@@ -1,0 +1,3 @@
+#set($payload = $ctx.result)
+$util.qr($payload.remove("userId"))
+$util.toJson($payload)

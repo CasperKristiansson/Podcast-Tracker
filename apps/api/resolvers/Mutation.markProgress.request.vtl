@@ -1,0 +1,18 @@
+{
+  "version": "2018-05-29",
+  "operation": "PutItem",
+  "key": {
+    "pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub),
+    "sk": $util.dynamodb.toDynamoDBJson("ep#" + $ctx.args.episodeId)
+  },
+  "attributeValues": {
+    "pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub),
+    "sk": $util.dynamodb.toDynamoDBJson("ep#" + $ctx.args.episodeId),
+    "dataType": $util.dynamodb.toDynamoDBJson("progress"),
+    "episodeId": $util.dynamodb.toDynamoDBJson($ctx.args.episodeId),
+    "positionSec": $util.dynamodb.toDynamoDBJson($ctx.args.positionSec),
+    "completed": $util.dynamodb.toDynamoDBJson($ctx.args.completed),
+    "updatedAt": $util.dynamodb.toDynamoDBJson($util.time.nowISO8601())
+  },
+  "returnValues": "ALL_NEW"
+}
