@@ -4,6 +4,7 @@
   "private": true,
   "description": "AWS CDK app for podcast tracker infrastructure",
   "license": "UNLICENSED",
+  "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "watch": "tsc -w -p tsconfig.json",
@@ -18,6 +19,7 @@
     "source-map-support": "^0.5.21"
   },
   "devDependencies": {
+    "@types/node": "^20.12.7",
     "aws-cdk": "^2.158.0",
     "ts-node": "^10.9.2"
   }

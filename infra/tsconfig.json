@@ -4,8 +4,12 @@
     "outDir": "dist",
     "rootDir": "./",
     "types": ["node"],
-    "module": "CommonJS",
-    "moduleResolution": "Node16"
+    "typeRoots": [
+      "./node_modules/@types",
+      "../node_modules/@types"
+    ],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
   },
   "include": [
     "bin/**/*.ts",

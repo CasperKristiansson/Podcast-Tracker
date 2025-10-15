@@ -28,7 +28,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-01, T-02.
   - Estimate: 30m
 
-- [ ] T-serverless-podcast-tracker-04: CDK bootstrap (both regions) runbook (30m)
+- [x] T-serverless-podcast-tracker-04: CDK bootstrap (both regions) runbook (30m)
 
   - Goal: Author runbook with bootstrap commands for `eu-north-1` (app) and `us-east-1` (ACM).
   - Files/paths: `/docs/specs/serverless-podcast-tracker/runbook.md`.
@@ -36,7 +36,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-03.
   - Estimate: 30m
 
-- [ ] T-serverless-podcast-tracker-05: CertStack (us-east-1) (60m)
+- [x] T-serverless-podcast-tracker-05: CertStack (us-east-1) (60m)
 
   - Goal: Create DNS-validated ACM certificate for `podcast.casperkristiansson.com` using Route 53 hosted zone `casperkristiansson.com`.
   - Files/paths: `/infra/lib/CertStack.ts`.
@@ -44,7 +44,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-03, T-04.
   - Estimate: 60m
 
-- [ ] T-serverless-podcast-tracker-06: EdgeStack (eu-north-1) S3+CloudFront+OAC (90m)
+- [x] T-serverless-podcast-tracker-06: EdgeStack (eu-north-1) S3+CloudFront+OAC (90m)
 
   - Goal: Private S3 origin, CloudFront with OAC, default index/error, attach ACM cert ARN, security headers function (optional).
   - Files/paths: `/infra/lib/EdgeStack.ts`.

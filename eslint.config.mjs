@@ -23,13 +23,26 @@ export default defineConfig(
     languageOptions: {
       parserOptions: {
         projectService: true,
-        project: ['./tsconfig.eslint.json'],
         tsconfigRootDir: import.meta.dirname
       }
     },
     rules: {
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-floating-promises': 'error'
+    }
+  },
+  {
+    files: ['infra/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: ['./infra/tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname
+      }
+    },
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off'
     }
   },
   {
