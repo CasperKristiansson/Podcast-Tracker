@@ -20,8 +20,9 @@ export class ConfigStack extends cdk.Stack {
       simpleName: false
     });
 
-    const clientSecretParam = new ssm.CfnParameter(this, 'SpotifyClientSecretParameter', {
-      name: `${basePath}/spotify/client_secret`,
+    const clientSecretParamName = `${basePath}/spotify/client_secret`;
+    new ssm.CfnParameter(this, 'SpotifyClientSecretParameter', {
+      name: clientSecretParamName,
       type: 'SecureString',
       value: spotifyClientSecret,
       tier: 'Standard'
@@ -40,7 +41,7 @@ export class ConfigStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'SpotifyClientSecretParameterName', {
-      value: clientSecretParam.ref
+      value: clientSecretParamName
     });
 
     new cdk.CfnOutput(this, 'SpotifyRedirectUriParameterName', {
@@ -50,10 +51,10 @@ export class ConfigStack extends cdk.Stack {
 
   private static requireEnv(name: string): string {
     const value = process.env[name];
-    if (value === undefined || value === '') {
-      throw new Error(`Environment variable ${name} is required but was not provided.`);
+    if (typeof value === 'string' && value.length > 0) {
+      return value;
     }
 
-    return value;
+    throw new Error(`Environment variable ${name} is required but was not provided.`);
   }
 }
