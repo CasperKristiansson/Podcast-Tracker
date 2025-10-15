@@ -4,6 +4,8 @@
 
 Build a serverless podcast tracker with Google-only authentication, a modern dark UI, and near-zero operational cost. Prioritize backend infrastructure and APIs first, using AWS CDK v2 (TypeScript) for IaC. Frontend is Astro + React, deployed as static assets to S3 behind CloudFront (OAC). Data is stored in DynamoDB. AppSync (GraphQL) provides queries, mutations, and real-time subscriptions. Spotify integration runs via Lambda using Client Credentials with aggressive caching and rate-limit handling.
 
+Primary Region: All workloads (Cognito, AppSync, DynamoDB, Lambda, EventBridge, SSM, S3 origin) are deployed in `eu-north-1`. The CloudFront TLS certificate must be in `us-east-1` (ACM requirement) while CloudFront itself is global.
+
 ## 2. Business Context and Goals
 
 - Offer a simple, privacy-conscious podcast tracking app focused on personal use and a small user base.
@@ -49,13 +51,14 @@ Primary use cases
 
 Architecture
 
-- Frontend: Astro + React, Tailwind (dark-mode via class on html), Radix/shadcn components. Built as static assets, deployed to S3 and served via CloudFront with Origin Access Control (OAC). Default index/error objects configured. Optional CloudFront Function for security headers.
+- Frontend: Astro + React, Tailwind (dark-mode via class on html), Radix/shadcn components. Built as static assets, deployed to S3 and served via CloudFront with Origin Access Control (OAC). Default index/error objects configured. Optional CloudFront Function for security headers. Custom domain `podcast.casperkristiansson.com` served via CloudFront with an ACM certificate in `us-east-1` and Route 53 A/AAAA alias from the hosted zone `casperkristiansson.com`.
 - Auth: Cognito User Pool with Google IdP configured. Self-registration disabled. App client supports OAuth 2.0 Authorization Code + PKCE. Custom login page redirects users directly to Cognito `/oauth2/authorize` with `identity_provider=Google` so only Google consent is shown. Frontend completes token exchange at `/oauth2/token` and uses ID token to call AppSync. Callback and logout URLs configured.
 - API: AWS AppSync GraphQL. Primary auth mode: Cognito User Pools. Additional auth mode (IAM) for Lambda ingestion where required. Real-time via subscriptions.
 - Data: DynamoDB tables (on-demand). TTL on Cache table items for spotify response caching.
 - Integrations: Spotify Web API via Lambda using Client Credentials (no secret in browser). Aggressive caching in DynamoDB and rate-limit handling (429 backoff, retry).
 - Jobs: EventBridge Scheduler triggers nightly Lambda to refresh and upsert newest episodes for user subscriptions.
 - Secrets: SSM Parameter Store (standard tier) with AWS-managed KMS for encryption at rest.
+- Regions: Deploy all regional services to `eu-north-1` (Cognito, AppSync, DynamoDB, Lambda, EventBridge, SSM, S3 origin). Provision the CloudFront ACM certificate in `us-east-1` (required for CloudFront). CloudFront is global; Route 53 hosted zone is global.
 
 Data Model (DynamoDB)
 
@@ -88,6 +91,7 @@ Auth Flow (Google only, custom UI)
 CI/CD (GitHub Actions)
 
 - OIDC to AWS; no long-lived credentials in repo.
+- Local development uses AWS CLI/SDK profile `Personal` for CDK bootstrap/deploy and any manual S3 sync operations. Use region `eu-north-1` for all stacks except the ACM certificate stack in `us-east-1`.
 - Workflows:
   - `ci.yml`: install, build, type-check (`tsc --noEmit`), lint, test on PRs.
   - `deploy-infra.yml`: configure AWS credentials (pinned action), `cdk synth`, `cdk deploy --require-approval never` to dev on push to `main`.
@@ -203,6 +207,25 @@ Given the login flow
 When a user attempts any non-Google identity provider
 Then authentication is not available and access is denied
 
+Scenario: AC-serverless-podcast-tracker-21 — Custom domain served over HTTPS
+Given a Route 53 hosted zone for `casperkristiansson.com` exists in the AWS account
+When the Edge stack is deployed
+Then an ACM certificate in `us-east-1` for `podcast.casperkristiansson.com` is validated and attached to the CloudFront distribution
+And Route 53 A/AAAA alias records point `podcast.casperkristiansson.com` to the distribution
+And an HTTPS GET to `https://podcast.casperkristiansson.com` returns 200 for the site index
+
+Scenario: AC-serverless-podcast-tracker-22 — Local AWS profile Personal used for CDK
+Given a developer has an AWS CLI profile named `Personal` configured
+When they run `cdk bootstrap` or `cdk deploy` according to the runbook
+Then the commands succeed using the `Personal` profile without additional credential configuration
+
+Scenario: AC-serverless-podcast-tracker-23 — Region strategy enforced
+Given the infrastructure stacks are defined in CDK
+When deploying the application
+Then all regional resources (Cognito, AppSync, DynamoDB, Lambda, EventBridge, SSM, S3 origin) are created in `eu-north-1`
+And the CloudFront ACM certificate is created in `us-east-1`
+And the CloudFront distribution serves the custom domain using that certificate
+
 ## 7. Non-Functional Requirements
 
 Performance
@@ -225,7 +248,7 @@ Privacy
 
 Availability
 
-- Target 99.9% for reading the static site and AppSync API in a single-region deployment. CloudFront provides global edge presence for static content.
+- Target 99.9% for reading the static site and AppSync API in a single-region deployment (`eu-north-1`). CloudFront provides global edge presence for static content and serves the custom domain `podcast.casperkristiansson.com` over HTTPS with an ACM certificate in `us-east-1`.
 - Rollback via CDK and versioned S3 assets; CloudFront invalidation supports quick content rollback.
 
 Cost
@@ -263,12 +286,13 @@ Quality
 
 ## 10. Assumptions and Dependencies
 
-- An AWS account with permission to bootstrap and deploy CDK v2 stacks.
+- An AWS account with permission to bootstrap and deploy CDK v2 stacks; local AWS CLI profile `Personal` is available for developers.
+- CDK bootstrapped in `eu-north-1` (all stacks) and in `us-east-1` (certificate stack for CloudFront only).
 - A registered Cognito domain and Google OAuth credentials (client ID/secret) stored in SSM Parameter Store.
 - Spotify Developer application for Client Credentials flow.
 - GitHub repository with Actions and AWS OIDC role configured.
 - Node.js 20.x toolchain; npm or pnpm workspaces for monorepo; TypeScript configured strict.
-- Domain/DNS not strictly required (CloudFront default domain is acceptable for MVP).
+- The domain `casperkristiansson.com` is registered and managed in Route 53. The application will be hosted at `podcast.casperkristiansson.com` via CloudFront with Route 53 alias records and an ACM certificate in `us-east-1`. All other workloads run in `eu-north-1`.
 
 ## 11. Open Questions
 
