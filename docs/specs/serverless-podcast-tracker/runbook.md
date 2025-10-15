@@ -61,6 +61,7 @@ npm run --workspace infra cdk ls --profile Personal
 
 -Expected output (placeholders until stacks are implemented):
 - `PodcastTrackerConfigStack`
+- `PodcastTrackerAuthStack`
 - `PodcastTrackerApiDataStack`
 - `PodcastTrackerEdgeStack`
 

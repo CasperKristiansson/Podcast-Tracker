@@ -4,6 +4,7 @@ import 'dotenv/config';
 import * as cdk from 'aws-cdk-lib';
 import { CertificateStack } from '../lib/cert-stack.js';
 import { ApiDataStack } from '../lib/api-data-stack.js';
+import { AuthStack } from '../lib/auth-stack.js';
 import { EdgeStack } from '../lib/edge-stack.js';
 import { ConfigStack } from '../lib/config-stack.js';
 
@@ -25,8 +26,14 @@ new ConfigStack(app, 'PodcastTrackerConfigStack', {
   env: { account, region: primaryRegion }
 });
 
-new ApiDataStack(app, 'PodcastTrackerApiDataStack', {
+const authStack = new AuthStack(app, 'PodcastTrackerAuthStack', {
   env: { account, region: primaryRegion }
+});
+
+new ApiDataStack(app, 'PodcastTrackerApiDataStack', {
+  env: { account, region: primaryRegion },
+  userPool: authStack.userPool,
+  userPoolClient: authStack.userPoolClient
 });
 
 new EdgeStack(app, 'PodcastTrackerEdgeStack', {

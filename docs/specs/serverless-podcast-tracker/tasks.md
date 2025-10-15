@@ -84,7 +84,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-07 (Cognito pool), T-09.
   - Estimate: 60m
 
-- [ ] T-serverless-podcast-tracker-11: AuthStack Cognito + Google IdP (90m)
+- [x] T-serverless-podcast-tracker-11: AuthStack Cognito + Google IdP (90m)
 
   - Goal: Cognito user pool, domain, app client (Auth Code + PKCE), Google IdP; self-registration disabled.
   - Files/paths: `/infra/lib/AuthStack.ts`.

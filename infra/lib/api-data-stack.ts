@@ -5,11 +5,16 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
 import * as path from 'path';
 
+export interface ApiDataStackProps extends cdk.StackProps {
+  readonly userPool: cognito.IUserPool;
+  readonly userPoolClient: cognito.IUserPoolClient;
+}
+
 export class ApiDataStack extends cdk.Stack {
   public readonly table: dynamodb.Table;
   public readonly api: appsync.GraphqlApi;
 
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: ApiDataStackProps) {
     super(scope, id, props);
 
     this.table = new dynamodb.Table(this, 'PodcastTrackerTable', {
@@ -23,21 +28,17 @@ export class ApiDataStack extends cdk.Stack {
       timeToLiveAttribute: 'expiresAt'
     });
 
-    const userPoolId = ApiDataStack.requireEnv('COGNITO_USER_POOL_ID');
-    const userPoolClientId = ApiDataStack.requireEnv('COGNITO_USER_POOL_CLIENT_ID');
-
-    const userPool = cognito.UserPool.fromUserPoolId(this, 'ImportedUserPool', userPoolId);
-    const userPoolClient = cognito.UserPoolClient.fromUserPoolClientId(this, 'ImportedUserPoolClient', userPoolClientId);
-
     this.api = new appsync.GraphqlApi(this, 'PodcastTrackerApi', {
       name: 'PodcastTrackerApi',
-      definition: appsync.Definition.fromFile(path.join(__dirname, '..', '..', 'apps', 'api', 'schema', 'schema.graphql')),
+      definition: appsync.Definition.fromFile(
+        path.join(__dirname, '..', '..', '..', 'apps', 'api', 'schema', 'schema.graphql')
+      ),
       authorizationConfig: {
         defaultAuthorization: {
           authorizationType: appsync.AuthorizationType.USER_POOL,
           userPoolConfig: {
-            userPool,
-            appIdClientRegex: userPoolClient.userPoolClientId
+            userPool: props.userPool,
+            appIdClientRegex: props.userPoolClient.userPoolClientId
           }
         },
         additionalAuthorizationModes: [
@@ -64,14 +65,5 @@ export class ApiDataStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'GraphQlApiUrl', {
       value: this.api.graphqlUrl
     });
-  }
-
-  private static requireEnv(name: string): string {
-    const value = process.env[name];
-    if (typeof value === 'string' && value.length > 0) {
-      return value;
-    }
-
-    throw new Error(`Environment variable ${name} is required but was not provided.`);
   }
 }
