@@ -1,11 +1,11 @@
 import { useMemo } from "react";
-import { useEpisodesByShowQuery } from "@shared";
-import type {
-  Episode,
-  EpisodesByShowQuery,
-  EpisodesByShowQueryVariables,
+import { useQuery } from "@apollo/client/react";
+import {
+  EpisodesByShowDocument,
+  type EpisodesByShowQuery,
+  type EpisodesByShowQueryVariables,
+  type Episode,
 } from "@shared";
-import type { QueryResult } from "@apollo/client";
 
 interface EpisodesViewProps {
   showId: string;
@@ -37,18 +37,19 @@ const formatDate = (iso: string): string => {
 export default function EpisodesView({
   showId,
 }: EpisodesViewProps): JSX.Element {
-  const queryResult: QueryResult<
+  const { data, loading, error, refetch } = useQuery<
     EpisodesByShowQuery,
     EpisodesByShowQueryVariables
-  > = useEpisodesByShowQuery({
+  >(EpisodesByShowDocument, {
     variables: { showId, limit: 20 },
   });
 
-  const { data, loading, error, refetch } = queryResult;
-
   const items = useMemo<Episode[]>(() => {
     const list = data?.episodes.items ?? [];
-    return list.filter((episode): episode is Episode => Boolean(episode));
+    return list.filter(
+      (episode: Episode | null | undefined): episode is Episode =>
+        Boolean(episode),
+    );
   }, [data]);
 
   if (loading && items.length === 0) {

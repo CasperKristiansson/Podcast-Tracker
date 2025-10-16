@@ -1,10 +1,5 @@
-import {
-  ApolloClient,
-  ApolloProvider,
-  HttpLink,
-  InMemoryCache,
-  split,
-} from "@apollo/client";
+import { ApolloClient, HttpLink, InMemoryCache, split } from "@apollo/client";
+import { ApolloProvider } from "@apollo/client/react";
 import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
 import { getMainDefinition } from "@apollo/client/utilities";
 import { Kind, OperationTypeNode } from "graphql";
@@ -20,7 +15,7 @@ import {
 import { isApiReady, isAuthReady } from "../../lib/flags";
 
 interface ApolloResources {
-  client: ApolloClient<unknown>;
+  client: ApolloClient;
   ws: Client;
 }
 

@@ -24,7 +24,7 @@
     "infra"
   ],
   "dependencies": {
-    "@apollo/client": "^3.14.0",
+    "@apollo/client": "^4.0.7",
     "@aws-sdk/client-dynamodb": "^3.911.0",
     "@aws-sdk/client-ssm": "^3.911.0",
     "@aws-sdk/lib-dynamodb": "^3.911.0",

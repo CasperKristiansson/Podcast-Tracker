@@ -1,11 +1,11 @@
 import { useMemo } from "react";
-import { useMySubscriptionsQuery } from "@shared";
-import type {
-  MySubscriptionsQuery,
-  MySubscriptionsQueryVariables,
-  UserSubscription,
+import { useQuery } from "@apollo/client/react";
+import {
+  MySubscriptionsDocument,
+  type MySubscriptionsQuery,
+  type MySubscriptionsQueryVariables,
+  type UserSubscription,
 } from "@shared";
-import type { QueryResult } from "@apollo/client";
 
 const formatDate = (iso: string): string => {
   try {
@@ -19,18 +19,19 @@ const formatDate = (iso: string): string => {
 };
 
 export default function SubscriptionsView(): JSX.Element {
-  const queryResult: QueryResult<
+  const { data, loading, error, refetch } = useQuery<
     MySubscriptionsQuery,
     MySubscriptionsQueryVariables
-  > = useMySubscriptionsQuery({
+  >(MySubscriptionsDocument, {
     variables: { limit: 25 },
   });
 
-  const { data, loading, error, refetch } = queryResult;
-
   const items = useMemo<UserSubscription[]>(() => {
     const list = data?.mySubscriptions.items ?? [];
-    return list.filter((item): item is UserSubscription => Boolean(item));
+    return list.filter(
+      (item: UserSubscription | null | undefined): item is UserSubscription =>
+        Boolean(item),
+    );
   }, [data]);
 
   if (loading && items.length === 0) {
