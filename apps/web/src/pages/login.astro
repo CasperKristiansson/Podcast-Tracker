@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LoginPage from '../components/auth/LoginPage';
+---
+
+<BaseLayout title="Sign in" description="Authenticate with Google and return to Podcast Tracker.">
+  <section class="mx-auto flex max-w-4xl flex-col items-center gap-12 px-6 py-16 md:py-24">
+    <div class="space-y-4 text-center">
+      <p class="text-xs uppercase tracking-[0.4em] text-brand-muted">Authentication</p>
+      <h1 class="text-4xl font-semibold text-brand-text">Sign in securely</h1>
+      <p class="text-sm text-brand-muted">
+        We use OAuth 2.0 with PKCE via Cognito. Click below to start the Google sign-in flow.
+      </p>
+    </div>
+
+    <LoginPage client:only="react" />
+  </section>
+</BaseLayout>

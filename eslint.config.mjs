@@ -13,7 +13,8 @@ export default defineConfig(
       '**/*.config.*',
       'codegen.ts',
       'packages/shared/src/generated/**/*',
-      'apps/web/src/env.d.ts'
+      'apps/web/src/env.d.ts',
+      'apps/web/.astro/**/*'
     ]
   },
   js.configs.recommended,

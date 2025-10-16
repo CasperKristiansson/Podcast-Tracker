@@ -5,11 +5,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <BaseLayout title="Podcast Tracker" description="Stay in sync with your podcasts.">
   <section class="mx-auto flex max-w-4xl flex-col gap-10 px-6 py-16 md:py-24">
     <div class="space-y-6 text-center">
-      <p class="text-sm uppercase tracking-[0.35em] text-brand-accent/80">Serverless Podcast Tracker</p>
-      <h1 class="text-4xl font-bold tracking-tight text-white md:text-5xl">
+      <p class="text-sm uppercase tracking-[0.35em] text-brand-muted">Serverless Podcast Tracker</p>
+      <h1 class="text-4xl font-bold tracking-tight text-brand-text md:text-5xl">
         Follow your favourite podcasts without missing an episode.
       </h1>
-      <p class="text-lg text-slate-300 md:text-xl">
+      <p class="text-lg text-brand-muted md:text-xl">
         Sign in with Google, sync your subscriptions, and keep progress across devices. Built on AWS AppSync, DynamoDB,
         and Astro.
       </p>
@@ -17,12 +17,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     <div class="flex flex-col items-center gap-3 md:flex-row md:justify-center">
       <a
-        class="inline-flex items-center justify-center rounded-lg bg-brand-primary px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-primary/30 transition hover:bg-brand-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent"
-        href="#"
+        class="inline-flex items-center justify-center rounded-lg bg-brand-primary px-6 py-3 text-sm font-semibold text-brand-text shadow-lg shadow-brand-primary/30 transition hover:bg-brand-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent"
+        href="/login"
       >
-        Coming Soon
+        Sign in with Google
       </a>
-      <p class="text-sm text-slate-400">Infrastructure is live; UI integration next in Milestone 6.</p>
+      <p class="text-sm text-brand-muted">Infrastructure is live; UI integration next in Milestone 6.</p>
     </div>
   </section>
 </BaseLayout>

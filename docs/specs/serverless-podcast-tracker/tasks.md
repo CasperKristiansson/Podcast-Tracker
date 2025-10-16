@@ -148,7 +148,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-01.
   - Estimate: 60m
 
-- [ ] T-serverless-podcast-tracker-19: Auth UI (Google + PKCE) (90m)
+- [x] T-serverless-podcast-tracker-19: Auth UI (Google + PKCE) (90m)
 
   - Goal: Custom login page, redirect to Cognito authorize with `identity_provider=Google`, handle callback, exchange token, store in `sessionStorage`.
   - Files/paths: `/apps/web/src/pages/{login,callback}.tsx` (or .astro), auth utils.
