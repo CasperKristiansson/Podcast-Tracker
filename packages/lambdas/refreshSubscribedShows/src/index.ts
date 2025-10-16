@@ -1,13 +1,8 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
-import {
-  BatchWriteCommand,
-  DynamoDBDocumentClient,
-  PutCommand,
-  QueryCommand,
-  ScanCommand
-} from '@aws-sdk/lib-dynamodb';
+import { BatchWriteCommand, DynamoDBDocumentClient, PutCommand, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { createHash } from 'node:crypto';
+import type { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 
 interface SchedulerEvent {
   readonly time?: string;
@@ -211,6 +206,8 @@ async function fetchRecentEpisodes(showId: string): Promise<SpotifyEpisode[]> {
   return collected;
 }
 
+type DynamoItem = Record<string, NativeAttributeValue>;
+
 async function upsertEpisodes(showId: string, episodes: SpotifyEpisode[]): Promise<void> {
   if (episodes.length === 0) {
     return;
@@ -241,7 +238,7 @@ async function upsertShowMetadata(subscription: SubscriptionItem, episodes: Spot
   );
 }
 
-function mapEpisode(showId: string, episode: SpotifyEpisode) {
+function mapEpisode(showId: string, episode: SpotifyEpisode): DynamoItem {
   return {
     pk: `show#${showId}`,
     sk: `ep#${episode.id}`,
@@ -261,19 +258,19 @@ function resolveAudioUrl(episode: SpotifyEpisode): string {
   return episode.audio_preview_url ?? episode.external_urls?.spotify ?? '';
 }
 
-async function batchWrite(items: Record<string, unknown>[]): Promise<void> {
+async function batchWrite(items: DynamoItem[]): Promise<void> {
   const queue = [...items];
 
   while (queue.length > 0) {
     const chunk = queue.splice(0, 25);
-    let requests = chunk.map((item) => ({ PutRequest: { Item: item } }));
     let attempt = 0;
+    let pending = chunk;
 
-    while (requests.length > 0) {
+    do {
       const response = await dynamo.send(
         new BatchWriteCommand({
           RequestItems: {
-            [tableName]: requests
+            [tableName]: pending.map((item) => ({ PutRequest: { Item: item } }))
           }
         })
       );
@@ -286,8 +283,10 @@ async function batchWrite(items: Record<string, unknown>[]): Promise<void> {
       attempt += 1;
       const delayMs = Math.min(50 * 2 ** attempt, 2000);
       await delay(delayMs);
-      requests = unprocessed;
-    }
+      pending = unprocessed
+        .map((request) => request.PutRequest?.Item)
+        .filter((item): item is DynamoItem => item !== undefined);
+    } while (pending.length > 0);
   }
 }
 
@@ -416,4 +415,3 @@ function requiredEnv(name: string): string {
   }
   return value;
 }
-
