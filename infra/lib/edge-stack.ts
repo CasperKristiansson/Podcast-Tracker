@@ -1,10 +1,10 @@
-import * as cdk from 'aws-cdk-lib';
-import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
-import * as iam from 'aws-cdk-lib/aws-iam';
-import * as route53 from 'aws-cdk-lib/aws-route53';
-import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
-import * as s3 from 'aws-cdk-lib/aws-s3';
-import { Construct } from 'constructs';
+import * as cdk from "aws-cdk-lib";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import * as iam from "aws-cdk-lib/aws-iam";
+import * as route53 from "aws-cdk-lib/aws-route53";
+import * as route53Targets from "aws-cdk-lib/aws-route53-targets";
+import * as s3 from "aws-cdk-lib/aws-s3";
+import { Construct } from "constructs";
 
 export interface EdgeStackProps extends cdk.StackProps {
   /**
@@ -32,136 +32,159 @@ export class EdgeStack extends cdk.Stack {
     super(scope, id, props);
 
     if (!props.certificateArn) {
-      throw new Error('certificateArn is required to configure the CloudFront distribution.');
+      throw new Error(
+        "certificateArn is required to configure the CloudFront distribution."
+      );
     }
 
     if (!props.siteDomain) {
-      throw new Error('siteDomain is required so the distribution can be addressed via a custom domain.');
+      throw new Error(
+        "siteDomain is required so the distribution can be addressed via a custom domain."
+      );
     }
 
     if (!props.hostedZoneDomain) {
-      throw new Error('hostedZoneDomain is required to create Route 53 alias records.');
+      throw new Error(
+        "hostedZoneDomain is required to create Route 53 alias records."
+      );
     }
 
-    this.siteBucket = new s3.Bucket(this, 'SiteBucket', {
+    this.siteBucket = new s3.Bucket(this, "SiteBucket", {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
       versioned: false,
       encryption: s3.BucketEncryption.S3_MANAGED,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
-      autoDeleteObjects: false
+      autoDeleteObjects: false,
     });
 
-    const originAccessControl = new cloudfront.CfnOriginAccessControl(this, 'SiteBucketOAC', {
-      originAccessControlConfig: {
-        name: `${this.stackName}-oac`,
-        originAccessControlOriginType: 's3',
-        signingBehavior: 'always',
-        signingProtocol: 'sigv4'
+    const originAccessControl = new cloudfront.CfnOriginAccessControl(
+      this,
+      "SiteBucketOAC",
+      {
+        originAccessControlConfig: {
+          name: `${this.stackName}-oac`,
+          originAccessControlOriginType: "s3",
+          signingBehavior: "always",
+          signingProtocol: "sigv4",
+        },
       }
-    });
+    );
 
-    const originId = 'SiteBucketOrigin';
+    const originId = "SiteBucketOrigin";
 
-    this.distribution = new cloudfront.CfnDistribution(this, 'SiteDistribution', {
-      distributionConfig: {
-        enabled: true,
-        comment: 'Podcast Tracker static assets distribution',
-        aliases: [props.siteDomain],
-        defaultRootObject: 'index.html',
-        origins: [
-          {
-            id: originId,
-            domainName: this.siteBucket.bucketRegionalDomainName,
-            s3OriginConfig: {
-              originAccessIdentity: ''
+    this.distribution = new cloudfront.CfnDistribution(
+      this,
+      "SiteDistribution",
+      {
+        distributionConfig: {
+          enabled: true,
+          comment: "Podcast Tracker static assets distribution",
+          aliases: [props.siteDomain],
+          defaultRootObject: "index.html",
+          origins: [
+            {
+              id: originId,
+              domainName: this.siteBucket.bucketRegionalDomainName,
+              s3OriginConfig: {
+                originAccessIdentity: "",
+              },
+              originAccessControlId: originAccessControl.attrId,
             },
-            originAccessControlId: originAccessControl.attrId
-          }
-        ],
-        defaultCacheBehavior: {
-          allowedMethods: ['GET', 'HEAD', 'OPTIONS'],
-          cachedMethods: ['GET', 'HEAD'],
-          compress: true,
-          targetOriginId: originId,
-          viewerProtocolPolicy: 'redirect-to-https',
-          cachePolicyId: cloudfront.CachePolicy.CACHING_OPTIMIZED.cachePolicyId,
-          originRequestPolicyId: cloudfront.OriginRequestPolicy.CORS_S3_ORIGIN.originRequestPolicyId
-        },
-        customErrorResponses: [
-          {
-            errorCode: 403,
-            responseCode: 200,
-            responsePagePath: '/index.html'
+          ],
+          defaultCacheBehavior: {
+            allowedMethods: ["GET", "HEAD", "OPTIONS"],
+            cachedMethods: ["GET", "HEAD"],
+            compress: true,
+            targetOriginId: originId,
+            viewerProtocolPolicy: "redirect-to-https",
+            cachePolicyId:
+              cloudfront.CachePolicy.CACHING_OPTIMIZED.cachePolicyId,
+            originRequestPolicyId:
+              cloudfront.OriginRequestPolicy.CORS_S3_ORIGIN
+                .originRequestPolicyId,
           },
-          {
-            errorCode: 404,
-            responseCode: 200,
-            responsePagePath: '/index.html'
-          }
-        ],
-        priceClass: 'PriceClass_100',
-        viewerCertificate: {
-          acmCertificateArn: props.certificateArn,
-          sslSupportMethod: 'sni-only',
-          minimumProtocolVersion: 'TLSv1.2_2021'
+          customErrorResponses: [
+            {
+              errorCode: 403,
+              responseCode: 200,
+              responsePagePath: "/index.html",
+            },
+            {
+              errorCode: 404,
+              responseCode: 200,
+              responsePagePath: "/index.html",
+            },
+          ],
+          priceClass: "PriceClass_100",
+          viewerCertificate: {
+            acmCertificateArn: props.certificateArn,
+            sslSupportMethod: "sni-only",
+            minimumProtocolVersion: "TLSv1.2_2021",
+          },
+          httpVersion: "http2and3",
         },
-        httpVersion: 'http2and3'
       }
+    );
+
+    const distributionRef = cloudfront.Distribution.fromDistributionAttributes(
+      this,
+      "DistributionRef",
+      {
+        distributionId: this.distribution.attrId,
+        domainName: this.distribution.attrDomainName,
+      }
+    );
+
+    const hostedZone = route53.HostedZone.fromLookup(this, "HostedZone", {
+      domainName: props.hostedZoneDomain,
     });
 
-    const distributionRef = cloudfront.Distribution.fromDistributionAttributes(this, 'DistributionRef', {
-      distributionId: this.distribution.attrId,
-      domainName: this.distribution.attrDomainName
-    });
+    const aliasTarget = route53.RecordTarget.fromAlias(
+      new route53Targets.CloudFrontTarget(distributionRef)
+    );
 
-    const hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
-      domainName: props.hostedZoneDomain
-    });
-
-    const aliasTarget = route53.RecordTarget.fromAlias(new route53Targets.CloudFrontTarget(distributionRef));
-
-    new route53.ARecord(this, 'SiteAliasRecord', {
+    new route53.ARecord(this, "SiteAliasRecord", {
       zone: hostedZone,
       recordName: props.siteDomain,
-      target: aliasTarget
+      target: aliasTarget,
     });
 
-    new route53.AaaaRecord(this, 'SiteAliasRecordAAAA', {
+    new route53.AaaaRecord(this, "SiteAliasRecordAAAA", {
       zone: hostedZone,
       recordName: props.siteDomain,
-      target: aliasTarget
+      target: aliasTarget,
     });
 
     this.siteBucket.addToResourcePolicy(
       new iam.PolicyStatement({
-        sid: 'AllowCloudFrontServicePrincipal',
-        actions: ['s3:GetObject'],
-        resources: [this.siteBucket.arnForObjects('*')],
-        principals: [new iam.ServicePrincipal('cloudfront.amazonaws.com')],
+        sid: "AllowCloudFrontServicePrincipal",
+        actions: ["s3:GetObject"],
+        resources: [this.siteBucket.arnForObjects("*")],
+        principals: [new iam.ServicePrincipal("cloudfront.amazonaws.com")],
         conditions: {
           StringEquals: {
-            'AWS:SourceArn': cdk.Stack.of(this).formatArn({
-              service: 'cloudfront',
-              region: '',
-              resource: 'distribution',
-              resourceName: this.distribution.attrId
-            })
-          }
-        }
+            "AWS:SourceArn": cdk.Stack.of(this).formatArn({
+              service: "cloudfront",
+              region: "",
+              resource: "distribution",
+              resourceName: this.distribution.attrId,
+            }),
+          },
+        },
       })
     );
 
-    new cdk.CfnOutput(this, 'SiteBucketName', {
-      value: this.siteBucket.bucketName
+    new cdk.CfnOutput(this, "SiteBucketName", {
+      value: this.siteBucket.bucketName,
     });
 
-    new cdk.CfnOutput(this, 'CloudFrontDistributionId', {
-      value: this.distribution.attrId
+    new cdk.CfnOutput(this, "CloudFrontDistributionId", {
+      value: this.distribution.attrId,
     });
 
-    new cdk.CfnOutput(this, 'CloudFrontDomainName', {
-      value: this.distribution.attrDomainName
+    new cdk.CfnOutput(this, "CloudFrontDomainName", {
+      value: this.distribution.attrDomainName,
     });
   }
 }

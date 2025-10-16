@@ -61,11 +61,25 @@ type Query {
 }
 
 type Mutation {
-  subscribe(showId: ID!, title: String!, publisher: String!, image: String!): UserSubscription!
-  markProgress(episodeId: ID!, positionSec: Int!, completed: Boolean!): Progress!
-  publishProgress(episodeId: ID!, positionSec: Int!, completed: Boolean!): Progress!
+  subscribe(
+    showId: ID!
+    title: String!
+    publisher: String!
+    image: String!
+  ): UserSubscription!
+  markProgress(
+    episodeId: ID!
+    positionSec: Int!
+    completed: Boolean!
+  ): Progress!
+  publishProgress(
+    episodeId: ID!
+    positionSec: Int!
+    completed: Boolean!
+  ): Progress!
 }
 
 type Subscription {
-  onProgress(episodeId: ID!): Progress! @aws_subscribe(mutations: ["publishProgress"])
+  onProgress(episodeId: ID!): Progress!
+    @aws_subscribe(mutations: ["publishProgress"])
 }

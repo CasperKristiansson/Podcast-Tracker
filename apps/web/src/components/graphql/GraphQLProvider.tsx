@@ -1,13 +1,23 @@
-import { ApolloClient, ApolloProvider, HttpLink, InMemoryCache, split } from '@apollo/client';
-import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
-import { getMainDefinition } from '@apollo/client/utilities';
-import { Kind, OperationTypeNode } from 'graphql';
-import type { PropsWithChildren } from 'react';
-import { useEffect, useMemo, useState } from 'react';
-import { createClient as createWsClient, type Client } from 'graphql-ws';
-import { getTokens, signOut } from '../../lib/auth/flow';
-import { appsyncRealtimeHost, appsyncRealtimeUrl, appsyncUrl } from '../../lib/graphql/config';
-import { isApiReady, isAuthReady } from '../../lib/flags';
+import {
+  ApolloClient,
+  ApolloProvider,
+  HttpLink,
+  InMemoryCache,
+  split,
+} from "@apollo/client";
+import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
+import { getMainDefinition } from "@apollo/client/utilities";
+import { Kind, OperationTypeNode } from "graphql";
+import type { PropsWithChildren } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createClient as createWsClient, type Client } from "graphql-ws";
+import { getTokens, signOut } from "../../lib/auth/flow";
+import {
+  appsyncRealtimeHost,
+  appsyncRealtimeUrl,
+  appsyncUrl,
+} from "../../lib/graphql/config";
+import { isApiReady, isAuthReady } from "../../lib/flags";
 
 interface ApolloResources {
   client: ApolloClient<unknown>;
@@ -18,8 +28,8 @@ const createApolloResources = (idToken: string): ApolloResources => {
   const httpLink = new HttpLink({
     uri: appsyncUrl,
     headers: {
-      Authorization: idToken
-    }
+      Authorization: idToken,
+    },
   });
 
   const ws = createWsClient({
@@ -27,12 +37,12 @@ const createApolloResources = (idToken: string): ApolloResources => {
     connectionParams: () => ({
       host: appsyncRealtimeHost,
       Authorization: idToken,
-      authToken: idToken
+      authToken: idToken,
     }),
     lazy: true,
     keepAlive: 30_000,
     retryAttempts: Infinity,
-    shouldRetry: () => true
+    shouldRetry: () => true,
   });
 
   const wsLink = new GraphQLWsLink(ws);
@@ -41,7 +51,8 @@ const createApolloResources = (idToken: string): ApolloResources => {
     ({ query }) => {
       const definition = getMainDefinition(query);
       return (
-        definition.kind === Kind.OPERATION_DEFINITION && definition.operation === OperationTypeNode.SUBSCRIPTION
+        definition.kind === Kind.OPERATION_DEFINITION &&
+        definition.operation === OperationTypeNode.SUBSCRIPTION
       );
     },
     wsLink,
@@ -50,7 +61,7 @@ const createApolloResources = (idToken: string): ApolloResources => {
 
   const client = new ApolloClient({
     link,
-    cache: new InMemoryCache()
+    cache: new InMemoryCache(),
   });
 
   return { client, ws };
@@ -62,19 +73,19 @@ const useApolloClient = () => {
 
   useEffect(() => {
     if (!isAuthReady()) {
-      setError('Authentication is disabled.');
+      setError("Authentication is disabled.");
       return undefined;
     }
 
     if (!isApiReady()) {
-      setError('API is not enabled.');
+      setError("API is not enabled.");
       return undefined;
     }
 
     const tokens = getTokens();
     if (!tokens || tokens.expiresAt <= Date.now()) {
       signOut();
-      void window.location.replace('/login');
+      void window.location.replace("/login");
       return undefined;
     }
 
@@ -89,7 +100,8 @@ const useApolloClient = () => {
         void resources.client.stop();
       };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create GraphQL client.';
+      const message =
+        err instanceof Error ? err.message : "Failed to create GraphQL client.";
       setError(message);
     }
 

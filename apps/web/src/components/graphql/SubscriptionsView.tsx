@@ -1,13 +1,17 @@
-import { useMemo } from 'react';
-import { useMySubscriptionsQuery } from '@shared';
-import type { MySubscriptionsQuery, MySubscriptionsQueryVariables, UserSubscription } from '@shared';
-import type { QueryResult } from '@apollo/client';
+import { useMemo } from "react";
+import { useMySubscriptionsQuery } from "@shared";
+import type {
+  MySubscriptionsQuery,
+  MySubscriptionsQueryVariables,
+  UserSubscription,
+} from "@shared";
+import type { QueryResult } from "@apollo/client";
 
 const formatDate = (iso: string): string => {
   try {
     return new Intl.DateTimeFormat(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short'
+      dateStyle: "medium",
+      timeStyle: "short",
     }).format(new Date(iso));
   } catch {
     return iso;
@@ -15,8 +19,11 @@ const formatDate = (iso: string): string => {
 };
 
 export default function SubscriptionsView(): JSX.Element {
-  const queryResult: QueryResult<MySubscriptionsQuery, MySubscriptionsQueryVariables> = useMySubscriptionsQuery({
-    variables: { limit: 25 }
+  const queryResult: QueryResult<
+    MySubscriptionsQuery,
+    MySubscriptionsQueryVariables
+  > = useMySubscriptionsQuery({
+    variables: { limit: 25 },
   });
 
   const { data, loading, error, refetch } = queryResult;
@@ -47,7 +54,9 @@ export default function SubscriptionsView(): JSX.Element {
   if (items.length === 0) {
     return (
       <div className="rounded-xl border border-brand-primary/30 bg-brand-surface/60 p-8 text-center">
-        <h2 className="text-xl font-semibold text-brand-text">No subscriptions yet</h2>
+        <h2 className="text-xl font-semibold text-brand-text">
+          No subscriptions yet
+        </h2>
         <p className="mt-2 text-sm text-brand-muted">
           Use the search experience (coming soon) to add the podcasts you love.
         </p>
@@ -67,7 +76,9 @@ export default function SubscriptionsView(): JSX.Element {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold text-brand-text">My Subscriptions</h2>
+        <h2 className="text-2xl font-semibold text-brand-text">
+          My Subscriptions
+        </h2>
         <button
           type="button"
           onClick={() => {
@@ -90,7 +101,9 @@ export default function SubscriptionsView(): JSX.Element {
             >
               <div className="flex flex-col gap-3">
                 <div>
-                  <h3 className="text-lg font-semibold text-brand-text">{item.title}</h3>
+                  <h3 className="text-lg font-semibold text-brand-text">
+                    {item.title}
+                  </h3>
                   <p className="text-sm text-brand-muted">{item.publisher}</p>
                 </div>
                 <a
@@ -100,7 +113,9 @@ export default function SubscriptionsView(): JSX.Element {
                   View episodes
                   <span aria-hidden>&rarr;</span>
                 </a>
-                <p className="text-xs text-brand-muted/80">Subscribed {formatDate(String(item.addedAt))}</p>
+                <p className="text-xs text-brand-muted/80">
+                  Subscribed {formatDate(String(item.addedAt))}
+                </p>
               </div>
             </li>
           );

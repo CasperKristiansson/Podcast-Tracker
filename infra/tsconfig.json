@@ -4,16 +4,9 @@
     "outDir": "dist",
     "rootDir": "./",
     "types": ["node"],
-    "typeRoots": [
-      "./node_modules/@types",
-      "../node_modules/@types"
-    ],
+    "typeRoots": ["./node_modules/@types", "../node_modules/@types"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   },
-  "include": [
-    "bin/**/*.ts",
-    "lib/**/*.ts",
-    "scripts/**/*.ts"
-  ]
+  "include": ["bin/**/*.ts", "lib/**/*.ts", "scripts/**/*.ts"]
 }

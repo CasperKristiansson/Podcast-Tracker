@@ -40,8 +40,18 @@ query SearchShows($term: String!, $limit: Int, $offset: Int) {
   }
 }
 
-mutation SubscribeToShow($showId: ID!, $title: String!, $publisher: String!, $image: String!) {
-  subscribe(showId: $showId, title: $title, publisher: $publisher, image: $image) {
+mutation SubscribeToShow(
+  $showId: ID!
+  $title: String!
+  $publisher: String!
+  $image: String!
+) {
+  subscribe(
+    showId: $showId
+    title: $title
+    publisher: $publisher
+    image: $image
+  ) {
     showId
     title
     publisher
@@ -50,8 +60,16 @@ mutation SubscribeToShow($showId: ID!, $title: String!, $publisher: String!, $im
   }
 }
 
-mutation MarkEpisodeProgress($episodeId: ID!, $positionSec: Int!, $completed: Boolean!) {
-  markProgress(episodeId: $episodeId, positionSec: $positionSec, completed: $completed) {
+mutation MarkEpisodeProgress(
+  $episodeId: ID!
+  $positionSec: Int!
+  $completed: Boolean!
+) {
+  markProgress(
+    episodeId: $episodeId
+    positionSec: $positionSec
+    completed: $completed
+  ) {
     episodeId
     positionSec
     completed
@@ -59,8 +77,16 @@ mutation MarkEpisodeProgress($episodeId: ID!, $positionSec: Int!, $completed: Bo
   }
 }
 
-mutation PublishProgressUpdate($episodeId: ID!, $positionSec: Int!, $completed: Boolean!) {
-  publishProgress(episodeId: $episodeId, positionSec: $positionSec, completed: $completed) {
+mutation PublishProgressUpdate(
+  $episodeId: ID!
+  $positionSec: Int!
+  $completed: Boolean!
+) {
+  publishProgress(
+    episodeId: $episodeId
+    positionSec: $positionSec
+    completed: $completed
+  ) {
     episodeId
     positionSec
     completed
@@ -76,4 +102,3 @@ subscription OnProgress($episodeId: ID!) {
     updatedAt
   }
 }
-

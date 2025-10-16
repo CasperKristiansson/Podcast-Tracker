@@ -1,6 +1,6 @@
-const CODE_VERIFIER_KEY = 'podcastTracker:auth:codeVerifier';
-const STATE_KEY = 'podcastTracker:auth:state';
-const TOKENS_KEY = 'podcastTracker:auth:tokens';
+const CODE_VERIFIER_KEY = "podcastTracker:auth:codeVerifier";
+const STATE_KEY = "podcastTracker:auth:state";
+const TOKENS_KEY = "podcastTracker:auth:tokens";
 
 export interface StoredTokens {
   idToken: string;
@@ -11,11 +11,11 @@ export interface StoredTokens {
 }
 
 const getSessionStorage = (): Storage => {
-  if (typeof window === 'undefined') {
-    throw new Error('Session storage is unavailable on the server.');
+  if (typeof window === "undefined") {
+    throw new Error("Session storage is unavailable on the server.");
   }
   if (!window.sessionStorage) {
-    throw new Error('Session storage is not supported in this browser.');
+    throw new Error("Session storage is not supported in this browser.");
   }
   return window.sessionStorage;
 };

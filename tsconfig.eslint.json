@@ -5,7 +5,16 @@
     "types": ["node"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "moduleSuffixes": [".tsx", ".ts", ".mts", ".cts", ".d.ts", ".js", ".mjs", ".cjs"]
+    "moduleSuffixes": [
+      ".tsx",
+      ".ts",
+      ".mts",
+      ".cts",
+      ".d.ts",
+      ".js",
+      ".mjs",
+      ".cjs"
+    ]
   },
   "include": [
     "apps/**/*.ts",
@@ -14,11 +23,5 @@
     "packages/**/*.tsx",
     "infra/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "build",
-    "coverage",
-    "cdk.out"
-  ]
+  "exclude": ["node_modules", "dist", "build", "coverage", "cdk.out"]
 }

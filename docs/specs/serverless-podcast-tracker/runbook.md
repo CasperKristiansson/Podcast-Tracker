@@ -3,6 +3,7 @@
 Use this runbook to operate the single-production environment. It covers environment preparation, regional CDK bootstrapping, repeatable infrastructure deployments, static web publishes, and manual rollback guidance. All commands assume the AWS CLI profile `Personal`, workload region `eu-north-1`, and certificate region `us-east-1`.
 
 ## 1. Prerequisites
+
 - Node.js ≥ 24.10.0 and npm ≥ 11.6.0 (matches repository engines).
 - AWS CLI v2 installed and configured with profile `Personal` that can manage CloudFormation, IAM, S3, Route 53, ACM, AppSync, DynamoDB, and EventBridge in the target account.
 - Route 53 hosted zone `casperkristiansson.com` in the production account (needed for certificate validation and aliases).
@@ -10,7 +11,9 @@ Use this runbook to operate the single-production environment. It covers environ
 - Optional: `aws sso login --profile Personal` if the profile uses AWS SSO.
 
 ### 1.1 Required environment variables
+
 Populate a local secrets file such as `.env.production` (never commit to Git). The `infra` CDK app loads it via `dotenv/config`. Required keys:
+
 - `AWS_ACCOUNT_ID` — numeric AWS account identifier.
 - `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REDIRECT_URI`.
 - `COGNITO_DOMAIN_PREFIX` — unique domain prefix (lowercase, 63 chars max).
@@ -20,6 +23,7 @@ Populate a local secrets file such as `.env.production` (never commit to Git). T
 Before running CDK commands either `cp .env.production .env` or export the variables into the shell (`export $(grep -v '^#' .env.production | xargs)`).
 
 ## 2. Workspace setup
+
 Run once per fresh clone or after dependency changes:
 
 ```bash
@@ -35,9 +39,11 @@ aws sts get-caller-identity --profile Personal
 Confirm the account matches `AWS_ACCOUNT_ID`.
 
 ## 3. One-time CDK bootstrap
+
 The modern bootstrap template is required for all deployments (including GitHub OIDC).
 
 ### 3.1 Bootstrap `eu-north-1` (application region)
+
 ```bash
 export CDK_NEW_BOOTSTRAP=1
 npm run --workspace infra cdk bootstrap \
@@ -47,6 +53,7 @@ unset CDK_NEW_BOOTSTRAP
 ```
 
 ### 3.2 Bootstrap `us-east-1` (CloudFront certificate region)
+
 ```bash
 export CDK_NEW_BOOTSTRAP=1
 npm run --workspace infra cdk bootstrap \
@@ -66,6 +73,7 @@ Expected stack names: `PodcastTrackerCertificateStack`, `PodcastTrackerConfigSta
 ## 4. Manual infrastructure deployment
 
 ### 4.1 Pre-flight checks
+
 - Ensure `.env` (or exported variables) contains the values listed above.
 - Build the CDK app (optional but keeps `dist/` current):
   ```bash
@@ -77,6 +85,7 @@ Expected stack names: `PodcastTrackerCertificateStack`, `PodcastTrackerConfigSta
   ```
 
 ### 4.2 Initial deployment order
+
 Deploy individual stacks in sequence on a fresh environment to satisfy cross-region dependencies:
 
 ```bash
@@ -118,6 +127,7 @@ npm run --workspace infra cdk:deploy -- \
 Keep the same environment variables present for every redeploy—`ConfigStack` reuses them to update SSM parameters.
 
 ### 4.3 Post-deploy checks
+
 - Confirm CloudFormation stacks reached `CREATE_COMPLETE` or `UPDATE_COMPLETE`:
   ```bash
   aws cloudformation describe-stacks \
@@ -145,6 +155,7 @@ Keep the same environment variables present for every redeploy—`ConfigStack` r
   ```
 
 ## 5. Infrastructure rollback
+
 - If a deployment fails, CloudFormation automatically rolls back. Watch progress with:
   ```bash
   aws cloudformation describe-stack-events \
@@ -165,16 +176,21 @@ Keep the same environment variables present for every redeploy—`ConfigStack` r
 - If configuration drift exists (e.g., manual console edits), run `cdk diff` to review and reconcile before redeploying.
 
 ## 6. Static web deployment
+
 The frontend is an Astro build published to the private S3 bucket created by `PodcastTrackerEdgeStack`.
 
 ### 6.1 Build the site
+
 ```bash
 npm run --workspace apps/web build
 ```
+
 The build emits static assets under `apps/web/dist`. Optionally archive the directory with a commit identifier to simplify rollbacks.
 
 ### 6.2 Publish to S3
+
 Fetch the bucket name from stack outputs, then sync:
+
 ```bash
 SITE_BUCKET=$(aws cloudformation describe-stacks \
   --stack-name PodcastTrackerEdgeStack \
@@ -188,6 +204,7 @@ aws s3 sync apps/web/dist "s3://${SITE_BUCKET}/" \
 ```
 
 ### 6.3 Invalidate CloudFront
+
 ```bash
 DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
   --stack-name PodcastTrackerEdgeStack \
@@ -202,11 +219,13 @@ aws cloudfront create-invalidation \
 ```
 
 ### 6.4 Smoke tests
+
 - Visit `https://podcast.casperkristiansson.com`.
 - Confirm TLS chain, security headers, and that the placeholder/index renders.
 - Exercise Google login and key GraphQL flows once the frontend is wired.
 
 ## 7. Web rollback
+
 - Reuse a previously archived `dist` build or re-run `npm run --workspace apps/web build` at an earlier git revision.
 - Resync the older assets to S3 and issue another `create-invalidation`.
 - If the issue is isolated to configuration (e.g., wrong headers), confirm CloudFront behaviors in the CDK stack and redeploy `PodcastTrackerEdgeStack`.
@@ -312,6 +331,7 @@ Use `eu-north-1` for workloads and `us-east-1` when interacting with the CloudFr
   `aws iam delete-open-id-connect-provider --open-id-connect-provider-arn arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com`
 
 ## 9. Useful CLI references
+
 - List deployed stacks: `npm run --workspace infra cdk ls -- --profile Personal`.
 - Tail Spotify proxy logs (after CloudWatch setup): `aws logs tail /aws/lambda/spotifyProxy --follow --profile Personal`.
 - Check DynamoDB TTL status: `aws dynamodb describe-time-to-live --table-name podcast-tracker --profile Personal`.

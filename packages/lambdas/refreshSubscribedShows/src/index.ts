@@ -1,13 +1,19 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
-import { BatchWriteCommand, DynamoDBDocumentClient, PutCommand, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { createHash } from 'node:crypto';
-import type { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
+import {
+  BatchWriteCommand,
+  DynamoDBDocumentClient,
+  PutCommand,
+  QueryCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { createHash } from "node:crypto";
+import type { NativeAttributeValue } from "@aws-sdk/util-dynamodb";
 
 interface SchedulerEvent {
   readonly time?: string;
   readonly id?: string;
-  readonly 'detail-type'?: string;
+  readonly "detail-type"?: string;
 }
 
 interface SubscriptionItem {
@@ -34,15 +40,18 @@ interface SpotifyEpisode {
   duration_ms?: number;
 }
 
-const tableName = requiredEnv('TABLE_NAME');
-const clientIdParam = requiredEnv('SPOTIFY_CLIENT_ID_PARAM');
-const clientSecretParam = requiredEnv('SPOTIFY_CLIENT_SECRET_PARAM');
-const defaultMarket = process.env.SPOTIFY_MARKET ?? 'US';
-const maxPages = Number.parseInt(process.env.SPOTIFY_REFRESH_MAX_PAGES ?? '2', 10);
+const tableName = requiredEnv("TABLE_NAME");
+const clientIdParam = requiredEnv("SPOTIFY_CLIENT_ID_PARAM");
+const clientSecretParam = requiredEnv("SPOTIFY_CLIENT_SECRET_PARAM");
+const defaultMarket = process.env.SPOTIFY_MARKET ?? "US";
+const maxPages = Number.parseInt(
+  process.env.SPOTIFY_REFRESH_MAX_PAGES ?? "2",
+  10
+);
 const pageSize = 50;
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
-  marshallOptions: { removeUndefinedValues: true }
+  marshallOptions: { removeUndefinedValues: true },
 });
 const ssm = new SSMClient({});
 
@@ -53,12 +62,16 @@ const MAX_RETRIES = 3;
 
 export const handler = async (event: SchedulerEvent = {}) => {
   const start = Date.now();
-  console.log('Refresh job invoked', { id: event.id, time: event.time });
+  console.log("Refresh job invoked", { id: event.id, time: event.time });
 
   const subscriptions = await loadSubscriptions();
   if (subscriptions.length === 0) {
-    console.log('No subscriptions found; exiting early');
-    return { showsProcessed: 0, episodesUpserted: 0, durationMs: Date.now() - start };
+    console.log("No subscriptions found; exiting early");
+    return {
+      showsProcessed: 0,
+      episodesUpserted: 0,
+      durationMs: Date.now() - start,
+    };
   }
 
   const shows = collateShows(subscriptions);
@@ -67,10 +80,12 @@ export const handler = async (event: SchedulerEvent = {}) => {
   for (const [showId, subscription] of shows) {
     const existingEpisodeIds = await listEpisodeIds(showId);
     const episodes = await fetchRecentEpisodes(showId);
-    const newEpisodes = episodes.filter((episode) => !existingEpisodeIds.has(episode.id));
+    const newEpisodes = episodes.filter(
+      (episode) => !existingEpisodeIds.has(episode.id)
+    );
 
     if (newEpisodes.length === 0) {
-      console.log('No new episodes for show', { showId });
+      console.log("No new episodes for show", { showId });
       await upsertShowMetadata(subscription, episodes);
       continue;
     }
@@ -79,20 +94,23 @@ export const handler = async (event: SchedulerEvent = {}) => {
     await upsertShowMetadata(subscription, episodes);
 
     totalEpisodesUpserted += newEpisodes.length;
-    console.log('Upserted episodes for show', { showId, count: newEpisodes.length });
+    console.log("Upserted episodes for show", {
+      showId,
+      count: newEpisodes.length,
+    });
   }
 
   const durationMs = Date.now() - start;
-  console.log('Refresh job complete', {
+  console.log("Refresh job complete", {
     showsProcessed: shows.size,
     episodesUpserted: totalEpisodesUpserted,
-    durationMs
+    durationMs,
   });
 
   return {
     showsProcessed: shows.size,
     episodesUpserted: totalEpisodesUpserted,
-    durationMs
+    durationMs,
   };
 };
 
@@ -104,28 +122,29 @@ async function loadSubscriptions(): Promise<SubscriptionItem[]> {
     const result = await dynamo.send(
       new ScanCommand({
         TableName: tableName,
-        FilterExpression: '#dataType = :subscription',
+        FilterExpression: "#dataType = :subscription",
         ExpressionAttributeNames: {
-          '#dataType': 'dataType'
+          "#dataType": "dataType",
         },
         ExpressionAttributeValues: {
-          ':subscription': 'subscription'
+          ":subscription": "subscription",
         },
-        ProjectionExpression: 'pk, sk, showId, title, publisher, image',
-        ExclusiveStartKey
+        ProjectionExpression: "pk, sk, showId, title, publisher, image",
+        ExclusiveStartKey,
       })
     );
 
     if (result.Items) {
       for (const item of result.Items) {
-        if (typeof item.showId === 'string') {
+        if (typeof item.showId === "string") {
           subscriptions.push({
             pk: String(item.pk),
             sk: String(item.sk),
             showId: item.showId,
-            title: typeof item.title === 'string' ? item.title : undefined,
-            publisher: typeof item.publisher === 'string' ? item.publisher : undefined,
-            image: typeof item.image === 'string' ? item.image : undefined
+            title: typeof item.title === "string" ? item.title : undefined,
+            publisher:
+              typeof item.publisher === "string" ? item.publisher : undefined,
+            image: typeof item.image === "string" ? item.image : undefined,
           });
         }
       }
@@ -137,7 +156,9 @@ async function loadSubscriptions(): Promise<SubscriptionItem[]> {
   return subscriptions;
 }
 
-function collateShows(subscriptions: SubscriptionItem[]): Map<string, SubscriptionItem> {
+function collateShows(
+  subscriptions: SubscriptionItem[]
+): Map<string, SubscriptionItem> {
   const shows = new Map<string, SubscriptionItem>();
   for (const subscription of subscriptions) {
     if (!shows.has(subscription.showId)) {
@@ -155,19 +176,19 @@ async function listEpisodeIds(showId: string): Promise<Set<string>> {
     const result = await dynamo.send(
       new QueryCommand({
         TableName: tableName,
-        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
+        KeyConditionExpression: "pk = :pk AND begins_with(sk, :sk)",
         ExpressionAttributeValues: {
-          ':pk': `show#${showId}`,
-          ':sk': 'ep#'
+          ":pk": `show#${showId}`,
+          ":sk": "ep#",
         },
-        ProjectionExpression: 'episodeId',
-        ExclusiveStartKey
+        ProjectionExpression: "episodeId",
+        ExclusiveStartKey,
       })
     );
 
     if (result.Items) {
       for (const item of result.Items) {
-        if (typeof item.episodeId === 'string') {
+        if (typeof item.episodeId === "string") {
           ids.add(item.episodeId);
         }
       }
@@ -187,7 +208,7 @@ async function fetchRecentEpisodes(showId: string): Promise<SpotifyEpisode[]> {
     const params = new URLSearchParams({
       market: defaultMarket,
       limit: String(pageSize),
-      offset: String(offset)
+      offset: String(offset),
     });
 
     const data = await spotifyFetch<SpotifyEpisodesResponse>(
@@ -208,7 +229,10 @@ async function fetchRecentEpisodes(showId: string): Promise<SpotifyEpisode[]> {
 
 type DynamoItem = Record<string, NativeAttributeValue>;
 
-async function upsertEpisodes(showId: string, episodes: SpotifyEpisode[]): Promise<void> {
+async function upsertEpisodes(
+  showId: string,
+  episodes: SpotifyEpisode[]
+): Promise<void> {
   if (episodes.length === 0) {
     return;
   }
@@ -217,23 +241,26 @@ async function upsertEpisodes(showId: string, episodes: SpotifyEpisode[]): Promi
   await batchWrite(items);
 }
 
-async function upsertShowMetadata(subscription: SubscriptionItem, episodes: SpotifyEpisode[]): Promise<void> {
+async function upsertShowMetadata(
+  subscription: SubscriptionItem,
+  episodes: SpotifyEpisode[]
+): Promise<void> {
   const latestEpisode = episodes[0];
   await dynamo.send(
     new PutCommand({
       TableName: tableName,
       Item: {
         pk: `show#${subscription.showId}`,
-        sk: 'meta',
-        dataType: 'show',
+        sk: "meta",
+        dataType: "show",
         showId: subscription.showId,
-        title: subscription.title ?? '',
-        publisher: subscription.publisher ?? '',
+        title: subscription.title ?? "",
+        publisher: subscription.publisher ?? "",
         image: subscription.image ?? null,
         lastRefreshedAt: new Date().toISOString(),
         lastEpisodePublishedAt: latestEpisode?.release_date ?? null,
-        infoHash: createInfoHash(subscription)
-      }
+        infoHash: createInfoHash(subscription),
+      },
     })
   );
 }
@@ -242,7 +269,7 @@ function mapEpisode(showId: string, episode: SpotifyEpisode): DynamoItem {
   return {
     pk: `show#${showId}`,
     sk: `ep#${episode.id}`,
-    dataType: 'episode',
+    dataType: "episode",
     showId,
     episodeId: episode.id,
     title: episode.name,
@@ -250,12 +277,12 @@ function mapEpisode(showId: string, episode: SpotifyEpisode): DynamoItem {
     audioUrl: resolveAudioUrl(episode),
     publishedAt: episode.release_date,
     durationSec: Math.round((episode.duration_ms ?? 0) / 1000),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
 }
 
 function resolveAudioUrl(episode: SpotifyEpisode): string {
-  return episode.audio_preview_url ?? episode.external_urls?.spotify ?? '';
+  return episode.audio_preview_url ?? episode.external_urls?.spotify ?? "";
 }
 
 async function batchWrite(items: DynamoItem[]): Promise<void> {
@@ -270,8 +297,10 @@ async function batchWrite(items: DynamoItem[]): Promise<void> {
       const response = await dynamo.send(
         new BatchWriteCommand({
           RequestItems: {
-            [tableName]: pending.map((item) => ({ PutRequest: { Item: item } }))
-          }
+            [tableName]: pending.map((item) => ({
+              PutRequest: { Item: item },
+            })),
+          },
         })
       );
 
@@ -296,8 +325,8 @@ async function spotifyFetch<T>(pathAndQuery: string, attempt = 0): Promise<T> {
     `${SPOTIFY_BASE}${pathAndQuery}`,
     {
       headers: {
-        Authorization: `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     },
     attempt
   );
@@ -305,7 +334,11 @@ async function spotifyFetch<T>(pathAndQuery: string, attempt = 0): Promise<T> {
   return (await response.json()) as T;
 }
 
-async function fetchWithRetry(url: string, init: RequestInit, attempt = 0): Promise<Response> {
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  attempt = 0
+): Promise<Response> {
   const response = await fetch(url, init);
 
   if (response.status === 401 && attempt < MAX_RETRIES) {
@@ -314,7 +347,8 @@ async function fetchWithRetry(url: string, init: RequestInit, attempt = 0): Prom
   }
 
   if (response.status === 429 && attempt < MAX_RETRIES) {
-    const retryAfter = Number(response.headers.get('retry-after')) || Math.pow(2, attempt + 1);
+    const retryAfter =
+      Number(response.headers.get("retry-after")) || Math.pow(2, attempt + 1);
     await delay(retryAfter * 1000);
     return fetchWithRetry(url, init, attempt + 1);
   }
@@ -334,23 +368,22 @@ async function getSpotifyToken(): Promise<string> {
 
   const [clientId, clientSecret] = await Promise.all([
     getParameter(clientIdParam),
-    getParameter(clientSecretParam)
+    getParameter(clientSecretParam),
   ]);
 
-  const body = new URLSearchParams({ grant_type: 'client_credentials' });
-  const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-
-  const response = await fetchWithRetry(
-    TOKEN_URL,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${authHeader}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body
-    }
+  const body = new URLSearchParams({ grant_type: "client_credentials" });
+  const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString(
+    "base64"
   );
+
+  const response = await fetchWithRetry(TOKEN_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${authHeader}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body,
+  });
 
   const payload = (await response.json()) as {
     access_token: string;
@@ -358,12 +391,12 @@ async function getSpotifyToken(): Promise<string> {
   };
 
   if (!payload.access_token) {
-    throw new Error('Missing access token in Spotify response');
+    throw new Error("Missing access token in Spotify response");
   }
 
   cachedToken = {
     token: payload.access_token,
-    expiresAt: Date.now() + Math.max(payload.expires_in - 60, 60) * 1000
+    expiresAt: Date.now() + Math.max(payload.expires_in - 60, 60) * 1000,
   };
 
   return cachedToken.token;
@@ -378,7 +411,7 @@ async function getParameter(name: string): Promise<string> {
   const result = await ssm.send(
     new GetParameterCommand({
       Name: name,
-      WithDecryption: true
+      WithDecryption: true,
     })
   );
 
@@ -395,18 +428,18 @@ function createInfoHash(subscription: SubscriptionItem): string {
   const payload = JSON.stringify({
     title: subscription.title ?? null,
     publisher: subscription.publisher ?? null,
-    image: subscription.image ?? null
+    image: subscription.image ?? null,
   });
 
-  return createHash('sha256').update(payload).digest('hex');
+  return createHash("sha256").update(payload).digest("hex");
 }
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const SPOTIFY_BASE = 'https://api.spotify.com/v1';
-const TOKEN_URL = 'https://accounts.spotify.com/api/token';
+const SPOTIFY_BASE = "https://api.spotify.com/v1";
+const TOKEN_URL = "https://accounts.spotify.com/api/token";
 
 function requiredEnv(name: string): string {
   const value = process.env[name];

@@ -3,6 +3,7 @@
 ## 1. Architecture Overview
 
 High-level serverless architecture optimized for near-zero cost and EU residency:
+
 - Edge: CloudFront distribution serving static Astro build from a private S3 bucket via OAC. Custom domain `podcast.casperkristiansson.com` via Route 53 hosted zone `casperkristiansson.com`, with an ACM certificate in `us-east-1` attached to CloudFront. Optional CloudFront Function to inject security headers.
 - Auth: Cognito User Pool with Google IdP; user pool domain and app client configured for OAuth 2.0 Authorization Code + PKCE. Self-registration disabled.
 - API: AWS AppSync GraphQL with Cognito User Pools as the primary auth mode. Additional IAM auth for backend ingestion where required.
@@ -13,12 +14,14 @@ High-level serverless architecture optimized for near-zero cost and EU residency
 - Frontend: Astro + React + Tailwind (class-based dark mode) with Radix/shadcn components; custom login page performing PKCE and token exchange against Cognito endpoints; AppSync calls authorized with the Cognito ID token.
 
 Regions
+
 - Primary region: `eu-north-1` for Cognito, AppSync, DynamoDB, Lambda, EventBridge, SSM Parameter Store, and the S3 origin bucket.
 - Certificate region: `us-east-1` for the CloudFront ACM certificate (required by CloudFront). CloudFront is global; Route 53 is global.
 
 ## 2. Boundaries and Responsibilities
 
 Stacks (AWS CDK v2, TypeScript)
+
 - EdgeStack (eu-north-1): S3 site bucket (private), CloudFront distribution, OAC, default index/error, optional headers function; consumes a certificate ARN provisioned in us-east-1; Route 53 A/AAAA alias records in hosted zone `casperkristiansson.com` pointing to the distribution.
 - CertStack (us-east-1): DNS-validated ACM certificate for `podcast.casperkristiansson.com` using the Route 53 hosted zone. Exports the certificate ARN for use by EdgeStack.
 - AuthStack: Cognito User Pool, Google IdP, user pool domain, app client (Auth Code + PKCE), callback/logout URLs; self-registration disabled.
@@ -27,17 +30,20 @@ Stacks (AWS CDK v2, TypeScript)
 - ConfigStack: SSM parameters for Spotify client ID/secret and shared configuration (single production environment).
 
 Deployment Conventions
+
 - Local developer deployments use AWS CLI/SDK profile `Personal` for `cdk bootstrap` and `cdk deploy`.
 - Bootstrap accounts in both `eu-north-1` (application stacks) and `us-east-1` (certificate stack).
 - Operate a single production environment. CI/CD remains GitHub Actions with OIDC to AWS; workflows deploy infrastructure and web assets directly to production in `eu-north-1` (certificate provisioning in `us-east-1`).
 
 Services / Packages
+
 - packages/lambdas/spotifyProxy: Handles `search`, `getShow`, `getEpisodes`. Obtains and caches Spotify token (client credentials) and response payloads. Respects rate limits with retry-after.
 - packages/lambdas/refreshSubscribedShows: On schedule, iterates subscriptions and upserts new episodes fetched from Spotify.
 - apps/api: GraphQL schema and docs. (Resolvers are configured in CDK; VTL mapping templates for DDB, Lambda for Spotify.)
 - apps/web: Astro + React frontend, Tailwind dark-mode class strategy, Radix/shadcn components, PKCE login flow, and GraphQL client integration (queries, mutations, subscriptions).
 
 Cross-Boundary Contracts
+
 - AppSync → Lambda (spotifyProxy): event payload carries GraphQL field name and arguments; response matches GraphQL types.
 - EventBridge → refresh Lambda: scheduled event with environment context; Lambda discovers subscriptions from DynamoDB.
 - Frontend → Cognito: OAuth 2.0 endpoints `/oauth2/authorize` and `/oauth2/token` with PKCE.
@@ -46,6 +52,7 @@ Cross-Boundary Contracts
 ## 3. Data Models and Contracts
 
 Single-table DynamoDB using `pk` (partition key) and `sk` (sort key):
+
 - User: `pk=user#<sub>`, `sk=meta`
 - Subscription: `pk=user#<sub>`, `sk=sub#<showId>`
 - Progress: `pk=user#<sub>`, `sk=ep#<episodeId>`, `positionSec: number`, `completed: boolean`
@@ -54,9 +61,11 @@ Single-table DynamoDB using `pk` (partition key) and `sk` (sort key):
 - Cache: `pk=cache#<key>`, `sk=spotify`, `payload: string/json`, `expiresAt: number` (epoch seconds; TTL enabled on this attribute)
 
 Optional GSI (gsi1) for operations scanning by type at low cost (optional for MVP):
+
 - PK: `sk`, SK: `pk` → enables querying all `Subscription` items by prefix `sub#` for the nightly job without a table scan. If omitted, nightly job can perform a small table scan in MVP given low scale.
 
 GraphQL Types (representative)
+
 - scalar: `AWSDateTime`
 - `type Show { id: ID!, title: String!, publisher: String!, image: String, feedUrl: String, lastSeen: AWSDateTime }`
 - `type Episode { id: ID!, showId: ID!, title: String!, audioUrl: String!, publishedAt: AWSDateTime!, durationSec: Int! }`
@@ -64,6 +73,7 @@ GraphQL Types (representative)
 - `type Progress { episodeId: ID!, userId: ID!, positionSec: Int!, completed: Boolean! }`
 
 ID Mapping
+
 - Show.id ↔ `spotifyShowId`
 - Episode.id ↔ `episodeId` (globally unique within a show context)
 - Subscription.showId ↔ `spotifyShowId`
@@ -72,6 +82,7 @@ ID Mapping
 ## 4. APIs and Endpoints
 
 GraphQL (AppSync)
+
 - Auth: Cognito User Pools (ID token in `Authorization` header). Subscriptions use the same token in the WebSocket connection payload.
 - Queries
   - `search(term: String!): [Show!]!` → Lambda `spotifyProxy` + DDB Cache
@@ -84,15 +95,18 @@ GraphQL (AppSync)
   - `progressUpdated(userId: ID!): Progress!` → AppSync subscription filtered so only matching `userId` subscribers receive events
 
 Lambda `spotifyProxy` (Node.js 20)
+
 - Input (from AppSync Lambda resolver): `{ fieldName: 'search' | 'getShow' | 'getEpisodes', arguments: {...}, identity: {...} }`
 - Output: GraphQL-typed objects matching `Show` or `Episode` arrays.
 - Errors: throws GraphQL errors with `extensions.code` (see taxonomy below).
 
 OAuth Endpoints (Cognito)
+
 - `GET https://<cognito-domain>/oauth2/authorize` with `client_id`, `response_type=code`, `redirect_uri`, `code_challenge`, `code_challenge_method=S256`, `identity_provider=Google`, `scope=openid profile email`
 - `POST https://<cognito-domain>/oauth2/token` with `grant_type=authorization_code`, `client_id`, `redirect_uri`, `code`, `code_verifier`
 
 Error Taxonomy (GraphQL `extensions.code`)
+
 - `AUTH_NOT_AUTHORIZED`: missing/invalid token, or insufficient privileges.
 - `VALIDATION_ERROR`: input validation failure.
 - `NOT_FOUND`: entity does not exist.
@@ -103,81 +117,99 @@ Error Taxonomy (GraphQL `extensions.code`)
 ## 5. State Management and Side Effects
 
 Frontend
+
 - Tokens (ID/access) stored in `sessionStorage` by default; refreshed via standard Cognito expiration. Optionally keep a short-lived in-memory cache to reduce storage reads.
 - Dark-mode persisted in `localStorage` and applied via Tailwind `class` strategy on `<html>`.
 - GraphQL client minimal footprint (e.g., `graphql-request` + `graphql-ws`) to call AppSync and handle subscriptions.
 
 Backend
+
 - Progress writes are idempotent upserts keyed by `user#<sub>` + `ep#<episodeId>`.
 - Subscribe is idempotent upsert keyed by `user#<sub>` + `sub#<showId>`.
 - Cache writes store `payload` and `expiresAt` (epoch seconds) with TTL enabled.
 
 Side Effects
+
 - `markProgress` publishes a real-time event to `progressUpdated` for the user.
 - Nightly job upserts `Episode` and may update `Show.lastSeen`.
 
 ## 6. Failure Modes, Retries, Timeouts, Idempotency
 
 Lambdas
+
 - Timeout: 5–10s for spotifyProxy; 60–300s for refresh job depending on expected volume.
 - Retries: spotifyProxy uses exponential backoff with jitter for Spotify 429/5xx (respect `Retry-After`); refresh job uses AWS retry policies on failure or dead-letter queue (optional) for resilient processing.
 - Idempotency: subscribe/progress/episode upserts are idempotent by key; conditional writes guard against duplication if needed.
 
 AppSync
+
 - DDB resolvers: leverage `Limit`, `ExclusiveStartKey` for pagination; return consistent errors on missing items or insufficient auth.
 - Subscriptions: connection-level failures result in client reconnect with backoff.
 
 Frontend
+
 - PKCE failures (bad verifier) redirect user to login with a fresh code challenge.
 - Network failures show retry UI; persistent auth errors trigger logout and re-auth.
 
 ## 7. Security and Privacy Controls
 
 AuthN/AuthZ
+
 - Cognito User Pool + Google IdP; user pool domain; PKCE enforced. Self-registration disabled.
 - AppSync primary auth: Cognito. Additional IAM auth only for backend ingestion where required.
 
 Data Handling
+
 - Minimal PII: store Cognito `sub` only; avoid storing emails or names unless necessary.
 - DynamoDB, S3, and AppSync encrypted at rest (AWS-managed keys). Parameter Store standard tier with AWS-managed KMS.
 - Cache entries store third-party data; TTL automatically removes stale items.
 
 Secrets
+
 - Spotify client ID/secret in SSM Parameter Store; accessed by Lambdas with least-privilege IAM.
 
 Edge and Transport
+
 - S3 bucket (eu-north-1) is private; CloudFront OAC enforces origin policy. TLS 1.2+ on CloudFront. Custom domain `podcast.casperkristiansson.com` served with ACM certificate in `us-east-1`. Security headers via CloudFront Function (optional).
 
 Client
+
 - Tokens kept in `sessionStorage`; avoid persistent localStorage for tokens. CSRF not applicable for GraphQL bearer flow; XSS protections via strict CSP headers (optional) and framework defaults.
 
 ## 8. Performance Targets and Budgets
 
 Latency (P95)
+
 - AppSync simple DDB queries (subscriptions): ≤ 250 ms
 - Search via cache: ≤ 300 ms; cache miss hitting Spotify: ≤ 1.5 s
 - Nightly refresh job: completes in ≤ 10 minutes for ≤ 10k subscriptions
 
 Throughput & Capacity
+
 - DynamoDB on-demand; expect low baseline RCU/WCU. Subscriptions and progress writes scale linearly by user actions.
 - Lambda memory 256–512 MB for spotifyProxy; 512–1024 MB for refresh job depending on batch processing.
 
 Cost
+
 - Static hosting + on-demand services to remain in free/near-free tiers at MVP scale. Aggressive caching to minimize Spotify calls and Lambda executions.
 
 ## 9. Observability
 
 Logging
+
 - Structured JSON logs from Lambdas (request IDs, function name, latency, cache hit/miss, Spotify status code, retry count).
 
 Metrics
+
 - Custom metrics: `CacheHitRate`, `Spotify429Count`, `SpotifyLatencyMs`, `EpisodesUpserted`, `SubscriptionsCount`.
 - Native metrics: Lambda errors/duration, DynamoDB throttles/consumed capacity, AppSync error rates.
 
 Traces
+
 - Enable X-Ray for Lambdas and AppSync for distributed tracing (optional in MVP).
 
 Dashboards & Alerts
+
 - CloudWatch dashboard summarizing custom + native metrics.
 - Alarms: Lambda error rate > 1% 5m, DynamoDB throttles > threshold, AppSync 5xx rate > threshold, Spotify 429s sustained.
 
@@ -193,6 +225,7 @@ Dashboards & Alerts
 ## 11. Diagrams (Mermaid)
 
 Flowchart — Search and Cache
+
 ```mermaid
 flowchart LR
   Client-->AppSync[AppSync GraphQL]
@@ -206,6 +239,7 @@ flowchart LR
 ```
 
 Sequence — Auth with Google + PKCE
+
 ```mermaid
 sequenceDiagram
   participant U as User
@@ -224,6 +258,7 @@ sequenceDiagram
 ```
 
 ER — DynamoDB Single Table (logical)
+
 ```mermaid
 erDiagram
   USER ||--o{ SUBSCRIPTION : has

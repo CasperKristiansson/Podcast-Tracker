@@ -16,11 +16,5 @@
     "skipLibCheck": true,
     "verbatimModuleSyntax": true
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "build",
-    "coverage",
-    "cdk.out"
-  ]
+  "exclude": ["node_modules", "dist", "build", "coverage", "cdk.out"]
 }

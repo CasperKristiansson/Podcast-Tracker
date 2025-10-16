@@ -1,11 +1,11 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 import {
   DynamoDBDocumentClient,
   GetCommand,
-  PutCommand
-} from '@aws-sdk/lib-dynamodb';
-import { createHash } from 'node:crypto';
+  PutCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { createHash } from "node:crypto";
 
 interface AppSyncEvent {
   info: { fieldName: string };
@@ -16,14 +16,14 @@ interface CachedItem<T> {
   value: T;
 }
 
-const tableName = requiredEnv('TABLE_NAME');
-const clientIdParam = requiredEnv('SPOTIFY_CLIENT_ID_PARAM');
-const clientSecretParam = requiredEnv('SPOTIFY_CLIENT_SECRET_PARAM');
-const defaultMarket = process.env.SPOTIFY_MARKET ?? 'US';
+const tableName = requiredEnv("TABLE_NAME");
+const clientIdParam = requiredEnv("SPOTIFY_CLIENT_ID_PARAM");
+const clientSecretParam = requiredEnv("SPOTIFY_CLIENT_SECRET_PARAM");
+const defaultMarket = process.env.SPOTIFY_MARKET ?? "US";
 
 const ssm = new SSMClient({});
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
-  marshallOptions: { removeUndefinedValues: true }
+  marshallOptions: { removeUndefinedValues: true },
 });
 
 const parameterCache = new Map<string, string>();
@@ -32,48 +32,64 @@ let cachedToken: { token: string; expiresAt: number } | null = null;
 const CACHE_TTLS = {
   searchShows: 300,
   getShow: 3600,
-  getEpisodes: 600
+  getEpisodes: 600,
 } as const;
 
-const SPOTIFY_BASE = 'https://api.spotify.com/v1';
-const TOKEN_URL = 'https://accounts.spotify.com/api/token';
+const SPOTIFY_BASE = "https://api.spotify.com/v1";
+const TOKEN_URL = "https://accounts.spotify.com/api/token";
 const MAX_RETRIES = 3;
 
 export const handler = async (event: AppSyncEvent) => {
   const field = event.info.fieldName;
 
   switch (field) {
-    case 'search':
-    case 'searchShows':
-    case 'searchSpotify': {
-      const args = event.arguments as { term?: string; limit?: number; offset?: number };
+    case "search":
+    case "searchShows":
+    case "searchSpotify": {
+      const args = event.arguments as {
+        term?: string;
+        limit?: number;
+        offset?: number;
+      };
       const term = args.term?.trim();
       if (!term) {
-        throw new Error('term is required');
+        throw new Error("term is required");
       }
 
-      return getCachedValueOrFetch(createCacheKey('search', args), CACHE_TTLS.searchShows, () =>
-        searchShows(term, args.limit, args.offset)
+      return getCachedValueOrFetch(
+        createCacheKey("search", args),
+        CACHE_TTLS.searchShows,
+        () => searchShows(term, args.limit, args.offset)
       );
     }
-    case 'getShow': {
+    case "getShow": {
       const args = event.arguments as { showId?: string };
       const showId = args.showId?.trim();
       if (!showId) {
-        throw new Error('showId is required');
+        throw new Error("showId is required");
       }
 
-      return getCachedValueOrFetch(createCacheKey('show', args), CACHE_TTLS.getShow, () => getShow(showId));
+      return getCachedValueOrFetch(
+        createCacheKey("show", args),
+        CACHE_TTLS.getShow,
+        () => getShow(showId)
+      );
     }
-    case 'getEpisodes':
-    case 'getShowEpisodes': {
-      const args = event.arguments as { showId?: string; limit?: number; cursor?: string };
+    case "getEpisodes":
+    case "getShowEpisodes": {
+      const args = event.arguments as {
+        showId?: string;
+        limit?: number;
+        cursor?: string;
+      };
       const showId = args.showId?.trim();
       if (!showId) {
-        throw new Error('showId is required');
+        throw new Error("showId is required");
       }
-      return getCachedValueOrFetch(createCacheKey('episodes', args), CACHE_TTLS.getEpisodes, () =>
-        getEpisodes(showId, args.limit, args.cursor)
+      return getCachedValueOrFetch(
+        createCacheKey("episodes", args),
+        CACHE_TTLS.getEpisodes,
+        () => getEpisodes(showId, args.limit, args.cursor)
       );
     }
     default:
@@ -84,32 +100,36 @@ export const handler = async (event: AppSyncEvent) => {
 async function searchShows(term: string, limit = 20, offset = 0) {
   const params = new URLSearchParams({
     q: term,
-    type: 'show',
+    type: "show",
     market: defaultMarket,
     limit: limit.toString(),
-    offset: offset.toString()
+    offset: offset.toString(),
   }).toString();
 
-  const data = await spotifyFetch<{ shows: { items: SpotifyShow[]; next?: string } }>(`/search?${params}`);
+  const data = await spotifyFetch<{
+    shows: { items: SpotifyShow[]; next?: string };
+  }>(`/search?${params}`);
   const shows = data.shows?.items ?? [];
 
   return {
-    items: shows.map(mapShow)
+    items: shows.map(mapShow),
   };
 }
 
 async function getShow(showId: string) {
-  const show = await spotifyFetch<SpotifyShow>(`/shows/${encodeURIComponent(showId)}?market=${defaultMarket}`);
+  const show = await spotifyFetch<SpotifyShow>(
+    `/shows/${encodeURIComponent(showId)}?market=${defaultMarket}`
+  );
   return mapShow(show);
 }
 
 async function getEpisodes(showId: string, limit = 20, cursor?: string) {
   const params = new URLSearchParams({
     market: defaultMarket,
-    limit: Math.min(limit, 50).toString()
+    limit: Math.min(limit, 50).toString(),
   });
   if (cursor) {
-    params.set('offset', cursor);
+    params.set("offset", cursor);
   }
 
   const data = await spotifyFetch<SpotifyEpisodesResponse>(
@@ -118,11 +138,17 @@ async function getEpisodes(showId: string, limit = 20, cursor?: string) {
 
   return {
     items: (data.items ?? []).map(mapEpisode),
-    nextCursor: data.next ? new URL(data.next).searchParams.get('offset') : null
+    nextCursor: data.next
+      ? new URL(data.next).searchParams.get("offset")
+      : null,
   };
 }
 
-async function getCachedValueOrFetch<T>(key: string, ttlSeconds: number, fetcher: () => Promise<T>): Promise<T> {
+async function getCachedValueOrFetch<T>(
+  key: string,
+  ttlSeconds: number,
+  fetcher: () => Promise<T>
+): Promise<T> {
   const cached = await getCachedValue<T>(key);
   if (cached) {
     return cached;
@@ -137,11 +163,13 @@ async function getCachedValue<T>(key: string): Promise<T | null> {
   const result = await dynamo.send(
     new GetCommand({
       TableName: tableName,
-      Key: { pk: cachePk(key), sk: 'spotify' }
+      Key: { pk: cachePk(key), sk: "spotify" },
     })
   );
 
-  const item = result.Item as (CachedItem<T> & { expiresAt?: number }) | undefined;
+  const item = result.Item as
+    | (CachedItem<T> & { expiresAt?: number })
+    | undefined;
   if (!item || !item.value) {
     return null;
   }
@@ -153,34 +181,46 @@ async function getCachedValue<T>(key: string): Promise<T | null> {
   return item.value;
 }
 
-async function setCachedValue<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
+async function setCachedValue<T>(
+  key: string,
+  value: T,
+  ttlSeconds: number
+): Promise<void> {
   await dynamo.send(
     new PutCommand({
       TableName: tableName,
       Item: {
         pk: cachePk(key),
-        sk: 'spotify',
+        sk: "spotify",
         value,
         expiresAt: Math.floor(Date.now() / 1000) + ttlSeconds,
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      },
     })
   );
 }
 
 async function spotifyFetch<T>(pathAndQuery: string, attempt = 0): Promise<T> {
   const token = await getSpotifyToken();
-  const response = await fetchWithRetry(`${SPOTIFY_BASE}${pathAndQuery}`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  }, attempt);
+  const response = await fetchWithRetry(
+    `${SPOTIFY_BASE}${pathAndQuery}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+    attempt
+  );
 
   const data = (await response.json()) as T;
   return data;
 }
 
-async function fetchWithRetry(url: string, init: RequestInit, attempt = 0): Promise<Response> {
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  attempt = 0
+): Promise<Response> {
   const response = await fetch(url, init);
 
   if (response.status === 401 && attempt < MAX_RETRIES) {
@@ -189,7 +229,8 @@ async function fetchWithRetry(url: string, init: RequestInit, attempt = 0): Prom
   }
 
   if (response.status === 429 && attempt < MAX_RETRIES) {
-    const retryAfter = Number(response.headers.get('retry-after')) || Math.pow(2, attempt + 1);
+    const retryAfter =
+      Number(response.headers.get("retry-after")) || Math.pow(2, attempt + 1);
     await delay(retryAfter * 1000);
     return fetchWithRetry(url, init, attempt + 1);
   }
@@ -209,23 +250,22 @@ async function getSpotifyToken(): Promise<string> {
 
   const [clientId, clientSecret] = await Promise.all([
     getParameter(clientIdParam),
-    getParameter(clientSecretParam)
+    getParameter(clientSecretParam),
   ]);
 
-  const body = new URLSearchParams({ grant_type: 'client_credentials' });
-  const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-
-  const response = await fetchWithRetry(
-    TOKEN_URL,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${authHeader}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body
-    }
+  const body = new URLSearchParams({ grant_type: "client_credentials" });
+  const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString(
+    "base64"
   );
+
+  const response = await fetchWithRetry(TOKEN_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${authHeader}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body,
+  });
 
   const payload = (await response.json()) as {
     access_token: string;
@@ -233,12 +273,12 @@ async function getSpotifyToken(): Promise<string> {
   };
 
   if (!payload.access_token) {
-    throw new Error('Missing access token in Spotify response');
+    throw new Error("Missing access token in Spotify response");
   }
 
   cachedToken = {
     token: payload.access_token,
-    expiresAt: Date.now() + Math.max(payload.expires_in - 60, 60) * 1000
+    expiresAt: Date.now() + Math.max(payload.expires_in - 60, 60) * 1000,
   };
 
   return cachedToken.token;
@@ -253,7 +293,7 @@ async function getParameter(name: string): Promise<string> {
   const result = await ssm.send(
     new GetParameterCommand({
       Name: name,
-      WithDecryption: true
+      WithDecryption: true,
     })
   );
 
@@ -271,7 +311,7 @@ function cachePk(key: string): string {
 }
 
 function createCacheKey(field: string, args: Record<string, unknown>): string {
-  const hash = createHash('sha256').update(JSON.stringify(args)).digest('hex');
+  const hash = createHash("sha256").update(JSON.stringify(args)).digest("hex");
   return `${field}:${hash}`;
 }
 
@@ -286,19 +326,19 @@ function mapShow(show: SpotifyShow) {
     publisher: show.publisher,
     description: show.description,
     image: show.images?.[0]?.url ?? null,
-    totalEpisodes: show.total_episodes ?? 0
+    totalEpisodes: show.total_episodes ?? 0,
   };
 }
 
 function mapEpisode(episode: SpotifyEpisode) {
   return {
     id: episode.id,
-    showId: episode.show?.id ?? episode.id.split(':')[0] ?? null,
+    showId: episode.show?.id ?? episode.id.split(":")[0] ?? null,
     title: episode.name,
     description: episode.description,
     audioUrl: episode.audio_preview_url,
     publishedAt: episode.release_date,
-    durationSec: Math.round((episode.duration_ms ?? 0) / 1000)
+    durationSec: Math.round((episode.duration_ms ?? 0) / 1000),
   };
 }
 

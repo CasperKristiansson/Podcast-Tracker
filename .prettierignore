@@ -1,0 +1,16 @@
+# Generated artifacts
+packages/shared/src/generated
+infra/cdk.out
+infra/dist
+
+# Build outputs
+apps/web/dist
+apps/web/.astro
+
+# Dependencies
+node_modules
+**/node_modules
+
+# Misc
+coverage
+.turbo

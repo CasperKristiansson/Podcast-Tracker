@@ -1,5 +1,5 @@
-import { GraphQLProvider } from './GraphQLProvider';
-import EpisodesView from './EpisodesView';
+import { GraphQLProvider } from "./GraphQLProvider";
+import EpisodesView from "./EpisodesView";
 
 interface EpisodesAppProps {
   showId: string;

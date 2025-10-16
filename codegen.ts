@@ -1,17 +1,17 @@
-import type { CodegenConfig } from '@graphql-codegen/cli';
+import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
-  schema: 'apps/api/schema/schema.graphql',
+  schema: "apps/api/schema/schema.graphql",
   documents: [
-    'apps/web/src/**/*.graphql',
-    'packages/shared/src/graphql/**/*.graphql'
+    "apps/web/src/**/*.graphql",
+    "packages/shared/src/graphql/**/*.graphql",
   ],
   generates: {
-    'packages/shared/src/generated/graphql.ts': {
+    "packages/shared/src/generated/graphql.ts": {
       plugins: [
-        'typescript',
-        'typescript-operations',
-        'typescript-react-apollo'
+        "typescript",
+        "typescript-operations",
+        "typescript-react-apollo",
       ],
       config: {
         useTypeImports: true,
@@ -22,11 +22,11 @@ const config: CodegenConfig = {
         exposeFetcher: true,
         enumsAsTypes: true,
         nonOptionalTypename: true,
-        maybeValue: 'T | null | undefined'
-      }
-    }
+        maybeValue: "T | null | undefined",
+      },
+    },
   },
-  ignoreNoDocuments: true
+  ignoreNoDocuments: true,
 };
 
 export default config;

@@ -3,9 +3,5 @@
   "compilerOptions": {
     "outDir": "dist"
   },
-  "include": [
-    "schema/**/*.ts",
-    "operations/**/*.ts",
-    "scripts/**/*.ts"
-  ]
+  "include": ["schema/**/*.ts", "operations/**/*.ts", "scripts/**/*.ts"]
 }
