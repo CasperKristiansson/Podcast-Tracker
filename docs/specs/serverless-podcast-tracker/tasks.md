@@ -124,7 +124,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-10, T-14.
   - Estimate: 45m
 
-- [ ] T-serverless-podcast-tracker-16: refreshSubscribedShows Lambda + schedule (60m)
+- [x] T-serverless-podcast-tracker-16: refreshSubscribedShows Lambda + schedule (60m)
 
   - Goal: Nightly EventBridge Scheduler triggers Lambda to upsert latest episodes.
   - Files/paths: `/packages/lambdas/refreshSubscribedShows/src/index.ts`, `/infra/lib/JobsStack.ts`.
@@ -132,7 +132,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-09, T-13, T-14.
   - Estimate: 60m
 
-- [ ] T-serverless-podcast-tracker-17: GraphQL Codegen (45m)
+- [x] T-serverless-podcast-tracker-17: GraphQL Codegen (45m)
 
   - Goal: Add GraphQL Code Generator for schema types and React hooks; emit to `packages/shared`.
   - Files/paths: `/codegen.ts`, `/apps/api/schema/**`, `/packages/shared/src/generated/**`.

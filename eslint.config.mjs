@@ -10,7 +10,9 @@ export default defineConfig(
       '**/build',
       'cdk.out',
       '**/coverage',
-      '**/*.config.*'
+      '**/*.config.*',
+      'codegen.ts',
+      'packages/shared/src/generated/**/*'
     ]
   },
   js.configs.recommended,

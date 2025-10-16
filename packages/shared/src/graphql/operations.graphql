@@ -1,0 +1,79 @@
+query HealthCheck {
+  health
+}
+
+query MySubscriptions($limit: Int, $nextToken: String) {
+  mySubscriptions(limit: $limit, nextToken: $nextToken) {
+    items {
+      showId
+      title
+      publisher
+      image
+      addedAt
+    }
+    nextToken
+  }
+}
+
+query EpisodesByShow($showId: ID!, $limit: Int, $nextToken: String) {
+  episodes(showId: $showId, limit: $limit, nextToken: $nextToken) {
+    items {
+      episodeId
+      showId
+      title
+      audioUrl
+      publishedAt
+      durationSec
+    }
+    nextToken
+  }
+}
+
+query SearchShows($term: String!, $limit: Int, $offset: Int) {
+  search(term: $term, limit: $limit, offset: $offset) {
+    id
+    title
+    publisher
+    description
+    image
+    totalEpisodes
+  }
+}
+
+mutation SubscribeToShow($showId: ID!, $title: String!, $publisher: String!, $image: String!) {
+  subscribe(showId: $showId, title: $title, publisher: $publisher, image: $image) {
+    showId
+    title
+    publisher
+    image
+    addedAt
+  }
+}
+
+mutation MarkEpisodeProgress($episodeId: ID!, $positionSec: Int!, $completed: Boolean!) {
+  markProgress(episodeId: $episodeId, positionSec: $positionSec, completed: $completed) {
+    episodeId
+    positionSec
+    completed
+    updatedAt
+  }
+}
+
+mutation PublishProgressUpdate($episodeId: ID!, $positionSec: Int!, $completed: Boolean!) {
+  publishProgress(episodeId: $episodeId, positionSec: $positionSec, completed: $completed) {
+    episodeId
+    positionSec
+    completed
+    updatedAt
+  }
+}
+
+subscription OnProgress($episodeId: ID!) {
+  onProgress(episodeId: $episodeId) {
+    episodeId
+    positionSec
+    completed
+    updatedAt
+  }
+}
+
