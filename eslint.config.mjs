@@ -11,12 +11,14 @@ export default defineConfig(
       "**/dist",
       "**/build",
       "cdk.out",
+      "**/cdk.out/**/*",
       "**/coverage",
       "**/*.config.*",
       "codegen.ts",
       "packages/shared/src/generated/**/*",
       "apps/web/src/env.d.ts",
       "apps/web/.astro/**/*",
+      "**/*.astro",
     ],
   },
   js.configs.recommended,
@@ -66,5 +68,5 @@ export default defineConfig(
     rules: {
       "prettier/prettier": "error",
     },
-  }
+  },
 );

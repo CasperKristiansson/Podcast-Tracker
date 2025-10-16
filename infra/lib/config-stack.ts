@@ -21,7 +21,7 @@ export class ConfigStack extends cdk.Stack {
         dataType: ssm.ParameterDataType.TEXT,
         tier: ssm.ParameterTier.STANDARD,
         simpleName: false,
-      }
+      },
     );
 
     const clientSecretParamName = `${basePath}/spotify/client_secret`;
@@ -41,7 +41,7 @@ export class ConfigStack extends cdk.Stack {
         dataType: ssm.ParameterDataType.TEXT,
         tier: ssm.ParameterTier.STANDARD,
         simpleName: false,
-      }
+      },
     );
 
     new cdk.CfnOutput(this, "SpotifyClientIdParameterName", {
@@ -64,7 +64,7 @@ export class ConfigStack extends cdk.Stack {
     }
 
     throw new Error(
-      `Environment variable ${name} is required but was not provided.`
+      `Environment variable ${name} is required but was not provided.`,
     );
   }
 }

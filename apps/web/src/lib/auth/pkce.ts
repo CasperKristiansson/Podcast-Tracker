@@ -40,7 +40,7 @@ const base64UrlEncode = (arrayBuffer: ArrayBuffer): string => {
 };
 
 export const generateCodeChallenge = async (
-  verifier: string
+  verifier: string,
 ): Promise<string> => {
   const crypto = getCrypto();
   const encoder = new TextEncoder();

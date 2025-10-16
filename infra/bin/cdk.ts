@@ -25,7 +25,7 @@ const certificateStack = new CertificateStack(
   {
     env: { account, region: certificateRegion },
     crossRegionReferences: true,
-  }
+  },
 );
 
 const configStack = new ConfigStack(app, "PodcastTrackerConfigStack", {

@@ -31,7 +31,7 @@ export class AuthStack extends cdk.Stack {
     new cognito.UserPoolIdentityProviderGoogle(this, "GoogleIdentityProvider", {
       userPool: this.userPool,
       clientId: googleClientId,
-      clientSecret: googleClientSecret,
+      clientSecretValue: cdk.SecretValue.unsafePlainText(googleClientSecret),
       scopes: ["openid", "email", "profile"],
       attributeMapping: {
         email: cognito.ProviderAttribute.GOOGLE_EMAIL,
@@ -90,7 +90,7 @@ export class AuthStack extends cdk.Stack {
       return value;
     }
     throw new Error(
-      `Environment variable ${name} is required but was not provided.`
+      `Environment variable ${name} is required but was not provided.`,
     );
   }
 

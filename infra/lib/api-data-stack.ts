@@ -33,7 +33,9 @@ export class ApiDataStack extends cdk.Stack {
       partitionKey: { name: "pk", type: dynamodb.AttributeType.STRING },
       sortKey: { name: "sk", type: dynamodb.AttributeType.STRING },
       removalPolicy: cdk.RemovalPolicy.RETAIN,
-      pointInTimeRecovery: true,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: true,
+      },
       encryption: dynamodb.TableEncryption.AWS_MANAGED,
       timeToLiveAttribute: "expiresAt",
     });
@@ -46,7 +48,7 @@ export class ApiDataStack extends cdk.Stack {
       "..",
       "apps",
       "api",
-      "schema"
+      "schema",
     );
     const resolverDir = path.join(
       currentDir,
@@ -55,13 +57,13 @@ export class ApiDataStack extends cdk.Stack {
       "..",
       "apps",
       "api",
-      "resolvers"
+      "resolvers",
     );
 
     this.api = new appsync.GraphqlApi(this, "PodcastTrackerApi", {
       name: "PodcastTrackerApi",
       definition: appsync.Definition.fromFile(
-        path.join(schemaDir, "schema.graphql")
+        path.join(schemaDir, "schema.graphql"),
       ),
       authorizationConfig: {
         defaultAuthorization: {
@@ -82,7 +84,7 @@ export class ApiDataStack extends cdk.Stack {
 
     const tableDataSource = this.api.addDynamoDbDataSource(
       "TableDataSource",
-      this.table
+      this.table,
     );
     const noneDataSource = this.api.addNoneDataSource("NoneDataSource");
 
@@ -90,14 +92,14 @@ export class ApiDataStack extends cdk.Stack {
       ssm.StringParameter.fromStringParameterName(
         this,
         "SpotifyClientIdParameter",
-        "/podcast/prod/spotify/client_id"
+        "/podcast/prod/spotify/client_id",
       );
 
     const spotifyClientSecretParameter =
       ssm.StringParameter.fromStringParameterName(
         this,
         "SpotifyClientSecretParameter",
-        "/podcast/prod/spotify/client_secret"
+        "/podcast/prod/spotify/client_secret",
       );
 
     this.spotifyProxyLambda = new NodeLambda(this, "SpotifyProxyLambda", {
@@ -119,17 +121,17 @@ export class ApiDataStack extends cdk.Stack {
 
     const spotifyLambdaDataSource = this.api.addLambdaDataSource(
       "SpotifyProxyDataSource",
-      this.spotifyProxyLambda
+      this.spotifyProxyLambda,
     );
 
     noneDataSource.createResolver("HealthResolver", {
       typeName: "Query",
       fieldName: "health",
       requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.health.request.vtl")
+        path.join(resolverDir, "Query.health.request.vtl"),
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.health.response.vtl")
+        path.join(resolverDir, "Query.health.response.vtl"),
       ),
     });
 
@@ -144,10 +146,10 @@ export class ApiDataStack extends cdk.Stack {
       typeName: "Query",
       fieldName: "mySubscriptions",
       requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.mySubscriptions.request.vtl")
+        path.join(resolverDir, "Query.mySubscriptions.request.vtl"),
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.mySubscriptions.response.vtl")
+        path.join(resolverDir, "Query.mySubscriptions.response.vtl"),
       ),
     });
 
@@ -155,10 +157,10 @@ export class ApiDataStack extends cdk.Stack {
       typeName: "Query",
       fieldName: "episodes",
       requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.episodes.request.vtl")
+        path.join(resolverDir, "Query.episodes.request.vtl"),
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.episodes.response.vtl")
+        path.join(resolverDir, "Query.episodes.response.vtl"),
       ),
     });
 
@@ -166,10 +168,10 @@ export class ApiDataStack extends cdk.Stack {
       typeName: "Mutation",
       fieldName: "subscribe",
       requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Mutation.subscribe.request.vtl")
+        path.join(resolverDir, "Mutation.subscribe.request.vtl"),
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Mutation.subscribe.response.vtl")
+        path.join(resolverDir, "Mutation.subscribe.response.vtl"),
       ),
     });
 
@@ -177,10 +179,10 @@ export class ApiDataStack extends cdk.Stack {
       typeName: "Mutation",
       fieldName: "markProgress",
       requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Mutation.markProgress.request.vtl")
+        path.join(resolverDir, "Mutation.markProgress.request.vtl"),
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Mutation.markProgress.response.vtl")
+        path.join(resolverDir, "Mutation.markProgress.response.vtl"),
       ),
     });
 
@@ -188,10 +190,10 @@ export class ApiDataStack extends cdk.Stack {
       typeName: "Mutation",
       fieldName: "publishProgress",
       requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Mutation.publishProgress.request.vtl")
+        path.join(resolverDir, "Mutation.publishProgress.request.vtl"),
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Mutation.publishProgress.response.vtl")
+        path.join(resolverDir, "Mutation.publishProgress.response.vtl"),
       ),
     });
 
@@ -199,10 +201,10 @@ export class ApiDataStack extends cdk.Stack {
       typeName: "Subscription",
       fieldName: "onProgress",
       requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Subscription.onProgress.request.vtl")
+        path.join(resolverDir, "Subscription.onProgress.request.vtl"),
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Subscription.onProgress.response.vtl")
+        path.join(resolverDir, "Subscription.onProgress.response.vtl"),
       ),
     });
 

@@ -25,14 +25,14 @@ export class JobsStack extends cdk.Stack {
       ssm.StringParameter.fromStringParameterName(
         this,
         "SpotifyClientIdParameter",
-        "/podcast/prod/spotify/client_id"
+        "/podcast/prod/spotify/client_id",
       );
 
     const spotifyClientSecretParameter =
       ssm.StringParameter.fromStringParameterName(
         this,
         "SpotifyClientSecretParameter",
-        "/podcast/prod/spotify/client_secret"
+        "/podcast/prod/spotify/client_secret",
       );
 
     this.refreshLambda = new NodeLambda(this, "RefreshSubscribedShowsLambda", {

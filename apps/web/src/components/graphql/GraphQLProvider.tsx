@@ -8,7 +8,7 @@ import {
 import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
 import { getMainDefinition } from "@apollo/client/utilities";
 import { Kind, OperationTypeNode } from "graphql";
-import type { PropsWithChildren } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { createClient as createWsClient, type Client } from "graphql-ws";
 import { getTokens, signOut } from "../../lib/auth/flow";
@@ -56,7 +56,7 @@ const createApolloResources = (idToken: string): ApolloResources => {
       );
     },
     wsLink,
-    httpLink
+    httpLink,
   );
 
   const client = new ApolloClient({
@@ -111,7 +111,13 @@ const useApolloClient = () => {
   return useMemo(() => ({ resource, error }), [resource, error]);
 };
 
-export function GraphQLProvider({ children }: PropsWithChildren): JSX.Element {
+interface GraphQLProviderProps {
+  children: ReactNode | ReactNode[];
+}
+
+export function GraphQLProvider({
+  children,
+}: GraphQLProviderProps): JSX.Element {
   const { resource, error } = useApolloClient();
 
   if (error) {
@@ -132,5 +138,10 @@ export function GraphQLProvider({ children }: PropsWithChildren): JSX.Element {
     );
   }
 
-  return <ApolloProvider client={resource.client}>{children}</ApolloProvider>;
+  type ApolloProviderProps = ComponentProps<typeof ApolloProvider>;
+  const safeChildren = children as ApolloProviderProps["children"];
+
+  return (
+    <ApolloProvider client={resource.client}>{safeChildren}</ApolloProvider>
+  );
 }

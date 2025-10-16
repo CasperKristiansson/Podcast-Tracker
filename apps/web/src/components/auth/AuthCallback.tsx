@@ -53,8 +53,8 @@ export default function AuthCallback(): JSX.Element {
           status === "error"
             ? "text-red-200"
             : status === "success"
-            ? "text-brand-text"
-            : "text-brand-muted"
+              ? "text-brand-text"
+              : "text-brand-muted"
         }`}
       >
         {message}

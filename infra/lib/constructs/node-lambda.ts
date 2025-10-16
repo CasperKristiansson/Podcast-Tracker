@@ -9,7 +9,7 @@ import { Construct } from "constructs";
 export type NodeLambdaProps = Omit<nodejs.NodejsFunctionProps, "runtime">;
 
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(moduleDir, "..", "..", "..", "..");
+const projectRoot = path.resolve(moduleDir, "..", "..", "..");
 
 export class NodeLambda extends nodejs.NodejsFunction {
   constructor(scope: Construct, id: string, props: NodeLambdaProps) {
@@ -39,14 +39,14 @@ export class NodeLambda extends nodejs.NodejsFunction {
 
 export function grantTableReadWrite(
   fn: lambda.IFunction,
-  table: dynamodb.ITable
+  table: dynamodb.ITable,
 ): void {
   table.grantReadWriteData(fn);
 }
 
 export function grantParameterRead(
   fn: lambda.IFunction,
-  parameters: ssm.IParameter[]
+  parameters: ssm.IParameter[],
 ): void {
   for (const parameter of parameters) {
     parameter.grantRead(fn);
@@ -58,7 +58,7 @@ export function resolveLambdaEntry(...segments: string[]): string {
     projectRoot,
     "packages",
     "lambdas",
-    ...segments
+    ...segments,
   );
   return resolvedPath;
 }
