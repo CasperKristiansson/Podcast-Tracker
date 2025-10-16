@@ -1,6 +1,10 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import SubscriptionsApp from '../../components/graphql/SubscriptionsApp';
+import { isAuthReady, isApiReady } from '../../lib/flags';
+
+const authReady = isAuthReady();
+const apiReady = isApiReady();
 ---
 
 <BaseLayout title="Subscriptions" description="Your podcast subscriptions.">
@@ -14,6 +18,14 @@ import SubscriptionsApp from '../../components/graphql/SubscriptionsApp';
       </p>
     </div>
 
-    <SubscriptionsApp client:only="react" />
+    {authReady && apiReady ? (
+      <SubscriptionsApp client:only="react" />
+    ) : (
+      <div class="rounded-xl border border-brand-primary/30 bg-brand-surface/60 p-8 text-center text-sm text-brand-muted">
+        {authReady
+          ? 'API is not enabled yet. Check back soon for subscriptions.'
+          : 'Authentication is disabled. Enable auth to view subscriptions.'}
+      </div>
+    )}
   </section>
 </BaseLayout>

@@ -1,12 +1,16 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import EpisodesApp from '../../../components/graphql/EpisodesApp';
+import { isAuthReady, isApiReady } from '../../../lib/flags';
 
 const { showId } = Astro.params;
 
 if (!showId) {
   throw new Error('showId parameter missing');
 }
+
+const authReady = isAuthReady();
+const apiReady = isApiReady();
 ---
 
 <BaseLayout title="Episodes" description="Latest episodes for your subscription.">
@@ -21,6 +25,14 @@ if (!showId) {
       </p>
     </div>
 
-    <EpisodesApp client:only="react" showId={showId} />
+    {authReady && apiReady ? (
+      <EpisodesApp client:only="react" showId={showId} />
+    ) : (
+      <div class="rounded-xl border border-brand-primary/30 bg-brand-surface/60 p-8 text-center text-sm text-brand-muted">
+        {authReady
+          ? 'API is not enabled yet. Episodes are unavailable.'
+          : 'Authentication is disabled. Enable auth to view episodes.'}
+      </div>
+    )}
   </section>
 </BaseLayout>

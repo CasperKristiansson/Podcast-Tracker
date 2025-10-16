@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createClient as createWsClient, type Client } from 'graphql-ws';
 import { getTokens, signOut } from '../../lib/auth/flow';
 import { appsyncRealtimeHost, appsyncRealtimeUrl, appsyncUrl } from '../../lib/graphql/config';
+import { isApiReady, isAuthReady } from '../../lib/flags';
 
 interface ApolloResources {
   client: ApolloClient<unknown>;
@@ -60,6 +61,16 @@ const useApolloClient = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isAuthReady()) {
+      setError('Authentication is disabled.');
+      return undefined;
+    }
+
+    if (!isApiReady()) {
+      setError('API is not enabled.');
+      return undefined;
+    }
+
     const tokens = getTokens();
     if (!tokens || tokens.expiresAt <= Date.now()) {
       signOut();

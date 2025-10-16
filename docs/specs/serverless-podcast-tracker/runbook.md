@@ -211,7 +211,107 @@ aws cloudfront create-invalidation \
 - Resync the older assets to S3 and issue another `create-invalidation`.
 - If the issue is isolated to configuration (e.g., wrong headers), confirm CloudFront behaviors in the CDK stack and redeploy `PodcastTrackerEdgeStack`.
 
-## 8. Useful CLI references
+## 8. GitHub Actions OIDC access
+
+GitHub Actions authenticates to AWS using OpenID Connect (OIDC). Provision the identity provider and a deploy role once per account, then reuse across workflows.
+
+### 8.1 Create the OIDC provider (one-time)
+
+```bash
+aws iam create-open-id-connect-provider \
+  --url https://token.actions.githubusercontent.com \
+  --client-id-list sts.amazonaws.com \
+  --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
+```
+
+Confirm the provider exists:
+
+```bash
+aws iam list-open-id-connect-providers
+```
+
+### 8.2 Create the GitHub deploy role
+
+Define variables (`ACCOUNT_ID` is the AWS account number; `REPO` is `casperkristiansson/podcast-tracker`):
+
+```bash
+ACCOUNT_ID=<ACCOUNT_ID>
+REPO=casperkristiansson/podcast-tracker
+ROLE_NAME=PodcastTrackerGithubDeployRole
+```
+
+Create the role with a trust policy limited to the repository:
+
+```bash
+aws iam create-role \
+  --role-name "${ROLE_NAME}" \
+  --assume-role-policy-document "{
+    \"Version\": \"2012-10-17\",
+    \"Statement\": [
+      {
+        \"Effect\": \"Allow\",
+        \"Principal\": {
+          \"Federated\": \"arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com\"
+        },
+        \"Action\": \"sts:AssumeRoleWithWebIdentity\",
+        \"Condition\": {
+          \"StringEquals\": {
+            \"token.actions.githubusercontent.com:aud\": \"sts.amazonaws.com\"
+          },
+          \"StringLike\": {
+            \"token.actions.githubusercontent.com:sub\": \"repo:${REPO}:*\"
+          }
+        }
+      }
+    ]
+  }"
+```
+
+Attach permissions the workflows require. Minimal examples:
+
+```bash
+# Infrastructure deploys (CDK)
+aws iam attach-role-policy \
+  --role-name "${ROLE_NAME}" \
+  --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+
+# Web deploys (S3 + CloudFront only)
+aws iam attach-role-policy \
+  --role-name "${ROLE_NAME}" \
+  --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
+aws iam attach-role-policy \
+  --role-name "${ROLE_NAME}" \
+  --policy-arn arn:aws:iam::aws:policy/CloudFrontFullAccess
+```
+
+Record the role ARN for workflow usage:
+
+```bash
+aws iam get-role --role-name "${ROLE_NAME}" --query 'Role.Arn' --output text
+```
+
+### 8.3 GitHub Actions configuration
+
+In workflow YAML, configure the AWS credentials step with the role ARN and session name:
+
+```yaml
+- name: Configure AWS credentials
+  uses: aws-actions/configure-aws-credentials@v4
+  with:
+    role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/PodcastTrackerGithubDeployRole
+    aws-region: eu-north-1
+```
+
+Use `eu-north-1` for workloads and `us-east-1` when interacting with the CloudFront certificate stack.
+
+### 8.4 Rotating / revoking access
+
+- To revoke GitHub access temporarily, detach the policies or delete the role:\
+  `aws iam delete-role --role-name "${ROLE_NAME}"`
+- To remove the provider entirely:\
+  `aws iam delete-open-id-connect-provider --open-id-connect-provider-arn arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com`
+
+## 9. Useful CLI references
 - List deployed stacks: `npm run --workspace infra cdk ls -- --profile Personal`.
 - Tail Spotify proxy logs (after CloudWatch setup): `aws logs tail /aws/lambda/spotifyProxy --follow --profile Personal`.
 - Check DynamoDB TTL status: `aws dynamodb describe-time-to-live --table-name podcast-tracker --profile Personal`.

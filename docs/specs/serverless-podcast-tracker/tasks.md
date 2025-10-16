@@ -164,7 +164,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-17, T-19.
   - Estimate: 60m
 
-- [ ] T-serverless-podcast-tracker-21: Feature flags / guarded routes (30m)
+- [x] T-serverless-podcast-tracker-21: Feature flags / guarded routes (30m)
 
   - Goal: Add simple runtime flags (e.g., `SPOTIFY_ENABLED`, `AUTH_READY`) to hide UI routes until backend ready.
   - Files/paths: `/apps/web/src/lib/flags.ts`, `.env*` docs.
@@ -172,7 +172,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-18.
   - Estimate: 30m
 
-- [ ] T-serverless-podcast-tracker-22: CI — OIDC to AWS (45m)
+- [x] T-serverless-podcast-tracker-22: CI — OIDC to AWS (45m)
 
   - Goal: Configure IAM role trust for GitHub OIDC; document role ARN/region pairing.
   - Files/paths: `/docs/specs/serverless-podcast-tracker/runbook.md`, AWS console/IaC (optional).
@@ -180,7 +180,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-03, T-06.
   - Estimate: 45m
 
-- [ ] T-serverless-podcast-tracker-23: CI — ci.yml (45m)
+- [x] T-serverless-podcast-tracker-23: CI — ci.yml (45m)
 
   - Goal: Build, type-check (`tsc --noEmit`), lint, and test on PR.
   - Files/paths: `/.github/workflows/ci.yml`.
