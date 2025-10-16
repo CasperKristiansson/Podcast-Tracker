@@ -7,6 +7,7 @@ import { ApiDataStack } from '../lib/api-data-stack.js';
 import { AuthStack } from '../lib/auth-stack.js';
 import { EdgeStack } from '../lib/edge-stack.js';
 import { ConfigStack } from '../lib/config-stack.js';
+import { JobsStack } from '../lib/jobs-stack.js';
 
 const app = new cdk.App();
 
@@ -22,7 +23,7 @@ const certificateStack = new CertificateStack(app, 'PodcastTrackerCertificateSta
   env: { account, region: certificateRegion }
 });
 
-new ConfigStack(app, 'PodcastTrackerConfigStack', {
+const configStack = new ConfigStack(app, 'PodcastTrackerConfigStack', {
   env: { account, region: primaryRegion }
 });
 
@@ -30,11 +31,19 @@ const authStack = new AuthStack(app, 'PodcastTrackerAuthStack', {
   env: { account, region: primaryRegion }
 });
 
-new ApiDataStack(app, 'PodcastTrackerApiDataStack', {
+const apiDataStack = new ApiDataStack(app, 'PodcastTrackerApiDataStack', {
   env: { account, region: primaryRegion },
   userPool: authStack.userPool,
   userPoolClient: authStack.userPoolClient
 });
+
+const jobsStack = new JobsStack(app, 'PodcastTrackerJobsStack', {
+  env: { account, region: primaryRegion },
+  table: apiDataStack.table
+});
+
+jobsStack.addDependency(configStack);
+jobsStack.addDependency(apiDataStack);
 
 new EdgeStack(app, 'PodcastTrackerEdgeStack', {
   env: { account, region: primaryRegion },
