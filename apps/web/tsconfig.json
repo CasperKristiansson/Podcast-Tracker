@@ -5,7 +5,9 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "paths": {
-      "~/*": ["src/*"]
+      "~/*": ["src/*"],
+      "@shared": ["../../packages/shared/src/index.ts"],
+      "@shared/*": ["../../packages/shared/src/*"]
     }
   },
   "include": [

@@ -156,7 +156,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-11, T-18.
   - Estimate: 90m
 
-- [ ] T-serverless-podcast-tracker-20: AppSync client + basic views (60m)
+- [x] T-serverless-podcast-tracker-20: AppSync client + basic views (60m)
 
   - Goal: Configure GraphQL client (https + websocket) with Cognito ID token; minimal pages for subscriptions and episodes.
   - Files/paths: `/apps/web/src/lib/graphql.ts`, `/apps/web/src/pages/**`.
