@@ -12,10 +12,12 @@ const normalize = (value: string | undefined, fallback: boolean): boolean => {
   return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
 };
 
+const env: ImportMetaEnv = import.meta.env;
+
 const flags: FlagConfig = {
-  spotifyEnabled: normalize(import.meta.env.PUBLIC_FLAG_SPOTIFY_ENABLED, false),
-  authReady: normalize(import.meta.env.PUBLIC_FLAG_AUTH_READY, false),
-  apiReady: normalize(import.meta.env.PUBLIC_FLAG_API_READY, false)
+  spotifyEnabled: normalize(env.PUBLIC_FLAG_SPOTIFY_ENABLED, false),
+  authReady: normalize(env.PUBLIC_FLAG_AUTH_READY, false),
+  apiReady: normalize(env.PUBLIC_FLAG_API_READY, false)
 };
 
 export const isSpotifyEnabled = (): boolean => flags.spotifyEnabled;
