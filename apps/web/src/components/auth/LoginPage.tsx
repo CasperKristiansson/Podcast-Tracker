@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { beginLogin } from "../../lib/auth/flow";
-import { isAuthReady } from "../../lib/flags";
 
 const BUTTON_BASE =
   "inline-flex items-center justify-center rounded-lg px-6 py-3 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2";
@@ -8,13 +7,8 @@ const BUTTON_BASE =
 export default function LoginPage(): JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const authEnabled = isAuthReady();
 
   const handleSignIn = async (): Promise<void> => {
-    if (!authEnabled) {
-      setError("Authentication is currently disabled.");
-      return;
-    }
     setError(null);
     setIsLoading(true);
 
@@ -50,20 +44,14 @@ export default function LoginPage(): JSX.Element {
         onClick={() => {
           void handleSignIn();
         }}
-        disabled={isLoading || !authEnabled}
+        disabled={isLoading}
         className={`${BUTTON_BASE} ${
-          authEnabled
-            ? isLoading
-              ? "cursor-not-allowed bg-brand-primary/40 text-brand-text/70"
-              : "bg-brand-primary text-brand-text hover:bg-brand-primary/90"
-            : "cursor-not-allowed bg-brand-surface/60 text-brand-muted"
+          isLoading
+            ? "cursor-not-allowed bg-brand-primary/40 text-brand-text/70"
+            : "bg-brand-primary text-brand-text hover:bg-brand-primary/90"
         } focus-visible:outline-brand-accent`}
       >
-        {authEnabled
-          ? isLoading
-            ? "Redirecting…"
-            : "Sign in with Google"
-          : "Authentication disabled"}
+        {isLoading ? "Redirecting…" : "Sign in with Google"}
       </button>
 
       <p className="text-xs leading-relaxed text-brand-muted/80">
@@ -74,12 +62,6 @@ export default function LoginPage(): JSX.Element {
       {error ? (
         <div className="rounded-md border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">
           {error}
-        </div>
-      ) : null}
-      {!authEnabled ? (
-        <div className="rounded-md border border-brand-primary/40 bg-brand-surface/60 p-3 text-xs text-brand-muted">
-          Sign-in is currently disabled. Check back once authentication is
-          marked ready.
         </div>
       ) : null}
     </div>
