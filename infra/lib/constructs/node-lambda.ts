@@ -2,10 +2,14 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as nodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as ssm from "aws-cdk-lib/aws-ssm";
-import * as path from "path";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Construct } from "constructs";
 
 export type NodeLambdaProps = Omit<nodejs.NodejsFunctionProps, "runtime">;
+
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(moduleDir, "..", "..", "..", "..");
 
 export class NodeLambda extends nodejs.NodejsFunction {
   constructor(scope: Construct, id: string, props: NodeLambdaProps) {
@@ -27,8 +31,7 @@ export class NodeLambda extends nodejs.NodejsFunction {
         ...environment,
       },
       depsLockFilePath:
-        depsLockFilePath ??
-        path.join(__dirname, "..", "..", "..", "package-lock.json"),
+        depsLockFilePath ?? path.join(projectRoot, "package-lock.json"),
       ...rest,
     });
   }
@@ -52,10 +55,7 @@ export function grantParameterRead(
 
 export function resolveLambdaEntry(...segments: string[]): string {
   const resolvedPath: string = path.join(
-    __dirname,
-    "..",
-    "..",
-    "..",
+    projectRoot,
     "packages",
     "lambdas",
     ...segments

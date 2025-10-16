@@ -1,0 +1,10 @@
+{
+  "hosted-zone:account=574406306846:domainName=casperkristiansson.com:region=us-east-1": {
+    "Id": "/hostedzone/Z0949257JX8W6PZ1N72T",
+    "Name": "casperkristiansson.com."
+  },
+  "hosted-zone:account=574406306846:domainName=casperkristiansson.com:region=eu-north-1": {
+    "Id": "/hostedzone/Z0949257JX8W6PZ1N72T",
+    "Name": "casperkristiansson.com."
+  }
+}

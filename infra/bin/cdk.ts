@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-import "source-map-support/register";
-import "dotenv/config";
 import "source-map-support/register.js";
+import "dotenv/config";
 import * as cdk from "aws-cdk-lib";
 import { CertificateStack } from "../lib/cert-stack.js";
 import { ApiDataStack } from "../lib/api-data-stack.js";
@@ -25,26 +24,31 @@ const certificateStack = new CertificateStack(
   "PodcastTrackerCertificateStack",
   {
     env: { account, region: certificateRegion },
+    crossRegionReferences: true,
   }
 );
 
 const configStack = new ConfigStack(app, "PodcastTrackerConfigStack", {
   env: { account, region: primaryRegion },
+  crossRegionReferences: true,
 });
 
 const authStack = new AuthStack(app, "PodcastTrackerAuthStack", {
   env: { account, region: primaryRegion },
+  crossRegionReferences: true,
 });
 
 const apiDataStack = new ApiDataStack(app, "PodcastTrackerApiDataStack", {
   env: { account, region: primaryRegion },
   userPool: authStack.userPool,
   userPoolClient: authStack.userPoolClient,
+  crossRegionReferences: true,
 });
 
 const jobsStack = new JobsStack(app, "PodcastTrackerJobsStack", {
   env: { account, region: primaryRegion },
   table: apiDataStack.table,
+  crossRegionReferences: true,
 });
 
 jobsStack.addDependency(configStack);
@@ -52,6 +56,7 @@ jobsStack.addDependency(apiDataStack);
 
 new EdgeStack(app, "PodcastTrackerEdgeStack", {
   env: { account, region: primaryRegion },
+  crossRegionReferences: true,
   certificateArn: certificateStack.certificateArn,
   siteDomain: "podcast.casperkristiansson.com",
   hostedZoneDomain: "casperkristiansson.com",

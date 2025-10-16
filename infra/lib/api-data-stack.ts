@@ -5,7 +5,8 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import { Construct } from "constructs";
-import * as path from "path";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   NodeLambda,
   grantParameterRead,
@@ -37,8 +38,9 @@ export class ApiDataStack extends cdk.Stack {
       timeToLiveAttribute: "expiresAt",
     });
 
+    const currentDir = path.dirname(fileURLToPath(import.meta.url));
     const schemaDir = path.join(
-      __dirname,
+      currentDir,
       "..",
       "..",
       "..",
@@ -47,7 +49,7 @@ export class ApiDataStack extends cdk.Stack {
       "schema"
     );
     const resolverDir = path.join(
-      __dirname,
+      currentDir,
       "..",
       "..",
       "..",
