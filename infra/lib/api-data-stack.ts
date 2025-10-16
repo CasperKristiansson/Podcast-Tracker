@@ -89,6 +89,11 @@ export class ApiDataStack extends cdk.Stack {
     grantTableReadWrite(this.spotifyProxyLambda, this.table);
     grantParameterRead(this.spotifyProxyLambda, [spotifyClientIdParameter, spotifyClientSecretParameter]);
 
+    const spotifyLambdaDataSource = this.api.addLambdaDataSource(
+      'SpotifyProxyDataSource',
+      this.spotifyProxyLambda
+    );
+
     noneDataSource.createResolver('HealthResolver', {
       typeName: 'Query',
       fieldName: 'health',
@@ -98,6 +103,13 @@ export class ApiDataStack extends cdk.Stack {
       responseMappingTemplate: appsync.MappingTemplate.fromFile(
         path.join(resolverDir, 'Query.health.response.vtl')
       )
+    });
+
+    spotifyLambdaDataSource.createResolver('SearchResolver', {
+      typeName: 'Query',
+      fieldName: 'search',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult()
     });
 
     tableDataSource.createResolver('MySubscriptionsResolver', {

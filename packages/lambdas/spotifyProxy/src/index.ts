@@ -43,6 +43,7 @@ export const handler = async (event: AppSyncEvent) => {
   const field = event.info.fieldName;
 
   switch (field) {
+    case 'search':
     case 'searchShows':
     case 'searchSpotify': {
       const args = event.arguments as { term?: string; limit?: number; offset?: number };

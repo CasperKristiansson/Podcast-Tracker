@@ -116,7 +116,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-13, T-09, T-08.
   - Estimate: 90m
 
-- [ ] T-serverless-podcast-tracker-15: AppSync Lambda resolver for search (45m)
+- [x] T-serverless-podcast-tracker-15: AppSync Lambda resolver for search (45m)
 
   - Goal: Wire `search(term)` to `spotifyProxy` Lambda; return typed `Show[]`.
   - Files/paths: `/infra/lib/ApiDataStack.ts`, `/apps/api/schema/queries.graphql`.

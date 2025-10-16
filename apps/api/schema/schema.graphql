@@ -34,6 +34,15 @@ type Progress {
   updatedAt: AWSDateTime!
 }
 
+type Show {
+  id: ID!
+  title: String!
+  publisher: String!
+  description: String
+  image: String
+  totalEpisodes: Int!
+}
+
 type SubscriptionConnection implements PaginatedResult {
   items: [UserSubscription!]!
   nextToken: String
@@ -48,6 +57,7 @@ type Query {
   health: String!
   mySubscriptions(limit: Int, nextToken: String): SubscriptionConnection!
   episodes(showId: ID!, limit: Int, nextToken: String): EpisodeConnection!
+  search(term: String!, limit: Int, offset: Int): [Show!]!
 }
 
 type Mutation {
