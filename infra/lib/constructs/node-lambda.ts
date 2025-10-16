@@ -9,7 +9,7 @@ import { Construct } from "constructs";
 export type NodeLambdaProps = Omit<nodejs.NodejsFunctionProps, "runtime">;
 
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(moduleDir, "..", "..", "..");
+const projectRoot = path.resolve(moduleDir, "..", "..", "..", "..");
 
 export class NodeLambda extends nodejs.NodejsFunction {
   constructor(scope: Construct, id: string, props: NodeLambdaProps) {
