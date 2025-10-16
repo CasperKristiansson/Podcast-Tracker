@@ -5,6 +5,7 @@ dist/
 build/
 tmp/
 .turbo/
+.astro/
 # Logs
 *.log
 npm-debug.log*

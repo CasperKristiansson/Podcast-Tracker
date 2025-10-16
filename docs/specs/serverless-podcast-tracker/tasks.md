@@ -140,7 +140,7 @@ This plan turns the approved requirements and design into small, reversible task
   - Dependencies: T-10.
   - Estimate: 45m
 
-- [ ] T-serverless-podcast-tracker-18: Astro + Tailwind scaffold (60m)
+- [x] T-serverless-podcast-tracker-18: Astro + Tailwind scaffold (60m)
 
   - Goal: Create Astro app with React + Tailwind (dark mode via `class`).
   - Files/paths: `/apps/web/**`.

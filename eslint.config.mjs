@@ -12,7 +12,8 @@ export default defineConfig(
       '**/coverage',
       '**/*.config.*',
       'codegen.ts',
-      'packages/shared/src/generated/**/*'
+      'packages/shared/src/generated/**/*',
+      'apps/web/src/env.d.ts'
     ]
   },
   js.configs.recommended,
