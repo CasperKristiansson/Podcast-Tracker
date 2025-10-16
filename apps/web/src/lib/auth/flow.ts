@@ -55,7 +55,7 @@ export const beginLogin = async (): Promise<void> => {
 
 const buildTokenRequestBody = (
   code: string,
-  codeVerifier: string,
+  codeVerifier: string
 ): URLSearchParams => {
   return new URLSearchParams({
     grant_type: "authorization_code",
@@ -104,7 +104,7 @@ export interface CallbackResult {
 }
 
 export const completeLogin = async (
-  url: string = window.location.href,
+  url: string = window.location.href
 ): Promise<CallbackResult> => {
   if (typeof window === "undefined") {
     throw new Error("Callback handling must run in the browser.");

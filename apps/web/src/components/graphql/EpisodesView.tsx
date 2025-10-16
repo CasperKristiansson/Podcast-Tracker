@@ -48,7 +48,7 @@ export default function EpisodesView({
     const list = data?.episodes.items ?? [];
     return list.filter(
       (episode: Episode | null | undefined): episode is Episode =>
-        Boolean(episode),
+        Boolean(episode)
     );
   }, [data]);
 

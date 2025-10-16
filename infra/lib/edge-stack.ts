@@ -33,19 +33,19 @@ export class EdgeStack extends cdk.Stack {
 
     if (!props.certificateArn) {
       throw new Error(
-        "certificateArn is required to configure the CloudFront distribution.",
+        "certificateArn is required to configure the CloudFront distribution."
       );
     }
 
     if (!props.siteDomain) {
       throw new Error(
-        "siteDomain is required so the distribution can be addressed via a custom domain.",
+        "siteDomain is required so the distribution can be addressed via a custom domain."
       );
     }
 
     if (!props.hostedZoneDomain) {
       throw new Error(
-        "hostedZoneDomain is required to create Route 53 alias records.",
+        "hostedZoneDomain is required to create Route 53 alias records."
       );
     }
 
@@ -68,7 +68,7 @@ export class EdgeStack extends cdk.Stack {
           signingBehavior: "always",
           signingProtocol: "sigv4",
         },
-      },
+      }
     );
 
     const originId = "SiteBucketOrigin";
@@ -124,7 +124,7 @@ export class EdgeStack extends cdk.Stack {
           },
           httpVersion: "http2and3",
         },
-      },
+      }
     );
 
     const distributionRef = cloudfront.Distribution.fromDistributionAttributes(
@@ -133,7 +133,7 @@ export class EdgeStack extends cdk.Stack {
       {
         distributionId: this.distribution.attrId,
         domainName: this.distribution.attrDomainName,
-      },
+      }
     );
 
     const hostedZone = route53.HostedZone.fromLookup(this, "HostedZone", {
@@ -141,7 +141,7 @@ export class EdgeStack extends cdk.Stack {
     });
 
     const aliasTarget = route53.RecordTarget.fromAlias(
-      new route53Targets.CloudFrontTarget(distributionRef),
+      new route53Targets.CloudFrontTarget(distributionRef)
     );
 
     new route53.ARecord(this, "SiteAliasRecord", {
@@ -172,7 +172,7 @@ export class EdgeStack extends cdk.Stack {
             }),
           },
         },
-      }),
+      })
     );
 
     new cdk.CfnOutput(this, "SiteBucketName", {

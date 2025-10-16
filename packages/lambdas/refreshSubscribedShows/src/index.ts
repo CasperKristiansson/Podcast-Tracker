@@ -46,7 +46,7 @@ const clientSecretParam = requiredEnv("SPOTIFY_CLIENT_SECRET_PARAM");
 const defaultMarket = process.env.SPOTIFY_MARKET ?? "US";
 const maxPages = Number.parseInt(
   process.env.SPOTIFY_REFRESH_MAX_PAGES ?? "2",
-  10,
+  10
 );
 const pageSize = 50;
 
@@ -81,7 +81,7 @@ export const handler = async (event: SchedulerEvent = {}) => {
     const existingEpisodeIds = await listEpisodeIds(showId);
     const episodes = await fetchRecentEpisodes(showId);
     const newEpisodes = episodes.filter(
-      (episode) => !existingEpisodeIds.has(episode.id),
+      (episode) => !existingEpisodeIds.has(episode.id)
     );
 
     if (newEpisodes.length === 0) {
@@ -131,7 +131,7 @@ async function loadSubscriptions(): Promise<SubscriptionItem[]> {
         },
         ProjectionExpression: "pk, sk, showId, title, publisher, image",
         ExclusiveStartKey,
-      }),
+      })
     );
 
     if (result.Items) {
@@ -157,7 +157,7 @@ async function loadSubscriptions(): Promise<SubscriptionItem[]> {
 }
 
 function collateShows(
-  subscriptions: SubscriptionItem[],
+  subscriptions: SubscriptionItem[]
 ): Map<string, SubscriptionItem> {
   const shows = new Map<string, SubscriptionItem>();
   for (const subscription of subscriptions) {
@@ -183,7 +183,7 @@ async function listEpisodeIds(showId: string): Promise<Set<string>> {
         },
         ProjectionExpression: "episodeId",
         ExclusiveStartKey,
-      }),
+      })
     );
 
     if (result.Items) {
@@ -212,7 +212,7 @@ async function fetchRecentEpisodes(showId: string): Promise<SpotifyEpisode[]> {
     });
 
     const data = await spotifyFetch<SpotifyEpisodesResponse>(
-      `/shows/${encodeURIComponent(showId)}/episodes?${params.toString()}`,
+      `/shows/${encodeURIComponent(showId)}/episodes?${params.toString()}`
     );
 
     if (data.items?.length) {
@@ -231,7 +231,7 @@ type DynamoItem = Record<string, NativeAttributeValue>;
 
 async function upsertEpisodes(
   showId: string,
-  episodes: SpotifyEpisode[],
+  episodes: SpotifyEpisode[]
 ): Promise<void> {
   if (episodes.length === 0) {
     return;
@@ -243,7 +243,7 @@ async function upsertEpisodes(
 
 async function upsertShowMetadata(
   subscription: SubscriptionItem,
-  episodes: SpotifyEpisode[],
+  episodes: SpotifyEpisode[]
 ): Promise<void> {
   const latestEpisode = episodes[0];
   await dynamo.send(
@@ -261,7 +261,7 @@ async function upsertShowMetadata(
         lastEpisodePublishedAt: latestEpisode?.release_date ?? null,
         infoHash: createInfoHash(subscription),
       },
-    }),
+    })
   );
 }
 
@@ -301,7 +301,7 @@ async function batchWrite(items: DynamoItem[]): Promise<void> {
               PutRequest: { Item: item },
             })),
           },
-        }),
+        })
       );
 
       const unprocessed = response.UnprocessedItems?.[tableName] ?? [];
@@ -328,7 +328,7 @@ async function spotifyFetch<T>(pathAndQuery: string, attempt = 0): Promise<T> {
         Authorization: `Bearer ${token}`,
       },
     },
-    attempt,
+    attempt
   );
 
   return (await response.json()) as T;
@@ -337,7 +337,7 @@ async function spotifyFetch<T>(pathAndQuery: string, attempt = 0): Promise<T> {
 async function fetchWithRetry(
   url: string,
   init: RequestInit,
-  attempt = 0,
+  attempt = 0
 ): Promise<Response> {
   const response = await fetch(url, init);
 
@@ -373,7 +373,7 @@ async function getSpotifyToken(): Promise<string> {
 
   const body = new URLSearchParams({ grant_type: "client_credentials" });
   const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString(
-    "base64",
+    "base64"
   );
 
   const response = await fetchWithRetry(TOKEN_URL, {
@@ -412,7 +412,7 @@ async function getParameter(name: string): Promise<string> {
     new GetParameterCommand({
       Name: name,
       WithDecryption: true,
-    }),
+    })
   );
 
   const value = result.Parameter?.Value;

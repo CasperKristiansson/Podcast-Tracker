@@ -28,17 +28,21 @@ export class AuthStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
-    new cognito.UserPoolIdentityProviderGoogle(this, "GoogleIdentityProvider", {
-      userPool: this.userPool,
-      clientId: googleClientId,
-      clientSecretValue: cdk.SecretValue.unsafePlainText(googleClientSecret),
-      scopes: ["openid", "email", "profile"],
-      attributeMapping: {
-        email: cognito.ProviderAttribute.GOOGLE_EMAIL,
-        givenName: cognito.ProviderAttribute.GOOGLE_GIVEN_NAME,
-        familyName: cognito.ProviderAttribute.GOOGLE_FAMILY_NAME,
-      },
-    });
+    const googleIdentityProvider = new cognito.UserPoolIdentityProviderGoogle(
+      this,
+      "GoogleIdentityProvider",
+      {
+        userPool: this.userPool,
+        clientId: googleClientId,
+        clientSecretValue: cdk.SecretValue.unsafePlainText(googleClientSecret),
+        scopes: ["openid", "email", "profile"],
+        attributeMapping: {
+          email: cognito.ProviderAttribute.GOOGLE_EMAIL,
+          givenName: cognito.ProviderAttribute.GOOGLE_GIVEN_NAME,
+          familyName: cognito.ProviderAttribute.GOOGLE_FAMILY_NAME,
+        },
+      }
+    );
 
     this.domain = this.userPool.addDomain("UserPoolDomain", {
       cognitoDomain: { domainPrefix },
@@ -71,6 +75,8 @@ export class AuthStack extends cdk.Stack {
       ],
     });
 
+    this.userPoolClient.node.addDependency(googleIdentityProvider);
+
     new cdk.CfnOutput(this, "UserPoolId", {
       value: this.userPool.userPoolId,
     });
@@ -90,7 +96,7 @@ export class AuthStack extends cdk.Stack {
       return value;
     }
     throw new Error(
-      `Environment variable ${name} is required but was not provided.`,
+      `Environment variable ${name} is required but was not provided.`
     );
   }
 

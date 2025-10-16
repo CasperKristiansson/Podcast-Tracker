@@ -59,7 +59,7 @@ export const handler = async (event: AppSyncEvent) => {
       return getCachedValueOrFetch(
         createCacheKey("search", args),
         CACHE_TTLS.searchShows,
-        () => searchShows(term, args.limit, args.offset),
+        () => searchShows(term, args.limit, args.offset)
       );
     }
     case "getShow": {
@@ -72,7 +72,7 @@ export const handler = async (event: AppSyncEvent) => {
       return getCachedValueOrFetch(
         createCacheKey("show", args),
         CACHE_TTLS.getShow,
-        () => getShow(showId),
+        () => getShow(showId)
       );
     }
     case "getEpisodes":
@@ -89,7 +89,7 @@ export const handler = async (event: AppSyncEvent) => {
       return getCachedValueOrFetch(
         createCacheKey("episodes", args),
         CACHE_TTLS.getEpisodes,
-        () => getEpisodes(showId, args.limit, args.cursor),
+        () => getEpisodes(showId, args.limit, args.cursor)
       );
     }
     default:
@@ -118,7 +118,7 @@ async function searchShows(term: string, limit = 20, offset = 0) {
 
 async function getShow(showId: string) {
   const show = await spotifyFetch<SpotifyShow>(
-    `/shows/${encodeURIComponent(showId)}?market=${defaultMarket}`,
+    `/shows/${encodeURIComponent(showId)}?market=${defaultMarket}`
   );
   return mapShow(show);
 }
@@ -133,7 +133,7 @@ async function getEpisodes(showId: string, limit = 20, cursor?: string) {
   }
 
   const data = await spotifyFetch<SpotifyEpisodesResponse>(
-    `/shows/${encodeURIComponent(showId)}/episodes?${params.toString()}`,
+    `/shows/${encodeURIComponent(showId)}/episodes?${params.toString()}`
   );
 
   return {
@@ -147,7 +147,7 @@ async function getEpisodes(showId: string, limit = 20, cursor?: string) {
 async function getCachedValueOrFetch<T>(
   key: string,
   ttlSeconds: number,
-  fetcher: () => Promise<T>,
+  fetcher: () => Promise<T>
 ): Promise<T> {
   const cached = await getCachedValue<T>(key);
   if (cached) {
@@ -164,7 +164,7 @@ async function getCachedValue<T>(key: string): Promise<T | null> {
     new GetCommand({
       TableName: tableName,
       Key: { pk: cachePk(key), sk: "spotify" },
-    }),
+    })
   );
 
   const item = result.Item as
@@ -184,7 +184,7 @@ async function getCachedValue<T>(key: string): Promise<T | null> {
 async function setCachedValue<T>(
   key: string,
   value: T,
-  ttlSeconds: number,
+  ttlSeconds: number
 ): Promise<void> {
   await dynamo.send(
     new PutCommand({
@@ -196,7 +196,7 @@ async function setCachedValue<T>(
         expiresAt: Math.floor(Date.now() / 1000) + ttlSeconds,
         updatedAt: new Date().toISOString(),
       },
-    }),
+    })
   );
 }
 
@@ -209,7 +209,7 @@ async function spotifyFetch<T>(pathAndQuery: string, attempt = 0): Promise<T> {
         Authorization: `Bearer ${token}`,
       },
     },
-    attempt,
+    attempt
   );
 
   const data = (await response.json()) as T;
@@ -219,7 +219,7 @@ async function spotifyFetch<T>(pathAndQuery: string, attempt = 0): Promise<T> {
 async function fetchWithRetry(
   url: string,
   init: RequestInit,
-  attempt = 0,
+  attempt = 0
 ): Promise<Response> {
   const response = await fetch(url, init);
 
@@ -255,7 +255,7 @@ async function getSpotifyToken(): Promise<string> {
 
   const body = new URLSearchParams({ grant_type: "client_credentials" });
   const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString(
-    "base64",
+    "base64"
   );
 
   const response = await fetchWithRetry(TOKEN_URL, {
@@ -294,7 +294,7 @@ async function getParameter(name: string): Promise<string> {
     new GetParameterCommand({
       Name: name,
       WithDecryption: true,
-    }),
+    })
   );
 
   const value = result.Parameter?.Value;

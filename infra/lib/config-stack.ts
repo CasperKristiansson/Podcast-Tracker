@@ -1,5 +1,6 @@
 import * as cdk from "aws-cdk-lib";
 import * as ssm from "aws-cdk-lib/aws-ssm";
+import * as cr from "aws-cdk-lib/custom-resources";
 import { Construct } from "constructs";
 
 export class ConfigStack extends cdk.Stack {
@@ -21,15 +22,46 @@ export class ConfigStack extends cdk.Stack {
         dataType: ssm.ParameterDataType.TEXT,
         tier: ssm.ParameterTier.STANDARD,
         simpleName: false,
-      },
+      }
     );
 
     const clientSecretParamName = `${basePath}/spotify/client_secret`;
-    new ssm.CfnParameter(this, "SpotifyClientSecretParameter", {
-      name: clientSecretParamName,
-      type: "SecureString",
-      value: spotifyClientSecret,
-      tier: "Standard",
+    new cr.AwsCustomResource(this, "SpotifyClientSecretParameter", {
+      installLatestAwsSdk: false,
+      onCreate: {
+        service: "SSM",
+        action: "putParameter",
+        parameters: {
+          Name: clientSecretParamName,
+          Value: spotifyClientSecret,
+          Type: "SecureString",
+          Overwrite: true,
+          Tier: "Standard",
+        },
+        physicalResourceId: cr.PhysicalResourceId.of(clientSecretParamName),
+      },
+      onUpdate: {
+        service: "SSM",
+        action: "putParameter",
+        parameters: {
+          Name: clientSecretParamName,
+          Value: spotifyClientSecret,
+          Type: "SecureString",
+          Overwrite: true,
+          Tier: "Standard",
+        },
+        physicalResourceId: cr.PhysicalResourceId.of(clientSecretParamName),
+      },
+      onDelete: {
+        service: "SSM",
+        action: "deleteParameter",
+        parameters: {
+          Name: clientSecretParamName,
+        },
+      },
+      policy: cr.AwsCustomResourcePolicy.fromSdkCalls({
+        resources: cr.AwsCustomResourcePolicy.ANY_RESOURCE,
+      }),
     });
 
     const redirectUriParam = new ssm.StringParameter(
@@ -41,7 +73,7 @@ export class ConfigStack extends cdk.Stack {
         dataType: ssm.ParameterDataType.TEXT,
         tier: ssm.ParameterTier.STANDARD,
         simpleName: false,
-      },
+      }
     );
 
     new cdk.CfnOutput(this, "SpotifyClientIdParameterName", {
@@ -64,7 +96,7 @@ export class ConfigStack extends cdk.Stack {
     }
 
     throw new Error(
-      `Environment variable ${name} is required but was not provided.`,
+      `Environment variable ${name} is required but was not provided.`
     );
   }
 }

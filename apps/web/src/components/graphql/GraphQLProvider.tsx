@@ -51,7 +51,7 @@ const createApolloResources = (idToken: string): ApolloResources => {
       );
     },
     wsLink,
-    httpLink,
+    httpLink
   );
 
   const client = new ApolloClient({

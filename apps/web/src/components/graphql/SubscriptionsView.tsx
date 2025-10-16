@@ -30,7 +30,7 @@ export default function SubscriptionsView(): JSX.Element {
     const list = data?.mySubscriptions.items ?? [];
     return list.filter(
       (item: UserSubscription | null | undefined): item is UserSubscription =>
-        Boolean(item),
+        Boolean(item)
     );
   }, [data]);
 
