@@ -372,6 +372,13 @@ interface SpotifyEpisodesResponse {
   next?: string | null;
 }
 
+export const __internal = {
+  getCachedValueOrFetch,
+  getCachedValue,
+  setCachedValue,
+  cachePk,
+};
+
 function requiredEnv(name: string): string {
   const value = process.env[name];
   if (!value) {

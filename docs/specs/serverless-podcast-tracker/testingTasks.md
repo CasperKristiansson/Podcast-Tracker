@@ -10,7 +10,7 @@
   - Introduce `@aws-sdk/client-mock` utilities under `packages/lambdas/spotifyProxy/test`
   - Provide shared mock builders for DynamoDB and SSM clients
   - Update Vitest setup file to reset mocks between specs
-- [ ] Cover cache hit/miss logic
+- [x] Cover cache hit/miss logic
   - Write unit specs for `getCachedValueOrFetch` covering hit, miss, and TTL expiry flows
   - Validate DynamoDB `GetCommand`/`PutCommand` inputs with assertions on mock calls
   - Document expected cache behavior in test names for quick review
