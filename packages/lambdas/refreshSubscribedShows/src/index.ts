@@ -448,3 +448,30 @@ function requiredEnv(name: string): string {
   }
   return value;
 }
+
+export const __internal = {
+  loadSubscriptions,
+  collateShows,
+  listEpisodeIds,
+  fetchRecentEpisodes,
+  upsertEpisodes,
+  upsertShowMetadata,
+  mapEpisode,
+  resolveAudioUrl,
+  batchWrite,
+  spotifyFetch,
+  fetchWithRetry,
+  getSpotifyToken,
+  getParameter,
+  createInfoHash,
+  delay,
+  resetCaches: () => {
+    parameterCache.clear();
+    cachedToken = null;
+  },
+  setCachedToken: (token: { token: string; expiresAt: number } | null) => {
+    cachedToken = token;
+  },
+  getCachedToken: () => cachedToken,
+  requiredEnv,
+};
