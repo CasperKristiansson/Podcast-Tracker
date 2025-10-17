@@ -26,6 +26,7 @@ export class ApiDataStack extends cdk.Stack {
   public readonly api: appsync.GraphqlApi;
   public readonly spotifyProxyLambda: lambda.IFunction;
   public readonly refreshSubscriptionsLambda: lambda.IFunction;
+  public readonly profileLambda: lambda.IFunction;
 
   constructor(scope: Construct, id: string, props: ApiDataStackProps) {
     super(scope, id, props);
@@ -110,8 +111,7 @@ export class ApiDataStack extends cdk.Stack {
     const spotifyEnv = {
       TABLE_NAME: this.table.tableName,
       SPOTIFY_CLIENT_ID_PARAM: spotifyClientIdParameter.parameterName,
-      SPOTIFY_CLIENT_SECRET_PARAM:
-        spotifyClientSecretParameter.parameterName,
+      SPOTIFY_CLIENT_SECRET_PARAM: spotifyClientSecretParameter.parameterName,
       SPOTIFY_MARKET: this.node.tryGetContext("spotifyMarket") ?? "US",
     };
 
@@ -131,11 +131,7 @@ export class ApiDataStack extends cdk.Stack {
       this,
       "RefreshSubscriptionsLambda",
       {
-        entry: resolveLambdaEntry(
-          "refreshSubscriptions",
-          "src",
-          "index.ts"
-        ),
+        entry: resolveLambdaEntry("refreshSubscriptions", "src", "index.ts"),
         handler: "handler",
         environment: { ...spotifyEnv },
         timeout: cdk.Duration.minutes(5),
@@ -148,13 +144,22 @@ export class ApiDataStack extends cdk.Stack {
       spotifyClientSecretParameter,
     ]);
 
+    this.profileLambda = new NodeLambda(this, "ProfileLambda", {
+      entry: resolveLambdaEntry("profile", "src", "index.ts"),
+      handler: "handler",
+      environment: {
+        TABLE_NAME: this.table.tableName,
+      },
+      timeout: cdk.Duration.seconds(5),
+    });
+
+    this.table.grantReadData(this.profileLambda);
+
     new events.Rule(this, "RefreshSubscriptionsSchedule", {
       schedule: events.Schedule.cron({ minute: "0", hour: "3" }),
       description:
         "Refreshes Spotify show metadata and total episodes for user subscriptions daily",
-      targets: [
-        new targets.LambdaFunction(this.refreshSubscriptionsLambda),
-      ],
+      targets: [new targets.LambdaFunction(this.refreshSubscriptionsLambda)],
     });
 
     const spotifyLambdaDataSource = this.api.addLambdaDataSource(
@@ -219,6 +224,18 @@ export class ApiDataStack extends cdk.Stack {
     spotifyLambdaDataSource.createResolver("EpisodeResolver", {
       typeName: "Query",
       fieldName: "episode",
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
+    const profileDataSource = this.api.addLambdaDataSource(
+      "ProfileDataSource",
+      this.profileLambda
+    );
+
+    profileDataSource.createResolver("MyProfileResolver", {
+      typeName: "Query",
+      fieldName: "myProfile",
       requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });

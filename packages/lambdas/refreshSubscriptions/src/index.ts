@@ -89,7 +89,8 @@ async function loadAllSubscriptions(): Promise<SubscriptionRecord[]> {
         TableName: tableName,
         ExclusiveStartKey: exclusiveStartKey,
         ProjectionExpression: "#pk, #sk, showId",
-        FilterExpression: "dataType = :subscription AND begins_with(#sk, :prefix)",
+        FilterExpression:
+          "dataType = :subscription AND begins_with(#sk, :prefix)",
         ExpressionAttributeNames: {
           "#pk": "pk",
           "#sk": "sk",
@@ -178,9 +179,7 @@ async function updateSubscriptionsForShow(
         ? show.publisher
         : "";
     const imageValue =
-      typeof show.image === "string" && show.image.length > 0
-        ? show.image
-        : "";
+      typeof show.image === "string" && show.image.length > 0 ? show.image : "";
 
     const params: UpdateCommandInput = {
       TableName: tableName,
@@ -204,7 +203,9 @@ async function updateSubscriptionsForShow(
       await dynamo.send(new UpdateCommand(params));
       applied += 1;
     } catch (error) {
-      if ((error as { name?: string }).name === "ConditionalCheckFailedException") {
+      if (
+        (error as { name?: string }).name === "ConditionalCheckFailedException"
+      ) {
         skipped += 1;
         continue;
       }

@@ -1,3 +1,17 @@
+#set($attributes = {
+  "pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub),
+  "sk": $util.dynamodb.toDynamoDBJson("ep#" + $ctx.args.episodeId),
+  "dataType": $util.dynamodb.toDynamoDBJson("progress"),
+  "episodeId": $util.dynamodb.toDynamoDBJson($ctx.args.episodeId),
+  "positionSec": $util.dynamodb.toDynamoDBJson($ctx.args.positionSec),
+  "completed": $util.dynamodb.toDynamoDBJson($ctx.args.completed),
+  "updatedAt": $util.dynamodb.toDynamoDBJson($util.time.nowISO8601())
+})
+
+#if($ctx.args.containsKey("showId") && !$util.isNull($ctx.args.showId))
+  $util.qr($attributes.put("showId", $util.dynamodb.toDynamoDBJson($ctx.args.showId)))
+#end
+
 {
   "version": "2018-05-29",
   "operation": "PutItem",
@@ -5,14 +19,6 @@
     "pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub),
     "sk": $util.dynamodb.toDynamoDBJson("ep#" + $ctx.args.episodeId)
   },
-  "attributeValues": {
-    "pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub),
-    "sk": $util.dynamodb.toDynamoDBJson("ep#" + $ctx.args.episodeId),
-    "dataType": $util.dynamodb.toDynamoDBJson("progress"),
-    "episodeId": $util.dynamodb.toDynamoDBJson($ctx.args.episodeId),
-    "positionSec": $util.dynamodb.toDynamoDBJson($ctx.args.positionSec),
-    "completed": $util.dynamodb.toDynamoDBJson($ctx.args.completed),
-    "updatedAt": $util.dynamodb.toDynamoDBJson($util.time.nowISO8601())
-  },
+  "attributeValues": $util.toJson($attributes),
   "returnValues": "ALL_NEW"
 }

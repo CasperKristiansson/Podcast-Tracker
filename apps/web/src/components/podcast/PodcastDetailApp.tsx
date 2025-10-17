@@ -224,9 +224,7 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
             publisher: show.publisher ?? "",
             image: show.image ?? "",
             totalEpisodes:
-              typeof show.totalEpisodes === "number"
-                ? show.totalEpisodes
-                : 0,
+              typeof show.totalEpisodes === "number" ? show.totalEpisodes : 0,
           },
         });
       }
@@ -250,6 +248,7 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
           episodeId: episode.episodeId,
           positionSec: Math.round(bounded),
           completed,
+          showId: episode.showId ?? showId,
         },
       });
       setEditingEpisode(null);

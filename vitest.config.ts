@@ -11,12 +11,15 @@ export default defineConfig({
       include: [
         "packages/lambdas/spotifyProxy/src/**/*.ts",
         "packages/lambdas/refreshSubscriptions/src/**/*.ts",
+        "packages/lambdas/profile/src/**/*.ts",
       ],
       exclude: [
         "packages/lambdas/spotifyProxy/src/**/*.test.ts",
         "packages/lambdas/spotifyProxy/src/**/*.d.ts",
         "packages/lambdas/refreshSubscriptions/src/**/*.test.ts",
         "packages/lambdas/refreshSubscriptions/src/**/*.d.ts",
+        "packages/lambdas/profile/src/**/*.test.ts",
+        "packages/lambdas/profile/src/**/*.d.ts",
       ],
     },
     globals: false,

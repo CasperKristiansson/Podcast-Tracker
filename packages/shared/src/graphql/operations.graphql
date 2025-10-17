@@ -100,6 +100,7 @@ query EpisodeProgressByIds($episodeIds: [ID!]!) {
     positionSec
     completed
     updatedAt
+    showId
   }
 }
 
@@ -169,16 +170,19 @@ mutation MarkEpisodeProgress(
   $episodeId: ID!
   $positionSec: Int!
   $completed: Boolean!
+  $showId: ID
 ) {
   markProgress(
     episodeId: $episodeId
     positionSec: $positionSec
     completed: $completed
+    showId: $showId
   ) {
     episodeId
     positionSec
     completed
     updatedAt
+    showId
   }
 }
 
@@ -205,5 +209,39 @@ subscription OnProgress($episodeId: ID!) {
     positionSec
     completed
     updatedAt
+  }
+}
+
+query MyProfile {
+  myProfile {
+    stats {
+      totalShows
+      episodesCompleted
+      episodesInProgress
+    }
+    spotlight {
+      showId
+      title
+      publisher
+      image
+      addedAt
+      totalEpisodes
+      completedEpisodes
+      inProgressEpisodes
+      unlistenedEpisodes
+      subscriptionSyncedAt
+    }
+    shows {
+      showId
+      title
+      publisher
+      image
+      addedAt
+      totalEpisodes
+      completedEpisodes
+      inProgressEpisodes
+      unlistenedEpisodes
+      subscriptionSyncedAt
+    }
   }
 }

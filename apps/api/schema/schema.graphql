@@ -46,6 +46,7 @@ type Progress {
   positionSec: Int!
   completed: Boolean!
   updatedAt: AWSDateTime!
+  showId: ID
 }
 
 type Show {
@@ -83,6 +84,32 @@ type Query {
   mySubscription(showId: ID!): UserSubscription
   episode(showId: ID!, episodeId: ID!): Episode
   episodeProgress(episodeIds: [ID!]!): [Progress!]!
+  myProfile: UserProfile!
+}
+
+type ProfileStats {
+  totalShows: Int!
+  episodesCompleted: Int!
+  episodesInProgress: Int!
+}
+
+type ProfileShow {
+  showId: ID!
+  title: String!
+  publisher: String!
+  image: String!
+  addedAt: AWSDateTime!
+  totalEpisodes: Int!
+  completedEpisodes: Int!
+  inProgressEpisodes: Int!
+  unlistenedEpisodes: Int!
+  subscriptionSyncedAt: AWSDateTime
+}
+
+type UserProfile {
+  stats: ProfileStats!
+  spotlight: [ProfileShow!]!
+  shows: [ProfileShow!]!
 }
 
 type Mutation {
@@ -97,6 +124,7 @@ type Mutation {
     episodeId: ID!
     positionSec: Int!
     completed: Boolean!
+    showId: ID
   ): Progress!
   publishProgress(
     episodeId: ID!

@@ -56,6 +56,7 @@ export type MutationMarkProgressArgs = {
   completed: Scalars['Boolean']['input'];
   episodeId: Scalars['ID']['input'];
   positionSec: Scalars['Int']['input'];
+  showId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 
@@ -90,11 +91,33 @@ export type PaginatedResult = {
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
+export type ProfileShow = {
+  __typename: 'ProfileShow';
+  addedAt: Scalars['AWSDateTime']['output'];
+  completedEpisodes: Scalars['Int']['output'];
+  image: Scalars['String']['output'];
+  inProgressEpisodes: Scalars['Int']['output'];
+  publisher: Scalars['String']['output'];
+  showId: Scalars['ID']['output'];
+  subscriptionSyncedAt?: Maybe<Scalars['AWSDateTime']['output']>;
+  title: Scalars['String']['output'];
+  totalEpisodes: Scalars['Int']['output'];
+  unlistenedEpisodes: Scalars['Int']['output'];
+};
+
+export type ProfileStats = {
+  __typename: 'ProfileStats';
+  episodesCompleted: Scalars['Int']['output'];
+  episodesInProgress: Scalars['Int']['output'];
+  totalShows: Scalars['Int']['output'];
+};
+
 export type Progress = {
   __typename: 'Progress';
   completed: Scalars['Boolean']['output'];
   episodeId: Scalars['ID']['output'];
   positionSec: Scalars['Int']['output'];
+  showId?: Maybe<Scalars['ID']['output']>;
   updatedAt: Scalars['AWSDateTime']['output'];
 };
 
@@ -104,6 +127,7 @@ export type Query = {
   episodeProgress: Array<Progress>;
   episodes: EpisodeConnection;
   health: Scalars['String']['output'];
+  myProfile: UserProfile;
   mySubscription?: Maybe<UserSubscription>;
   mySubscriptions: SubscriptionConnection;
   search: Array<Show>;
@@ -184,6 +208,13 @@ export type SubscriptionConnection = PaginatedResult & {
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
+export type UserProfile = {
+  __typename: 'UserProfile';
+  shows: Array<ProfileShow>;
+  spotlight: Array<ProfileShow>;
+  stats: ProfileStats;
+};
+
 export type UserSubscription = {
   __typename: 'UserSubscription';
   addedAt: Scalars['AWSDateTime']['output'];
@@ -247,7 +278,7 @@ export type EpisodeProgressByIdsQueryVariables = Exact<{
 }>;
 
 
-export type EpisodeProgressByIdsQuery = { __typename: 'Query', episodeProgress: Array<{ __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any }> };
+export type EpisodeProgressByIdsQuery = { __typename: 'Query', episodeProgress: Array<{ __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any, showId?: string | null | undefined }> };
 
 export type SearchShowsQueryVariables = Exact<{
   term: Scalars['String']['input'];
@@ -289,10 +320,11 @@ export type MarkEpisodeProgressMutationVariables = Exact<{
   episodeId: Scalars['ID']['input'];
   positionSec: Scalars['Int']['input'];
   completed: Scalars['Boolean']['input'];
+  showId?: InputMaybe<Scalars['ID']['input']>;
 }>;
 
 
-export type MarkEpisodeProgressMutation = { __typename: 'Mutation', markProgress: { __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any } };
+export type MarkEpisodeProgressMutation = { __typename: 'Mutation', markProgress: { __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any, showId?: string | null | undefined } };
 
 export type PublishProgressUpdateMutationVariables = Exact<{
   episodeId: Scalars['ID']['input'];
@@ -309,6 +341,11 @@ export type OnProgressSubscriptionVariables = Exact<{
 
 
 export type OnProgressSubscription = { __typename: 'Subscription', onProgress: { __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any } };
+
+export type MyProfileQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type MyProfileQuery = { __typename: 'Query', myProfile: { __typename: 'UserProfile', stats: { __typename: 'ProfileStats', totalShows: number, episodesCompleted: number, episodesInProgress: number }, spotlight: Array<{ __typename: 'ProfileShow', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, completedEpisodes: number, inProgressEpisodes: number, unlistenedEpisodes: number, subscriptionSyncedAt?: any | null | undefined }>, shows: Array<{ __typename: 'ProfileShow', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, completedEpisodes: number, inProgressEpisodes: number, unlistenedEpisodes: number, subscriptionSyncedAt?: any | null | undefined }> } };
 
 
 export const HealthCheckDocument = gql`
@@ -426,6 +463,7 @@ export const EpisodeProgressByIdsDocument = gql`
     positionSec
     completed
     updatedAt
+    showId
   }
 }
     `;
@@ -495,16 +533,18 @@ export const RateShowDocument = gql`
     `;
 export type RateShowMutationResult = ApolloReactCommon.MutationResult<RateShowMutation>;
 export const MarkEpisodeProgressDocument = gql`
-    mutation MarkEpisodeProgress($episodeId: ID!, $positionSec: Int!, $completed: Boolean!) {
+    mutation MarkEpisodeProgress($episodeId: ID!, $positionSec: Int!, $completed: Boolean!, $showId: ID) {
   markProgress(
     episodeId: $episodeId
     positionSec: $positionSec
     completed: $completed
+    showId: $showId
   ) {
     episodeId
     positionSec
     completed
     updatedAt
+    showId
   }
 }
     `;
@@ -535,3 +575,39 @@ export const OnProgressDocument = gql`
 }
     `;
 export type OnProgressSubscriptionResult = ApolloReactCommon.SubscriptionResult<OnProgressSubscription>;
+export const MyProfileDocument = gql`
+    query MyProfile {
+  myProfile {
+    stats {
+      totalShows
+      episodesCompleted
+      episodesInProgress
+    }
+    spotlight {
+      showId
+      title
+      publisher
+      image
+      addedAt
+      totalEpisodes
+      completedEpisodes
+      inProgressEpisodes
+      unlistenedEpisodes
+      subscriptionSyncedAt
+    }
+    shows {
+      showId
+      title
+      publisher
+      image
+      addedAt
+      totalEpisodes
+      completedEpisodes
+      inProgressEpisodes
+      unlistenedEpisodes
+      subscriptionSyncedAt
+    }
+  }
+}
+    `;
+export type MyProfileQueryResult = ApolloReactCommon.QueryResult<MyProfileQuery, MyProfileQueryVariables>;

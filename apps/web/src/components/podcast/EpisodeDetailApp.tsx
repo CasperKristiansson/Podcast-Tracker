@@ -110,6 +110,7 @@ export default function EpisodeDetailApp({
         episodeId,
         positionSec: Math.round(bounded),
         completed,
+        showId: episode.showId ?? showId,
       },
     });
     await refetchProgress();

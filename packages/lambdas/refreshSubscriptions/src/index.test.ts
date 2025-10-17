@@ -33,15 +33,30 @@ describe("refresh subscriptions lambda", () => {
       .on(ScanCommand)
       .resolvesOnce({
         Items: [
-          { pk: "user#1", sk: "sub#show-1", showId: "show-1", dataType: "subscription" },
+          {
+            pk: "user#1",
+            sk: "sub#show-1",
+            showId: "show-1",
+            dataType: "subscription",
+          },
           { pk: "user#ignore", sk: "progress#episode-1", dataType: "progress" },
         ],
         LastEvaluatedKey: { pk: "user#checkpoint", sk: "sub#show-2" },
       })
       .resolves({
         Items: [
-          { pk: "user#2", sk: "sub#show-2", showId: "show-2", dataType: "subscription" },
-          { pk: "user#3", sk: "sub#show-1", showId: "show-1", dataType: "subscription" },
+          {
+            pk: "user#2",
+            sk: "sub#show-2",
+            showId: "show-2",
+            dataType: "subscription",
+          },
+          {
+            pk: "user#3",
+            sk: "sub#show-1",
+            showId: "show-1",
+            dataType: "subscription",
+          },
           { pk: "user#invalid", sk: "sub#no-show" },
         ],
       });
@@ -103,13 +118,14 @@ describe("refresh subscriptions lambda", () => {
     const callFor = (pk: string, sk: string) =>
       updateCalls.find(
         (call) =>
-          call.args[0].input.Key?.pk === pk &&
-          call.args[0].input.Key?.sk === sk
+          call.args[0].input.Key?.pk === pk && call.args[0].input.Key?.sk === sk
       );
 
     const firstShowCall = callFor("user#1", "sub#show-1");
     expect(firstShowCall).toBeDefined();
-    expect(firstShowCall?.args[0].input.ExpressionAttributeValues).toMatchObject({
+    expect(
+      firstShowCall?.args[0].input.ExpressionAttributeValues
+    ).toMatchObject({
       ":title": "First Show",
       ":publisher": "Awesome Audio",
       ":image": "https://cdn/show-1.png",
@@ -118,7 +134,9 @@ describe("refresh subscriptions lambda", () => {
 
     const secondShowCall = callFor("user#2", "sub#show-2");
     expect(secondShowCall).toBeDefined();
-    expect(secondShowCall?.args[0].input.ExpressionAttributeValues).toMatchObject({
+    expect(
+      secondShowCall?.args[0].input.ExpressionAttributeValues
+    ).toMatchObject({
       ":title": "show-2",
       ":publisher": "",
       ":image": "",
@@ -128,7 +146,9 @@ describe("refresh subscriptions lambda", () => {
     const secondSubscriberCall = callFor("user#3", "sub#show-1");
     expect(secondSubscriberCall).toBeDefined();
     expect(
-      secondSubscriberCall?.args[0].input.ExpressionAttributeValues?.[":syncedAt"]
+      secondSubscriberCall?.args[0].input.ExpressionAttributeValues?.[
+        ":syncedAt"
+      ]
     ).toBe(result.syncedAt);
   });
 
@@ -136,9 +156,24 @@ describe("refresh subscriptions lambda", () => {
     const dynamoMock = getDynamoMock();
     dynamoMock.on(ScanCommand).resolves({
       Items: [
-        { pk: "user#1", sk: "sub#show-1", showId: "show-1", dataType: "subscription" },
-        { pk: "user#2", sk: "sub#show-1", showId: "show-1", dataType: "subscription" },
-        { pk: "user#3", sk: "sub#show-1", showId: "show-1", dataType: "subscription" },
+        {
+          pk: "user#1",
+          sk: "sub#show-1",
+          showId: "show-1",
+          dataType: "subscription",
+        },
+        {
+          pk: "user#2",
+          sk: "sub#show-1",
+          showId: "show-1",
+          dataType: "subscription",
+        },
+        {
+          pk: "user#3",
+          sk: "sub#show-1",
+          showId: "show-1",
+          dataType: "subscription",
+        },
       ],
     });
 
@@ -179,7 +214,12 @@ describe("refresh subscriptions lambda", () => {
     const dynamoMock = getDynamoMock();
     dynamoMock.on(ScanCommand).resolves({
       Items: [
-        { pk: "user#1", sk: "sub#show-1", showId: "show-1", dataType: "subscription" },
+        {
+          pk: "user#1",
+          sk: "sub#show-1",
+          showId: "show-1",
+          dataType: "subscription",
+        },
       ],
     });
 
@@ -194,7 +234,12 @@ describe("refresh subscriptions lambda", () => {
     const dynamoMock = getDynamoMock();
     dynamoMock.on(ScanCommand).resolves({
       Items: [
-        { pk: "user#1", sk: "sub#show-1", showId: "show-1", dataType: "subscription" },
+        {
+          pk: "user#1",
+          sk: "sub#show-1",
+          showId: "show-1",
+          dataType: "subscription",
+        },
       ],
     });
 
