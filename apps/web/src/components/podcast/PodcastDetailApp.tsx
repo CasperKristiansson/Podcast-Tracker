@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import {
   EpisodesByShowDocument,
@@ -26,6 +26,11 @@ interface RatingDraft {
   stars: number;
   review: string;
 }
+
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0;
+const toOptionalString = (value: unknown): string | null =>
+  typeof value === "string" ? value : null;
 
 const formatDuration = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds <= 0) {
@@ -150,9 +155,7 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
     setSliderDrafts((current) => {
       const next = { ...current };
       for (const episode of episodes) {
-        if (next[episode.episodeId] === undefined) {
-          next[episode.episodeId] = 0;
-        }
+        next[episode.episodeId] ??= 0;
       }
       return next;
     });
@@ -192,9 +195,21 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
 
   const show = showData?.show;
   const descriptionHtml = show?.htmlDescription ?? show?.description ?? "";
-  const showLanguages = show?.languages?.filter(Boolean) ?? [];
+  const showLanguages = show?.languages?.filter(isNonEmptyString) ?? [];
   const isSubscribed = Boolean(subscription);
   const isMutatingSubscription = subscribeLoading || unsubscribeLoading;
+  const ratingValue = isEditingRating
+    ? ratingDraft.stars
+    : (subscription?.ratingStars ?? 0);
+  const ratingChangeHandler = isEditingRating
+    ? (stars: number) =>
+        setRatingDraft((prev) => ({
+          ...prev,
+          stars,
+        }))
+    : undefined;
+  const subscriptionAddedAt = toOptionalString(subscription?.addedAt);
+  const ratingUpdatedAt = toOptionalString(subscription?.ratingUpdatedAt);
 
   const handleSubscribeToggle = async () => {
     if (!show) return;
@@ -332,7 +347,9 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                   </div>
 
                   <InteractiveButton
-                    onClick={handleSubscribeToggle}
+                    onClick={() => {
+                      void handleSubscribeToggle();
+                    }}
                     variant={isSubscribed ? "outline" : "primary"}
                     isLoading={isMutatingSubscription}
                     loadingLabel={isSubscribed ? "Removing…" : "Adding…"}
@@ -374,9 +391,9 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4 text-sm text-white/60">
-                  {subscription?.addedAt ? (
+                  {subscriptionAddedAt ? (
                     <span>
-                      In your rotation {formatRelative(subscription.addedAt)}
+                      In your rotation {formatRelative(subscriptionAddedAt)}
                     </span>
                   ) : null}
                   {show.externalUrl ? (
@@ -424,16 +441,8 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
 
             <div className="flex w-full max-w-md flex-col gap-4">
               <StarRating
-                value={
-                  isEditingRating
-                    ? ratingDraft.stars
-                    : (subscription?.ratingStars ?? 0)
-                }
-                onChange={
-                  isEditingRating
-                    ? (stars) => setRatingDraft((prev) => ({ ...prev, stars }))
-                    : undefined
-                }
+                value={ratingValue}
+                onChange={ratingChangeHandler}
                 readOnly={!isEditingRating}
                 size="lg"
                 className="justify-end"
@@ -443,7 +452,7 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                 <div className="space-y-4">
                   <textarea
                     value={ratingDraft.review}
-                    onChange={(event) =>
+                    onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
                       setRatingDraft((prev) => ({
                         ...prev,
                         review: event.target.value,
@@ -455,7 +464,9 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                   />
                   <div className="flex flex-wrap gap-3">
                     <InteractiveButton
-                      onClick={handleRatingSave}
+                      onClick={() => {
+                        void handleRatingSave();
+                      }}
                       isLoading={rateLoading}
                       loadingLabel="Saving…"
                     >
@@ -465,7 +476,9 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                     subscription?.ratingReview ? (
                       <InteractiveButton
                         variant="outline"
-                        onClick={handleRatingClear}
+                        onClick={() => {
+                          void handleRatingClear();
+                        }}
                         isLoading={rateLoading}
                         loadingLabel="Clearing…"
                       >
@@ -496,10 +509,9 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                       ? "Update rating"
                       : "Add rating"}
                   </InteractiveButton>
-                  {subscription?.ratingUpdatedAt ? (
+                  {ratingUpdatedAt ? (
                     <span className="text-xs uppercase tracking-widest text-white/50">
-                      Last updated{" "}
-                      {formatRelative(subscription.ratingUpdatedAt)}
+                      Last updated {formatRelative(ratingUpdatedAt)}
                     </span>
                   ) : null}
                 </div>
@@ -544,6 +556,9 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
               const percent = totalDuration
                 ? Math.round((sliderValue / totalDuration) * 100)
                 : 0;
+              const publishedAt = toOptionalString(episode.publishedAt);
+              const episodeLanguages =
+                episode.languages?.filter(isNonEmptyString) ?? [];
 
               return (
                 <li
@@ -555,7 +570,7 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                       <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.35em] text-white/50">
                         <span>Episode {index + 1}</span>
                         <span className="h-1 w-1 rounded-full bg-white/30" />
-                        <span>{formatDate(String(episode.publishedAt))}</span>
+                        <span>{formatDate(publishedAt)}</span>
                         <span className="h-1 w-1 rounded-full bg-white/30" />
                         <span>
                           {formatDuration(Number(episode.durationSec ?? 0))}
@@ -592,9 +607,9 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                             Explicit
                           </span>
                         ) : null}
-                        {episode.languages?.length ? (
+                        {episodeLanguages.length ? (
                           <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-white/50">
-                            {episode.languages.join(" · ")}
+                            {episodeLanguages.join(" · ")}
                           </span>
                         ) : null}
                         <a
@@ -627,7 +642,7 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                           min={0}
                           max={Math.max(1, Number(episode.durationSec ?? 0))}
                           value={sliderValue}
-                          onChange={(event) => {
+                          onChange={(event: ChangeEvent<HTMLInputElement>) => {
                             setEditingEpisode(episode.episodeId);
                             setSliderDrafts((prev) => ({
                               ...prev,
