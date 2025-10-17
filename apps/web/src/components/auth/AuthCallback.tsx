@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { completeLogin } from "../../lib/auth/flow";
+import { beginLogin, completeLogin } from "../../lib/auth/flow";
 
 type Status = "pending" | "success" | "error";
 
@@ -20,7 +20,7 @@ export default function AuthCallback(): JSX.Element {
           setStatus("success");
           setMessage("Signed in successfully. Redirecting…");
           window.setTimeout(() => {
-            window.location.replace("/");
+            window.location.replace("/app/profile");
           }, 1200);
         } else {
           setStatus("error");
@@ -65,7 +65,18 @@ export default function AuthCallback(): JSX.Element {
           <button
             type="button"
             className="inline-flex items-center justify-center rounded-lg bg-brand-primary px-4 py-2 font-semibold text-brand-text transition hover:bg-brand-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent"
-            onClick={() => window.location.replace("/login")}
+            onClick={() => {
+              setStatus("pending");
+              setMessage("Redirecting to Google sign-in…");
+              beginLogin().catch((err) => {
+                setStatus("error");
+                const description =
+                  err instanceof Error
+                    ? err.message
+                    : "Unable to restart Google sign-in.";
+                setMessage(description);
+              });
+            }}
           >
             Try again
           </button>

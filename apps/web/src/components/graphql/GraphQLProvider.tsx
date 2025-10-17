@@ -11,7 +11,7 @@ import { Kind, OperationTypeNode } from "graphql";
 import type { ComponentProps, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { createClient as createWsClient, type Client } from "graphql-ws";
-import { getTokens, signOut } from "../../lib/auth/flow";
+import { beginLogin, getTokens, signOut } from "../../lib/auth/flow";
 import {
   appsyncRealtimeHost,
   appsyncRealtimeUrl,
@@ -74,7 +74,13 @@ const useApolloClient = () => {
     const tokens = getTokens();
     if (!tokens || tokens.expiresAt <= Date.now()) {
       signOut();
-      void window.location.replace("/login");
+      beginLogin().catch((err) => {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Unable to start Google sign-in.";
+        setError(message);
+      });
       return undefined;
     }
 
