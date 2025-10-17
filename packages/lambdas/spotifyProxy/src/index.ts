@@ -33,6 +33,7 @@ const CACHE_TTLS = {
   searchShows: 300,
   getShow: 3600,
   getEpisodes: 600,
+  getEpisode: 600,
 } as const;
 
 const SPOTIFY_BASE = "https://api.spotify.com/v1";
@@ -76,6 +77,7 @@ export const handler = async (event: AppSyncEvent) => {
         () => getShow(showId)
       );
     }
+    case "episodes":
     case "getEpisodes":
     case "getShowEpisodes": {
       const args = event.arguments as {
@@ -91,6 +93,19 @@ export const handler = async (event: AppSyncEvent) => {
         createCacheKey("episodes", args),
         CACHE_TTLS.getEpisodes,
         () => getEpisodes(showId, args.limit, args.cursor)
+      );
+    }
+    case "episode": {
+      const args = event.arguments as { showId?: string; episodeId?: string };
+      const showId = args.showId?.trim();
+      const episodeId = args.episodeId?.trim();
+      if (!episodeId) {
+        throw new Error("episodeId is required");
+      }
+      return getCachedValueOrFetch(
+        createCacheKey("episode", args),
+        CACHE_TTLS.getEpisode,
+        () => getEpisode(showId ?? null, episodeId)
       );
     }
     default:
@@ -139,10 +154,22 @@ async function getEpisodes(showId: string, limit = 20, cursor?: string) {
 
   return {
     items: (data.items ?? []).map(mapEpisode),
-    nextCursor: data.next
-      ? new URL(data.next).searchParams.get("offset")
-      : null,
+    nextToken: data.next ? new URL(data.next).searchParams.get("offset") : null,
   };
+}
+
+async function getEpisode(showId: string | null, episodeId: string) {
+  const params = new URLSearchParams({
+    market: defaultMarket,
+  });
+  const episode = await spotifyFetch<SpotifyEpisode>(
+    `/episodes/${encodeURIComponent(episodeId)}?${params.toString()}`
+  );
+  if (showId && episode.show?.id && episode.show.id !== showId) {
+    // ensure response aligns with requested show if provided
+    episode.show = { id: showId };
+  }
+  return mapEpisode(episode);
 }
 
 async function getCachedValueOrFetch<T>(
@@ -340,15 +367,15 @@ function mapShow(show: SpotifyShow) {
 
 function mapEpisode(episode: SpotifyEpisode) {
   const derivedShowId = episode.show?.id ?? episode.id.split(":")[0];
-
+  const languages = normalizeEpisodeLanguages(episode);
   return {
     id: episode.id,
+    episodeId: episode.id,
     showId: derivedShowId ?? /* c8 ignore next */ null,
     title: episode.name,
     description: episode.description,
     htmlDescription: episode.html_description ?? null,
-    audioUrl:
-      episode.audio_preview_url ?? episode.external_urls?.spotify ?? null,
+    audioUrl: episode.audio_preview_url ?? episode.external_urls?.spotify ?? "",
     image: episode.images?.[0]?.url ?? null,
     linkUrl: episode.external_urls?.spotify ?? null,
     publishedAt: episode.release_date,
@@ -357,9 +384,15 @@ function mapEpisode(episode: SpotifyEpisode) {
     isExternallyHosted: episode.is_externally_hosted ?? null,
     isPlayable: episode.is_playable ?? null,
     releaseDatePrecision: episode.release_date_precision ?? null,
-    languages:
-      episode.languages ?? (episode.language ? [episode.language] : []),
+    languages,
   };
+}
+
+function normalizeEpisodeLanguages(episode: SpotifyEpisode): string[] {
+  if (episode.languages && episode.languages.length > 0) {
+    return episode.languages;
+  }
+  return episode.language ? [episode.language] : [];
 }
 
 interface SpotifyImage {
@@ -417,6 +450,7 @@ export const __internal = {
   searchShows,
   getShow,
   getEpisodes,
+  getEpisode,
   getSpotifyToken,
   getParameter,
   fetchWithRetry,

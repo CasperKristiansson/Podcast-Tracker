@@ -7,7 +7,6 @@ import { ApiDataStack } from "../lib/api-data-stack.js";
 import { AuthStack } from "../lib/auth-stack.js";
 import { EdgeStack } from "../lib/edge-stack.js";
 import { ConfigStack } from "../lib/config-stack.js";
-import { JobsStack } from "../lib/jobs-stack.js";
 
 const app = new cdk.App();
 
@@ -45,19 +44,13 @@ const apiDataStack = new ApiDataStack(app, "PodcastTrackerApiDataStack", {
   crossRegionReferences: true,
 });
 
-const jobsStack = new JobsStack(app, "PodcastTrackerJobsStack", {
-  env: { account, region: primaryRegion },
-  table: apiDataStack.table,
-  crossRegionReferences: true,
-});
-
-jobsStack.addDependency(configStack);
-jobsStack.addDependency(apiDataStack);
-
-new EdgeStack(app, "PodcastTrackerEdgeStack", {
+const edgeStack = new EdgeStack(app, "PodcastTrackerEdgeStack", {
   env: { account, region: primaryRegion },
   crossRegionReferences: true,
   certificateArn: certificateStack.certificateArn,
   siteDomain: "podcast.casperkristiansson.com",
   hostedZoneDomain: "casperkristiansson.com",
 });
+
+edgeStack.addDependency(configStack);
+edgeStack.addDependency(apiDataStack);

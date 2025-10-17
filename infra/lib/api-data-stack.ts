@@ -162,17 +162,6 @@ export class ApiDataStack extends cdk.Stack {
       ),
     });
 
-    tableDataSource.createResolver("EpisodesResolver", {
-      typeName: "Query",
-      fieldName: "episodes",
-      requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.episodes.request.vtl")
-      ),
-      responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.episodes.response.vtl")
-      ),
-    });
-
     tableDataSource.createResolver("MySubscriptionResolver", {
       typeName: "Query",
       fieldName: "mySubscription",
@@ -184,15 +173,18 @@ export class ApiDataStack extends cdk.Stack {
       ),
     });
 
-    tableDataSource.createResolver("EpisodeResolver", {
+    spotifyLambdaDataSource.createResolver("EpisodesResolver", {
+      typeName: "Query",
+      fieldName: "episodes",
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
+    spotifyLambdaDataSource.createResolver("EpisodeResolver", {
       typeName: "Query",
       fieldName: "episode",
-      requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.episode.request.vtl")
-      ),
-      responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.episode.response.vtl")
-      ),
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
     tableDataSource.createResolver("EpisodeProgressResolver", {
