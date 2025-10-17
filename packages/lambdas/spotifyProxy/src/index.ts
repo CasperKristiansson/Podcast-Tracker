@@ -102,11 +102,14 @@ export const handler = async (event: AppSyncEvent) => {
       if (!episodeId) {
         throw new Error("episodeId is required");
       }
-      return getCachedValueOrFetch(
-        createCacheKey("episode", args),
-        CACHE_TTLS.getEpisode,
-        () => getEpisode(showId ?? null, episodeId)
-      );
+      const cacheKey = createCacheKey("episode", args);
+      const cachedEpisode = await getCachedValue<SpotifyEpisode>(cacheKey);
+      if (cachedEpisode) {
+        return mapEpisode(cachedEpisode);
+      }
+      const freshEpisode = await getEpisode(showId ?? null, episodeId);
+      await setCachedValue(cacheKey, freshEpisode.raw, CACHE_TTLS.getEpisode);
+      return freshEpisode.mapped;
     }
     default:
       throw new Error(`Unsupported field ${field}`);
@@ -169,7 +172,7 @@ async function getEpisode(showId: string | null, episodeId: string) {
     // ensure response aligns with requested show if provided
     episode.show = { id: showId };
   }
-  return mapEpisode(episode);
+  return { mapped: mapEpisode(episode), raw: episode };
 }
 
 async function getCachedValueOrFetch<T>(
