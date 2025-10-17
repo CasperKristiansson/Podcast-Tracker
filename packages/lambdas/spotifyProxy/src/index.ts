@@ -331,9 +331,11 @@ function mapShow(show: SpotifyShow) {
 }
 
 function mapEpisode(episode: SpotifyEpisode) {
+  const derivedShowId = episode.show?.id ?? episode.id.split(":")[0];
+
   return {
     id: episode.id,
-    showId: episode.show?.id ?? episode.id.split(":")[0] ?? null,
+    showId: derivedShowId ?? /* c8 ignore next */ null,
     title: episode.name,
     description: episode.description,
     audioUrl: episode.audio_preview_url,
@@ -377,6 +379,25 @@ export const __internal = {
   getCachedValue,
   setCachedValue,
   cachePk,
+  createCacheKey,
+  searchShows,
+  getShow,
+  getEpisodes,
+  getSpotifyToken,
+  getParameter,
+  fetchWithRetry,
+  delay,
+  mapShow,
+  mapEpisode,
+  resetCaches: () => {
+    cachedToken = null;
+    parameterCache.clear();
+  },
+  setCachedToken: (token: { token: string; expiresAt: number } | null) => {
+    cachedToken = token;
+  },
+  getCachedToken: () => cachedToken,
+  requiredEnv,
 };
 
 function requiredEnv(name: string): string {

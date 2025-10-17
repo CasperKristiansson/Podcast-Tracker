@@ -14,7 +14,7 @@
   - Write unit specs for `getCachedValueOrFetch` covering hit, miss, and TTL expiry flows
   - Validate DynamoDB `GetCommand`/`PutCommand` inputs with assertions on mock calls
   - Document expected cache behavior in test names for quick review
-- [ ] Assert error handling paths
+- [x] Assert error handling paths
   - Add specs ensuring missing arguments emit the expected errors (`term`, `showId`)
   - Simulate Spotify API failures and confirm retries bubble appropriate exceptions
   - Capture token refresh failures to confirm handler short-circuits gracefully
