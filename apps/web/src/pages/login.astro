@@ -3,16 +3,33 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import LoginPage from '../components/auth/LoginPage';
 ---
 
-<BaseLayout title="Sign in" description="Authenticate with Google and return to Podcast Tracker.">
-  <section class="mx-auto flex max-w-4xl flex-col items-center gap-12 px-6 py-16 md:py-24">
-    <div class="space-y-4 text-center">
-      <p class="text-xs uppercase tracking-[0.4em] text-brand-muted">Authentication</p>
-      <h1 class="text-4xl font-semibold text-brand-text">Sign in securely</h1>
-      <p class="text-sm text-brand-muted">
-        We use OAuth 2.0 with PKCE via Cognito. Click below to start the Google sign-in flow.
-      </p>
+<BaseLayout
+  title="Sign in"
+  description="Sign in with Google to continue to Podcast Tracker."
+  showChrome={false}
+>
+  <section class="relative isolate flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-24">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(111,90,198,0.22),_transparent_55%)]" aria-hidden="true" />
+    <div class="absolute inset-0 opacity-60">
+      <div class="hero-decor">
+        <span class="hero-blob hero-blob--one"></span>
+        <span class="hero-blob hero-blob--two"></span>
+        <span class="hero-blob hero-blob--three"></span>
+      </div>
     </div>
 
-    <LoginPage client:only="react" />
+    <div class="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center gap-12 text-center">
+      <div class="space-y-4">
+        <p class="text-xs uppercase tracking-[0.35em] text-brand-muted">Let&apos;s get you back in</p>
+        <h1 class="text-5xl font-semibold tracking-tight text-brand-text sm:text-6xl">
+          Ready when you are.
+        </h1>
+        <p class="max-w-xl text-base text-brand-muted sm:text-lg">
+          Sign in with Google to pick up where you left off—episodes, progress, and everything else.
+        </p>
+      </div>
+
+      <LoginPage client:only="react" />
+    </div>
   </section>
 </BaseLayout>

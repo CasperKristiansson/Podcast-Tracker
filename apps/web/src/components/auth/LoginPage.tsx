@@ -1,8 +1,6 @@
 import { useState } from "react";
+import { AuroraBackground, GlowCard, GoogleButton } from "@ui";
 import { beginLogin } from "../../lib/auth/flow";
-
-const BUTTON_BASE =
-  "inline-flex items-center justify-center rounded-lg px-6 py-3 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2";
 
 export default function LoginPage(): JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
@@ -25,45 +23,45 @@ export default function LoginPage(): JSX.Element {
   };
 
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-6 rounded-xl bg-brand-surface/60 p-8 shadow-lg shadow-brand-primary/20">
-      <header className="space-y-2 text-center">
-        <p className="text-xs uppercase tracking-[0.3em] text-brand-muted">
-          Secure Sign-In
-        </p>
-        <h1 className="text-3xl font-semibold text-brand-text">
-          Continue with Google
-        </h1>
-        <p className="text-sm text-brand-muted">
-          Podcast Tracker uses Cognito with PKCE to authenticate. You will be
-          redirected to Google to continue.
-        </p>
-      </header>
+    <div className="relative isolate w-full">
+      <AuroraBackground />
 
-      <button
-        type="button"
-        onClick={() => {
-          void handleSignIn();
-        }}
-        disabled={isLoading}
-        className={`${BUTTON_BASE} ${
-          isLoading
-            ? "cursor-not-allowed bg-brand-primary/40 text-brand-text/70"
-            : "bg-brand-primary text-brand-text hover:bg-brand-primary/90"
-        } focus-visible:outline-brand-accent`}
-      >
-        {isLoading ? "Redirecting…" : "Sign in with Google"}
-      </button>
+      <GlowCard>
+        <div className="space-y-8 text-center">
+          <div className="space-y-4">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.05] px-4 py-1 text-xs font-medium uppercase tracking-[0.35em] text-white/70">
+              Welcome
+              <span className="inline-block h-1 w-1 rounded-full bg-[#8f73ff]" />
+            </span>
+            <div className="space-y-3">
+              <h1 className="text-4xl font-semibold text-white/95">
+                Sign in to Podcast Tracker
+              </h1>
+              <p className="text-base text-white/70">
+                One tap with Google and you&apos;re back to your queue.
+              </p>
+            </div>
+          </div>
 
-      <p className="text-xs leading-relaxed text-brand-muted/80">
-        By continuing you agree to our terms. PKCE ensures the authorization
-        code cannot be intercepted in transit.
-      </p>
+          <GoogleButton
+            onClick={() => {
+              void handleSignIn();
+            }}
+            loading={isLoading}
+            aria-label="Continue with Google"
+          />
 
-      {error ? (
-        <div className="rounded-md border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">
-          {error}
+          {error ? (
+            <div className="mx-auto w-full max-w-sm rounded-full border border-red-400/30 bg-red-500/15 px-4 py-2 text-sm text-red-100 shadow-[0_10px_30px_rgba(185,57,82,0.25)]">
+              {error}
+            </div>
+          ) : (
+            <p className="text-sm text-white/55">
+              We use Google for sign-in. That&apos;s it.
+            </p>
+          )}
         </div>
-      ) : null}
+      </GlowCard>
     </div>
   );
 }

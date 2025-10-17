@@ -5,6 +5,7 @@ export default {
   content: [
     "./src/**/*.{astro,html,js,jsx,ts,tsx}",
     "../shared/src/**/*.{ts,tsx}",
+    "../ui/src/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
