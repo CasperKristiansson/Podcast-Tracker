@@ -1,4 +1,9 @@
-import { ApolloClient, HttpLink, InMemoryCache, split } from "@apollo/client";
+import {
+  ApolloClient,
+  ApolloLink,
+  HttpLink,
+  InMemoryCache,
+} from "@apollo/client";
 import { ApolloProvider } from "@apollo/client/react";
 import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
 import { getMainDefinition } from "@apollo/client/utilities";
@@ -41,17 +46,17 @@ const createApolloResources = (idToken: string): ApolloResources => {
 
   const wsLink = new GraphQLWsLink(ws);
 
-  const link = split(
-    ({ query }) => {
-      const definition = getMainDefinition(query);
-      return (
-        definition.kind === Kind.OPERATION_DEFINITION &&
-        definition.operation === OperationTypeNode.SUBSCRIPTION
-      );
-    },
-    wsLink,
-    httpLink
-  );
+  const subscriptionMatcher = ({ query }: { query: unknown }) => {
+    const definition = getMainDefinition(
+      query as Parameters<typeof getMainDefinition>[0]
+    );
+    return (
+      definition.kind === Kind.OPERATION_DEFINITION &&
+      definition.operation === OperationTypeNode.SUBSCRIPTION
+    );
+  };
+
+  const link = ApolloLink.split(subscriptionMatcher, wsLink, httpLink);
 
   const client = new ApolloClient({
     link,
