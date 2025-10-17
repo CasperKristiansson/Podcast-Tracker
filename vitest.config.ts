@@ -8,10 +8,15 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
-      include: ["packages/lambdas/spotifyProxy/src/**/*.ts"],
+      include: [
+        "packages/lambdas/spotifyProxy/src/**/*.ts",
+        "packages/lambdas/refreshSubscriptions/src/**/*.ts",
+      ],
       exclude: [
         "packages/lambdas/spotifyProxy/src/**/*.test.ts",
         "packages/lambdas/spotifyProxy/src/**/*.d.ts",
+        "packages/lambdas/refreshSubscriptions/src/**/*.test.ts",
+        "packages/lambdas/refreshSubscriptions/src/**/*.d.ts",
       ],
     },
     globals: false,

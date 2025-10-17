@@ -169,6 +169,19 @@ async function updateSubscriptionsForShow(
   };
 
   for (const subscription of subscriptions) {
+    const titleValue =
+      typeof show.title === "string" && show.title.trim().length > 0
+        ? show.title
+        : show.id;
+    const publisherValue =
+      typeof show.publisher === "string" && show.publisher.trim().length > 0
+        ? show.publisher
+        : "";
+    const imageValue =
+      typeof show.image === "string" && show.image.length > 0
+        ? show.image
+        : "";
+
     const params: UpdateCommandInput = {
       TableName: tableName,
       Key: {
@@ -178,9 +191,9 @@ async function updateSubscriptionsForShow(
       UpdateExpression: updateExpression,
       ExpressionAttributeNames: attributeNames,
       ExpressionAttributeValues: {
-        ":title": show.title ?? show.id ?? "",
-        ":publisher": show.publisher ?? "",
-        ":image": show.image ?? "",
+        ":title": titleValue,
+        ":publisher": publisherValue,
+        ":image": imageValue,
         ":totalEpisodes": totalEpisodes,
         ":syncedAt": syncedAt,
       },

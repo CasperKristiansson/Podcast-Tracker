@@ -4,6 +4,8 @@ import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as ssm from "aws-cdk-lib/aws-ssm";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
 import { Construct } from "constructs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,6 +25,7 @@ export class ApiDataStack extends cdk.Stack {
   public readonly table: dynamodb.Table;
   public readonly api: appsync.GraphqlApi;
   public readonly spotifyProxyLambda: lambda.IFunction;
+  public readonly refreshSubscriptionsLambda: lambda.IFunction;
 
   constructor(scope: Construct, id: string, props: ApiDataStackProps) {
     super(scope, id, props);
@@ -104,15 +107,18 @@ export class ApiDataStack extends cdk.Stack {
         }
       );
 
+    const spotifyEnv = {
+      TABLE_NAME: this.table.tableName,
+      SPOTIFY_CLIENT_ID_PARAM: spotifyClientIdParameter.parameterName,
+      SPOTIFY_CLIENT_SECRET_PARAM:
+        spotifyClientSecretParameter.parameterName,
+      SPOTIFY_MARKET: this.node.tryGetContext("spotifyMarket") ?? "US",
+    };
+
     this.spotifyProxyLambda = new NodeLambda(this, "SpotifyProxyLambda", {
       entry: resolveLambdaEntry("spotifyProxy", "src", "index.ts"),
       handler: "handler",
-      environment: {
-        TABLE_NAME: this.table.tableName,
-        SPOTIFY_CLIENT_ID_PARAM: spotifyClientIdParameter.parameterName,
-        SPOTIFY_CLIENT_SECRET_PARAM: spotifyClientSecretParameter.parameterName,
-        SPOTIFY_MARKET: this.node.tryGetContext("spotifyMarket") ?? "US",
-      },
+      environment: { ...spotifyEnv },
     });
 
     grantTableReadWrite(this.spotifyProxyLambda, this.table);
@@ -120,6 +126,36 @@ export class ApiDataStack extends cdk.Stack {
       spotifyClientIdParameter,
       spotifyClientSecretParameter,
     ]);
+
+    this.refreshSubscriptionsLambda = new NodeLambda(
+      this,
+      "RefreshSubscriptionsLambda",
+      {
+        entry: resolveLambdaEntry(
+          "refreshSubscriptions",
+          "src",
+          "index.ts"
+        ),
+        handler: "handler",
+        environment: { ...spotifyEnv },
+        timeout: cdk.Duration.minutes(5),
+      }
+    );
+
+    grantTableReadWrite(this.refreshSubscriptionsLambda, this.table);
+    grantParameterRead(this.refreshSubscriptionsLambda, [
+      spotifyClientIdParameter,
+      spotifyClientSecretParameter,
+    ]);
+
+    new events.Rule(this, "RefreshSubscriptionsSchedule", {
+      schedule: events.Schedule.cron({ minute: "0", hour: "3" }),
+      description:
+        "Refreshes Spotify show metadata and total episodes for user subscriptions daily",
+      targets: [
+        new targets.LambdaFunction(this.refreshSubscriptionsLambda),
+      ],
+    });
 
     const spotifyLambdaDataSource = this.api.addLambdaDataSource(
       "SpotifyProxyDataSource",
