@@ -33,9 +33,10 @@ export function StarRating({
   size = "md",
   label,
 }: StarRatingProps): JSX.Element {
-  const stars = useMemo(() => Array.from({ length: max }, (_, i) => i + 1), [
-    max,
-  ]);
+  const stars = useMemo(
+    () => Array.from({ length: max }, (_, i) => i + 1),
+    [max]
+  );
   const [hoverValue, setHoverValue] = useState<number | null>(null);
   const gradientPrefix = useId();
 
@@ -94,7 +95,13 @@ export function StarRating({
                 className={cn(sizeMap[size], "transition duration-150")}
               >
                 <defs>
-                  <linearGradient id={`${gradientPrefix}-${star}`} x1="0" x2="1" y1="0" y2="1">
+                  <linearGradient
+                    id={`${gradientPrefix}-${star}`}
+                    x1="0"
+                    x2="1"
+                    y1="0"
+                    y2="1"
+                  >
                     <stop offset="0%" stopColor="#ffe196" />
                     <stop offset="50%" stopColor="#fbd468" />
                     <stop offset="100%" stopColor="#f2a65a" />
@@ -102,8 +109,14 @@ export function StarRating({
                 </defs>
                 <path
                   d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-                  fill={active ? `url(#${gradientPrefix}-${star})` : "rgba(255,255,255,0.12)"}
-                  stroke={active ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.25)"}
+                  fill={
+                    active
+                      ? `url(#${gradientPrefix}-${star})`
+                      : "rgba(255,255,255,0.12)"
+                  }
+                  stroke={
+                    active ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.25)"
+                  }
                   strokeWidth={active ? 0.4 : 0.6}
                 />
               </svg>

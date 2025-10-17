@@ -16,12 +16,7 @@ import {
   SubscribeToShowDocument,
   UnsubscribeFromShowDocument,
 } from "@shared";
-import {
-  AuroraBackground,
-  GlowCard,
-  InteractiveButton,
-  StarRating,
-} from "@ui";
+import { AuroraBackground, GlowCard, InteractiveButton, StarRating } from "@ui";
 
 interface PodcastDetailAppProps {
   showId: string;
@@ -121,7 +116,10 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
   });
 
   const progressMap = useMemo(() => {
-    const map = new Map<string, EpisodeProgressByIdsQuery["episodeProgress"][number]>();
+    const map = new Map<
+      string,
+      EpisodeProgressByIdsQuery["episodeProgress"][number]
+    >();
     for (const item of progressData?.episodeProgress ?? []) {
       if (item?.episodeId) {
         map.set(item.episodeId, item);
@@ -193,6 +191,8 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
   const [rateShow, { loading: rateLoading }] = useMutation(RateShowDocument);
 
   const show = showData?.show;
+  const descriptionHtml = show?.htmlDescription ?? show?.description ?? "";
+  const showLanguages = show?.languages?.filter(Boolean) ?? [];
   const isSubscribed = Boolean(subscription);
   const isMutatingSubscription = subscribeLoading || unsubscribeLoading;
 
@@ -224,7 +224,8 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
     try {
       const totalDuration = Number(episode.durationSec ?? 0);
       const bounded = Math.max(0, Math.min(positionSec, totalDuration));
-      const completed = totalDuration > 0 ? bounded >= totalDuration - 5 : false;
+      const completed =
+        totalDuration > 0 ? bounded >= totalDuration - 5 : false;
       await markProgress({
         variables: {
           episodeId: episode.episodeId,
@@ -341,10 +342,11 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                   </InteractiveButton>
                 </div>
 
-                {show.description ? (
-                  <p className="max-w-3xl text-base leading-relaxed text-white/70">
-                    {show.description}
-                  </p>
+                {descriptionHtml ? (
+                  <div
+                    className="prose prose-invert max-w-3xl text-base leading-relaxed text-white/70 prose-p:my-3 prose-strong:text-white"
+                    dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+                  />
                 ) : null}
 
                 <div className="flex flex-wrap items-center gap-3">
@@ -354,6 +356,19 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                       className="rounded-full border border-white/15 bg-white/[0.08] px-4 py-1 text-xs font-medium uppercase tracking-widest text-white/70"
                     >
                       {category}
+                    </span>
+                  ))}
+                  {show.explicit ? (
+                    <span className="rounded-full border border-red-400/40 bg-red-500/15 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-red-100">
+                      Explicit
+                    </span>
+                  ) : null}
+                  {showLanguages.map((lang) => (
+                    <span
+                      key={lang}
+                      className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] uppercase tracking-[0.35em] text-white/60"
+                    >
+                      {lang}
                     </span>
                   ))}
                 </div>
@@ -374,6 +389,16 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                       Open on Spotify ↗
                     </a>
                   ) : null}
+                  {show.mediaType ? (
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs uppercase tracking-[0.3em] text-white/50">
+                      {show.mediaType}
+                    </span>
+                  ) : null}
+                  {show.availableMarkets?.length ? (
+                    <span className="text-xs uppercase tracking-widest text-white/40">
+                      Available in {show.availableMarkets.length} markets
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -383,9 +408,12 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
         <GlowCard className="w-full max-w-none px-10 py-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-2">
-              <h2 className="text-2xl font-semibold text-white">Rate this podcast</h2>
+              <h2 className="text-2xl font-semibold text-white">
+                Rate this podcast
+              </h2>
               <p className="text-sm text-white/60">
-                Let future you know how this show feels. Just a quick rating and optional note.
+                Let future you know how this show feels. Just a quick rating and
+                optional note.
               </p>
               {!isEditingRating && subscription?.ratingReview ? (
                 <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/70">
@@ -396,8 +424,16 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
 
             <div className="flex w-full max-w-md flex-col gap-4">
               <StarRating
-                value={isEditingRating ? ratingDraft.stars : subscription?.ratingStars ?? 0}
-                onChange={isEditingRating ? (stars) => setRatingDraft((prev) => ({ ...prev, stars })) : undefined}
+                value={
+                  isEditingRating
+                    ? ratingDraft.stars
+                    : (subscription?.ratingStars ?? 0)
+                }
+                onChange={
+                  isEditingRating
+                    ? (stars) => setRatingDraft((prev) => ({ ...prev, stars }))
+                    : undefined
+                }
                 readOnly={!isEditingRating}
                 size="lg"
                 className="justify-end"
@@ -425,7 +461,8 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                     >
                       Save rating
                     </InteractiveButton>
-                    {(subscription?.ratingStars ?? 0) > 0 || subscription?.ratingReview ? (
+                    {(subscription?.ratingStars ?? 0) > 0 ||
+                    subscription?.ratingReview ? (
                       <InteractiveButton
                         variant="outline"
                         onClick={handleRatingClear}
@@ -461,7 +498,8 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                   </InteractiveButton>
                   {subscription?.ratingUpdatedAt ? (
                     <span className="text-xs uppercase tracking-widest text-white/50">
-                      Last updated {formatRelative(subscription.ratingUpdatedAt)}
+                      Last updated{" "}
+                      {formatRelative(subscription.ratingUpdatedAt)}
                     </span>
                   ) : null}
                 </div>
@@ -485,7 +523,9 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
               </p>
             </div>
             <div className="flex items-center gap-3 text-xs text-white/50">
-              {progressLoading || markProgressLoading ? "Syncing progress…" : null}
+              {progressLoading || markProgressLoading
+                ? "Syncing progress…"
+                : null}
             </div>
           </div>
 
@@ -517,12 +557,21 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                         <span className="h-1 w-1 rounded-full bg-white/30" />
                         <span>{formatDate(String(episode.publishedAt))}</span>
                         <span className="h-1 w-1 rounded-full bg-white/30" />
-                        <span>{formatDuration(Number(episode.durationSec ?? 0))}</span>
+                        <span>
+                          {formatDuration(Number(episode.durationSec ?? 0))}
+                        </span>
                       </div>
                       <h3 className="text-xl font-semibold text-white">
                         {episode.title}
                       </h3>
-                      {episode.description ? (
+                      {episode.htmlDescription ? (
+                        <div
+                          className="prose prose-invert prose-sm line-clamp-4 text-white/70 prose-p:my-1"
+                          dangerouslySetInnerHTML={{
+                            __html: episode.htmlDescription,
+                          }}
+                        />
+                      ) : episode.description ? (
                         <p className="line-clamp-3 text-sm text-white/70">
                           {episode.description}
                         </p>
@@ -538,6 +587,16 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                             {percent}% complete
                           </span>
                         )}
+                        {episode.explicit ? (
+                          <span className="rounded-full bg-red-500/20 px-3 py-1 text-red-200">
+                            Explicit
+                          </span>
+                        ) : null}
+                        {episode.languages?.length ? (
+                          <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-white/50">
+                            {episode.languages.join(" · ")}
+                          </span>
+                        ) : null}
                         <a
                           href={`/app/show/${showId}/episode/${episode.episodeId}`}
                           className="inline-flex items-center gap-2 text-white/75 transition hover:text-white"
@@ -576,11 +635,15 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
                             }));
                           }}
                           onPointerUp={(event) => {
-                            const value = Number((event.target as HTMLInputElement).value);
+                            const value = Number(
+                              (event.target as HTMLInputElement).value
+                            );
                             void handleProgressCommit(episode, value);
                           }}
                           onMouseUp={(event) => {
-                            const value = Number((event.target as HTMLInputElement).value);
+                            const value = Number(
+                              (event.target as HTMLInputElement).value
+                            );
                             void handleProgressCommit(episode, value);
                           }}
                           onKeyUp={(event) => {

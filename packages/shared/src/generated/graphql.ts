@@ -23,9 +23,15 @@ export type Episode = {
   description?: Maybe<Scalars['String']['output']>;
   durationSec: Scalars['Int']['output'];
   episodeId: Scalars['ID']['output'];
+  explicit?: Maybe<Scalars['Boolean']['output']>;
+  htmlDescription?: Maybe<Scalars['String']['output']>;
   image?: Maybe<Scalars['String']['output']>;
+  isExternallyHosted?: Maybe<Scalars['Boolean']['output']>;
+  isPlayable?: Maybe<Scalars['Boolean']['output']>;
+  languages?: Maybe<Array<Scalars['String']['output']>>;
   linkUrl?: Maybe<Scalars['String']['output']>;
   publishedAt: Scalars['AWSDateTime']['output'];
+  releaseDatePrecision?: Maybe<Scalars['String']['output']>;
   showId: Scalars['ID']['output'];
   title: Scalars['String']['output'];
 };
@@ -146,11 +152,16 @@ export type QueryShowArgs = {
 
 export type Show = {
   __typename: 'Show';
+  availableMarkets?: Maybe<Array<Scalars['String']['output']>>;
   categories: Array<Scalars['String']['output']>;
   description?: Maybe<Scalars['String']['output']>;
+  explicit?: Maybe<Scalars['Boolean']['output']>;
   externalUrl?: Maybe<Scalars['String']['output']>;
+  htmlDescription?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   image?: Maybe<Scalars['String']['output']>;
+  languages?: Maybe<Array<Scalars['String']['output']>>;
+  mediaType?: Maybe<Scalars['String']['output']>;
   publisher: Scalars['String']['output'];
   title: Scalars['String']['output'];
   totalEpisodes: Scalars['Int']['output'];
@@ -204,14 +215,14 @@ export type EpisodesByShowQueryVariables = Exact<{
 }>;
 
 
-export type EpisodesByShowQuery = { __typename: 'Query', episodes: { __typename: 'EpisodeConnection', nextToken?: string | null | undefined, items: Array<{ __typename: 'Episode', episodeId: string, showId: string, title: string, audioUrl: string, publishedAt: any, durationSec: number, description?: string | null | undefined, image?: string | null | undefined, linkUrl?: string | null | undefined }> } };
+export type EpisodesByShowQuery = { __typename: 'Query', episodes: { __typename: 'EpisodeConnection', nextToken?: string | null | undefined, items: Array<{ __typename: 'Episode', episodeId: string, showId: string, title: string, audioUrl: string, publishedAt: any, durationSec: number, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, linkUrl?: string | null | undefined, explicit?: boolean | null | undefined, isExternallyHosted?: boolean | null | undefined, isPlayable?: boolean | null | undefined, releaseDatePrecision?: string | null | undefined, languages?: Array<string> | null | undefined }> } };
 
 export type ShowByIdQueryVariables = Exact<{
   showId: Scalars['ID']['input'];
 }>;
 
 
-export type ShowByIdQuery = { __typename: 'Query', show: { __typename: 'Show', id: string, title: string, publisher: string, description?: string | null | undefined, image?: string | null | undefined, totalEpisodes: number, externalUrl?: string | null | undefined, categories: Array<string> } };
+export type ShowByIdQuery = { __typename: 'Query', show: { __typename: 'Show', id: string, title: string, publisher: string, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, totalEpisodes: number, externalUrl?: string | null | undefined, categories: Array<string>, explicit?: boolean | null | undefined, languages?: Array<string> | null | undefined, availableMarkets?: Array<string> | null | undefined, mediaType?: string | null | undefined } };
 
 export type MySubscriptionByShowQueryVariables = Exact<{
   showId: Scalars['ID']['input'];
@@ -226,7 +237,7 @@ export type EpisodeDetailsQueryVariables = Exact<{
 }>;
 
 
-export type EpisodeDetailsQuery = { __typename: 'Query', episode?: { __typename: 'Episode', showId: string, episodeId: string, title: string, audioUrl: string, publishedAt: any, durationSec: number, description?: string | null | undefined, image?: string | null | undefined, linkUrl?: string | null | undefined } | null | undefined };
+export type EpisodeDetailsQuery = { __typename: 'Query', episode?: { __typename: 'Episode', showId: string, episodeId: string, title: string, audioUrl: string, publishedAt: any, durationSec: number, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, linkUrl?: string | null | undefined, explicit?: boolean | null | undefined, isExternallyHosted?: boolean | null | undefined, isPlayable?: boolean | null | undefined, releaseDatePrecision?: string | null | undefined, languages?: Array<string> | null | undefined } | null | undefined };
 
 export type EpisodeProgressByIdsQueryVariables = Exact<{
   episodeIds: Array<Scalars['ID']['input']> | Scalars['ID']['input'];
@@ -331,8 +342,14 @@ export const EpisodesByShowDocument = gql`
       publishedAt
       durationSec
       description
+      htmlDescription
       image
       linkUrl
+      explicit
+      isExternallyHosted
+      isPlayable
+      releaseDatePrecision
+      languages
     }
     nextToken
   }
@@ -346,10 +363,15 @@ export const ShowByIdDocument = gql`
     title
     publisher
     description
+    htmlDescription
     image
     totalEpisodes
     externalUrl
     categories
+    explicit
+    languages
+    availableMarkets
+    mediaType
   }
 }
     `;
@@ -379,8 +401,14 @@ export const EpisodeDetailsDocument = gql`
     publishedAt
     durationSec
     description
+    htmlDescription
     image
     linkUrl
+    explicit
+    isExternallyHosted
+    isPlayable
+    releaseDatePrecision
+    languages
   }
 }
     `;

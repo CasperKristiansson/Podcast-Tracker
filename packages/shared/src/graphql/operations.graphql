@@ -28,8 +28,14 @@ query EpisodesByShow($showId: ID!, $limit: Int, $nextToken: String) {
       publishedAt
       durationSec
       description
+      htmlDescription
       image
       linkUrl
+      explicit
+      isExternallyHosted
+      isPlayable
+      releaseDatePrecision
+      languages
     }
     nextToken
   }
@@ -41,10 +47,15 @@ query ShowById($showId: ID!) {
     title
     publisher
     description
+    htmlDescription
     image
     totalEpisodes
     externalUrl
     categories
+    explicit
+    languages
+    availableMarkets
+    mediaType
   }
 }
 
@@ -70,8 +81,14 @@ query EpisodeDetails($showId: ID!, $episodeId: ID!) {
     publishedAt
     durationSec
     description
+    htmlDescription
     image
     linkUrl
+    explicit
+    isExternallyHosted
+    isPlayable
+    releaseDatePrecision
+    languages
   }
 }
 
@@ -122,11 +139,7 @@ mutation UnsubscribeFromShow($showId: ID!) {
   unsubscribe(showId: $showId)
 }
 
-mutation RateShow(
-  $showId: ID!
-  $stars: Int!
-  $review: String
-) {
+mutation RateShow($showId: ID!, $stars: Int!, $review: String) {
   rateShow(showId: $showId, stars: $stars, review: $review) {
     showId
     title

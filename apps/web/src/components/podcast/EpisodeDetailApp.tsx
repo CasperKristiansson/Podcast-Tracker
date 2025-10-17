@@ -3,11 +3,16 @@ import { useMutation, useQuery } from "@apollo/client/react";
 import {
   EpisodeDetailsDocument,
   type EpisodeDetailsQuery,
+  type EpisodeDetailsQueryVariables,
   EpisodeProgressByIdsDocument,
   type EpisodeProgressByIdsQuery,
+  type EpisodeProgressByIdsQueryVariables,
   MarkEpisodeProgressDocument,
+  type MarkEpisodeProgressMutation,
+  type MarkEpisodeProgressMutationVariables,
   ShowByIdDocument,
   type ShowByIdQuery,
+  type ShowByIdQueryVariables,
 } from "@shared";
 import { AuroraBackground, GlowCard, InteractiveButton } from "@ui";
 
@@ -43,32 +48,52 @@ export default function EpisodeDetailApp({
   showId,
   episodeId,
 }: EpisodeDetailAppProps) {
-  const { data: showData } = useQuery<ShowByIdQuery>(ShowByIdDocument, {
+  const {
+    data: showData,
+    loading: showLoading,
+    error: showError,
+  } = useQuery<ShowByIdQuery, ShowByIdQueryVariables>(ShowByIdDocument, {
     variables: { showId },
   });
-  const { data: episodeData, loading: episodeLoading, error: episodeError } =
-    useQuery<EpisodeDetailsQuery>(EpisodeDetailsDocument, {
+  const {
+    data: episodeData,
+    loading: episodeLoading,
+    error: episodeError,
+  } = useQuery<EpisodeDetailsQuery, EpisodeDetailsQueryVariables>(
+    EpisodeDetailsDocument,
+    {
       variables: { showId, episodeId },
-    });
-
-  const { data: progressData, refetch: refetchProgress } = useQuery<
-    EpisodeProgressByIdsQuery
-  >(EpisodeProgressByIdsDocument, {
-    variables: { episodeIds: [episodeId] },
-  });
-
-  const [markProgress, { loading: progressMutating }] = useMutation(
-    MarkEpisodeProgressDocument
+    }
   );
+
+  const {
+    data: progressData,
+    refetch: refetchProgress,
+    loading: progressLoading,
+  } = useQuery<EpisodeProgressByIdsQuery, EpisodeProgressByIdsQueryVariables>(
+    EpisodeProgressByIdsDocument,
+    {
+      variables: { episodeIds: [episodeId] },
+    }
+  );
+
+  const [markProgress, { loading: progressMutating }] = useMutation<
+    MarkEpisodeProgressMutation,
+    MarkEpisodeProgressMutationVariables
+  >(MarkEpisodeProgressDocument);
 
   const episode = episodeData?.episode ?? null;
-  const progress = useMemo(
-    () => progressData?.episodeProgress?.[0] ?? null,
-    [progressData]
-  );
+  const progress = useMemo(() => {
+    const list = progressData?.episodeProgress ?? [];
+    return list.length > 0 ? (list[0] ?? null) : null;
+  }, [progressData]);
   const [draftProgress, setDraftProgress] = useState<number>(
     progress?.positionSec ?? 0
   );
+
+  const descriptionHtml =
+    episode?.htmlDescription ?? episode?.description ?? "";
+  const languages = episode?.languages?.filter(Boolean) ?? [];
 
   useEffect(() => {
     setDraftProgress(progress?.positionSec ?? 0);
@@ -90,7 +115,7 @@ export default function EpisodeDetailApp({
     await refetchProgress();
   };
 
-  if (episodeLoading) {
+  if (episodeLoading || showLoading || progressLoading) {
     return (
       <div className="relative isolate w-full">
         <AuroraBackground className="opacity-80" />
@@ -101,10 +126,10 @@ export default function EpisodeDetailApp({
     );
   }
 
-  if (episodeError) {
+  if (episodeError || showError) {
     return (
       <div className="rounded-3xl border border-red-500/40 bg-red-500/20 p-6 text-sm text-red-100">
-        Failed to load episode: {episodeError.message}
+        Failed to load episode: {episodeError?.message ?? showError?.message}
       </div>
     );
   }
@@ -166,12 +191,28 @@ export default function EpisodeDetailApp({
                     </span>
                   ) : null}
                 </div>
-                {episode.description ? (
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-white/70">
-                    {episode.description}
-                  </p>
+                {descriptionHtml ? (
+                  <div
+                    className="prose prose-invert prose-sm max-w-none text-white/70 prose-p:my-2"
+                    dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+                  />
                 ) : null}
                 <div className="flex flex-wrap gap-3 text-sm text-white/70">
+                  {episode.explicit ? (
+                    <span className="rounded-full bg-red-500/20 px-3 py-1 text-xs uppercase tracking-[0.3em] text-red-200">
+                      Explicit
+                    </span>
+                  ) : null}
+                  {episode.isExternallyHosted ? (
+                    <span className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs uppercase tracking-[0.3em] text-white/50">
+                      External host
+                    </span>
+                  ) : null}
+                  {languages.length ? (
+                    <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs uppercase tracking-[0.3em] text-white/50">
+                      {languages.join(" · ")}
+                    </span>
+                  ) : null}
                   {episode.linkUrl ? (
                     <a
                       href={episode.linkUrl}
@@ -212,11 +253,15 @@ export default function EpisodeDetailApp({
                     setDraftProgress(value);
                   }}
                   onPointerUp={(event) => {
-                    const value = Number((event.target as HTMLInputElement).value);
+                    const value = Number(
+                      (event.target as HTMLInputElement).value
+                    );
                     void handleProgressUpdate(value);
                   }}
                   onMouseUp={(event) => {
-                    const value = Number((event.target as HTMLInputElement).value);
+                    const value = Number(
+                      (event.target as HTMLInputElement).value
+                    );
                     void handleProgressUpdate(value);
                   }}
                   className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-[#8f73ff]"

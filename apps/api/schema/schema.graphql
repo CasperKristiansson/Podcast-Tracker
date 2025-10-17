@@ -29,8 +29,14 @@ type Episode {
   publishedAt: AWSDateTime!
   durationSec: Int!
   description: String
+  htmlDescription: String
   image: String
   linkUrl: String
+  explicit: Boolean
+  isExternallyHosted: Boolean
+  isPlayable: Boolean
+  releaseDatePrecision: String
+  languages: [String!]
 }
 
 type Progress {
@@ -45,10 +51,15 @@ type Show {
   title: String!
   publisher: String!
   description: String
+  htmlDescription: String
   image: String
   totalEpisodes: Int!
   externalUrl: String
   categories: [String!]!
+  explicit: Boolean
+  languages: [String!]
+  availableMarkets: [String!]
+  mediaType: String
 }
 
 type SubscriptionConnection implements PaginatedResult {

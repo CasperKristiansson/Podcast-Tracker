@@ -1,8 +1,4 @@
-import {
-  forwardRef,
-  type ButtonHTMLAttributes,
-  type ReactNode,
-} from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import type { ClassValue } from "../lib/cn";
 import { cn } from "../lib/cn";
 
@@ -65,7 +61,9 @@ export const InteractiveButton = forwardRef<
     >
       <span className="relative inline-flex items-center gap-2">
         {icon ? (
-          <span className="flex h-4 w-4 items-center justify-center">{icon}</span>
+          <span className="flex h-4 w-4 items-center justify-center">
+            {icon}
+          </span>
         ) : null}
         <span>{isLoading ? loadingLabel : children}</span>
       </span>

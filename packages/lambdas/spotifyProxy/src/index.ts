@@ -326,10 +326,15 @@ function mapShow(show: SpotifyShow) {
     title: show.name,
     publisher: show.publisher,
     description: show.description,
+    htmlDescription: show.html_description ?? null,
     image: show.images?.[0]?.url ?? null,
     totalEpisodes: show.total_episodes ?? 0,
     externalUrl: show.external_urls?.spotify ?? null,
     categories: show.genres ?? [],
+    explicit: show.explicit ?? null,
+    languages: show.languages ?? [],
+    availableMarkets: show.available_markets ?? [],
+    mediaType: show.media_type ?? null,
   };
 }
 
@@ -341,11 +346,19 @@ function mapEpisode(episode: SpotifyEpisode) {
     showId: derivedShowId ?? /* c8 ignore next */ null,
     title: episode.name,
     description: episode.description,
-    audioUrl: episode.audio_preview_url ?? episode.external_urls?.spotify ?? null,
+    htmlDescription: episode.html_description ?? null,
+    audioUrl:
+      episode.audio_preview_url ?? episode.external_urls?.spotify ?? null,
     image: episode.images?.[0]?.url ?? null,
     linkUrl: episode.external_urls?.spotify ?? null,
     publishedAt: episode.release_date,
     durationSec: Math.round((episode.duration_ms ?? 0) / 1000),
+    explicit: episode.explicit ?? null,
+    isExternallyHosted: episode.is_externally_hosted ?? null,
+    isPlayable: episode.is_playable ?? null,
+    releaseDatePrecision: episode.release_date_precision ?? null,
+    languages:
+      episode.languages ?? (episode.language ? [episode.language] : []),
   };
 }
 
@@ -360,22 +373,34 @@ interface SpotifyShow {
   name: string;
   publisher: string;
   description: string;
+  html_description?: string;
   images?: SpotifyImage[];
   total_episodes?: number;
   external_urls?: Record<string, string>;
   genres?: string[];
+  explicit?: boolean;
+  languages?: string[];
+  available_markets?: string[];
+  media_type?: string;
 }
 
 interface SpotifyEpisode {
   id: string;
   name: string;
   description: string;
+  html_description?: string;
   audio_preview_url?: string | null;
   external_urls?: { spotify?: string };
   release_date: string;
   duration_ms?: number;
   show?: { id: string };
   images?: SpotifyImage[];
+  explicit?: boolean;
+  is_externally_hosted?: boolean;
+  is_playable?: boolean;
+  release_date_precision?: string;
+  languages?: string[];
+  language?: string;
 }
 
 interface SpotifyEpisodesResponse {

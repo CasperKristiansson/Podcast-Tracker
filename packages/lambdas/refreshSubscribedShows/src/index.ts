@@ -34,11 +34,18 @@ interface SpotifyEpisode {
   id: string;
   name: string;
   description?: string;
+  html_description?: string;
   audio_preview_url?: string | null;
   external_urls?: { spotify?: string };
   release_date: string;
   duration_ms?: number;
   images?: { url: string }[];
+  explicit?: boolean;
+  is_externally_hosted?: boolean;
+  is_playable?: boolean;
+  release_date_precision?: string;
+  languages?: string[];
+  language?: string;
 }
 
 const tableName = requiredEnv("TABLE_NAME");
@@ -275,11 +282,18 @@ function mapEpisode(showId: string, episode: SpotifyEpisode): DynamoItem {
     episodeId: episode.id,
     title: episode.name,
     description: episode.description ?? null,
+    htmlDescription: episode.html_description ?? null,
     audioUrl: resolveAudioUrl(episode),
     image: episode.images?.[0]?.url ?? null,
     linkUrl: episode.external_urls?.spotify ?? null,
     publishedAt: episode.release_date,
     durationSec: Math.round((episode.duration_ms ?? 0) / 1000),
+    explicit: episode.explicit ?? null,
+    isExternallyHosted: episode.is_externally_hosted ?? null,
+    isPlayable: episode.is_playable ?? null,
+    releaseDatePrecision: episode.release_date_precision ?? null,
+    languages:
+      episode.languages ?? (episode.language ? [episode.language] : undefined),
     updatedAt: new Date().toISOString(),
   };
 }
