@@ -28,6 +28,26 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             <stop offset="0" stop-color="#6B4390" stop-opacity="0.25"></stop>
             <stop offset="1" stop-color="#6B4390" stop-opacity="0"></stop>
           </radialGradient>
+          <linearGradient id="mountFarGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#2A2676" stop-opacity="0.9"></stop>
+            <stop offset="1" stop-color="#110C3F" stop-opacity="0.98"></stop>
+          </linearGradient>
+          <linearGradient id="mountMidGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#2F1D84" stop-opacity="0.92"></stop>
+            <stop offset="1" stop-color="#130B3A" stop-opacity="1"></stop>
+          </linearGradient>
+          <linearGradient id="mountNearGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#1F125D" stop-opacity="1"></stop>
+            <stop offset="1" stop-color="#0B0834" stop-opacity="1"></stop>
+          </linearGradient>
+          <linearGradient id="mountHighlightGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#B98DAD" stop-opacity="0.45"></stop>
+            <stop offset="1" stop-color="#B98DAD" stop-opacity="0"></stop>
+          </linearGradient>
+          <linearGradient id="groundHaze" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#110C3F" stop-opacity="0"></stop>
+            <stop offset="1" stop-color="#110C3F" stop-opacity="0.65"></stop>
+          </linearGradient>
         </defs>
         <rect width="1000" height="565" fill="url(#skyGradient)"></rect>
         <ellipse cx="200" cy="113" rx="220" ry="254.25" fill="url(#columnGlow)"
@@ -598,6 +618,21 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           r="0.89"
           fill="#D7D4FF"
           fill-opacity="0.44"></circle>
+        <g id="mountain-range">
+          <path
+            d="M 0 350 L 80 320 L 170 335 L 260 300 L 350 325 L 430 285 L 520 305 L 610 275 L 710 305 L 810 280 L 900 310 L 1000 285 L 1000 565 L 0 565 Z"
+            fill="url(#mountFarGradient)"></path>
+          <path
+            d="M 0 420 L 100 380 L 200 405 L 300 370 L 400 395 L 500 360 L 600 385 L 700 350 L 820 375 L 920 355 L 1000 365 L 1000 565 L 0 565 Z"
+            fill="url(#mountMidGradient)"></path>
+          <path
+            d="M 0 485 L 120 445 L 220 470 L 320 435 L 420 455 L 520 425 L 630 450 L 740 420 L 860 445 L 1000 430 L 1000 565 L 0 565 Z"
+            fill="url(#mountNearGradient)"></path>
+          <path
+            d="M 0 465 L 120 430 L 220 450 L 320 420 L 420 440 L 520 410 L 630 430 L 740 405 L 860 430 L 1000 415 L 1000 500 L 0 500 Z"
+            fill="url(#mountHighlightGradient)"></path>
+          <rect x="0" y="500" width="1000" height="65" fill="url(#groundHaze)"></rect>
+        </g>
       </svg>
     </div>
     <div class="relative z-10 flex flex-col items-center gap-6">
