@@ -69,7 +69,7 @@ describe("refresh subscriptions lambda", () => {
         if (showId === "show-2") {
           return {
             id: "show-2",
-            title: null,
+            title: "",
             publisher: "",
             description: "",
             htmlDescription: "",
