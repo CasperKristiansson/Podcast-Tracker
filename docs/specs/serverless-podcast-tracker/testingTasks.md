@@ -2,11 +2,11 @@
 
 ## Unit Test Tasks
 
-- [ ] Configure Vitest test runner
+- [x] Configure Vitest test runner
   - `vitest` and `@vitest/coverage-v8` added to repo `devDependencies`
   - Root `vitest.config.ts` resolves workspace paths and targets Node 24
   - `npm run test -- --run` executes and succeeds with a scaffold test suite
-- [ ] Mock AWS service dependencies
+- [x] Mock AWS service dependencies
   - Introduce `@aws-sdk/client-mock` utilities under `packages/lambdas/spotifyProxy/test`
   - Provide shared mock builders for DynamoDB and SSM clients
   - Update Vitest setup file to reset mocks between specs
