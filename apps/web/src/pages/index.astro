@@ -40,7 +40,13 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             <stop offset="0" stop-color="#1F125D" stop-opacity="1"></stop>
             <stop offset="1" stop-color="#0B0834" stop-opacity="1"></stop>
           </linearGradient>
-          <linearGradient id="mountHighlightGradient" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient
+            id="mountHighlightGradient"
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+          >
             <stop offset="0" stop-color="#B98DAD" stop-opacity="0.45"></stop>
             <stop offset="1" stop-color="#B98DAD" stop-opacity="0"></stop>
           </linearGradient>
@@ -631,7 +637,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           <path
             d="M 0 525 L 120 490 L 220 510 L 320 480 L 420 500 L 520 470 L 630 490 L 740 465 L 860 490 L 1000 475 L 1000 550 L 0 550 Z"
             fill="url(#mountHighlightGradient)"></path>
-          <rect x="0" y="550" width="1000" height="30" fill="url(#groundHaze)"></rect>
+          <rect x="0" y="550" width="1000" height="30" fill="url(#groundHaze)"
+          ></rect>
         </g>
       </svg>
     </div>
