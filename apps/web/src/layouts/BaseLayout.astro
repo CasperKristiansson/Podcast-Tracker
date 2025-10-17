@@ -12,6 +12,7 @@ const {
   description = 'Track the shows you love with real-time episode updates.',
   showChrome = true
 } = Astro.props as Props;
+const hasSearch = Astro.slots.has('search');
 ---
 
 <!DOCTYPE html>
@@ -42,6 +43,13 @@ const {
         </header>
       )}
       <main class="flex-1">
+        {hasSearch && (
+          <div class="border-b border-white/5 bg-brand-surface/50 px-6 py-6">
+            <div class="mx-auto max-w-5xl">
+              <slot name="search" />
+            </div>
+          </div>
+        )}
         <slot />
       </main>
       {showChrome && (

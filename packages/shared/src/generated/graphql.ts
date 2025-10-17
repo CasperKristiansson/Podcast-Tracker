@@ -253,7 +253,7 @@ export type SearchShowsQueryVariables = Exact<{
 }>;
 
 
-export type SearchShowsQuery = { __typename: 'Query', search: Array<{ __typename: 'Show', id: string, title: string, publisher: string, description?: string | null | undefined, image?: string | null | undefined, totalEpisodes: number }> };
+export type SearchShowsQuery = { __typename: 'Query', search: Array<{ __typename: 'Show', id: string, title: string, publisher: string, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, totalEpisodes: number, externalUrl?: string | null | undefined, categories: Array<string>, explicit?: boolean | null | undefined, languages?: Array<string> | null | undefined, availableMarkets?: Array<string> | null | undefined, mediaType?: string | null | undefined }> };
 
 export type SubscribeToShowMutationVariables = Exact<{
   showId: Scalars['ID']['input'];
@@ -431,8 +431,15 @@ export const SearchShowsDocument = gql`
     title
     publisher
     description
+    htmlDescription
     image
     totalEpisodes
+    externalUrl
+    categories
+    explicit
+    languages
+    availableMarkets
+    mediaType
   }
 }
     `;
