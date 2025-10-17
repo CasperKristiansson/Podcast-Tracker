@@ -16,16 +16,16 @@ function toUrlString(target: string | URL | Request): string {
   return target.url;
 }
 
-type ShowSummary = {
+interface ShowSummary {
   id: string;
   title: string;
   publisher: string;
   description: string;
   image: string | null;
   totalEpisodes: number;
-};
+}
 
-type EpisodesSummary = {
+interface EpisodesSummary {
   id: string;
   showId: string | null;
   title: string;
@@ -33,9 +33,12 @@ type EpisodesSummary = {
   audioUrl: string | null | undefined;
   publishedAt: string;
   durationSec: number;
-};
+}
 
-type ListResponse<T> = { items: T[]; nextCursor?: string | null };
+interface ListResponse<T> {
+  items: T[];
+  nextCursor?: string | null;
+}
 
 describe("spotify proxy handler", () => {
   beforeEach(() => {
