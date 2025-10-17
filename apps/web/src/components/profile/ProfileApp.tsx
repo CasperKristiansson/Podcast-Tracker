@@ -457,7 +457,8 @@ function LibraryCard({
 
         <div className="flex flex-col gap-3 text-xs text-white/60 sm:flex-row sm:items-center sm:justify-between">
           <p>
-            Subscribed since {addedAtValue ? formatDate(addedAtValue) : "Unknown"}
+            Subscribed since{" "}
+            {addedAtValue ? formatDate(addedAtValue) : "Unknown"}
           </p>
           <InteractiveButton
             variant="ghost"

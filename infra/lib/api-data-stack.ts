@@ -317,6 +317,32 @@ export class ApiDataStack extends cdk.Stack {
       ),
     });
 
+    const legacyTableNameExport = new cdk.CfnOutput(
+      this,
+      "LegacyTableNameExport",
+      {
+        value: this.table.tableName,
+        exportName:
+          "PodcastTrackerApiDataStack:ExportsOutputRefPodcastTrackerTable03301A6B02AF9905",
+      }
+    );
+    legacyTableNameExport.overrideLogicalId(
+      "ExportsOutputRefPodcastTrackerTable03301A6B02AF9905"
+    );
+
+    const legacyTableArnExport = new cdk.CfnOutput(
+      this,
+      "LegacyTableArnExport",
+      {
+        value: this.table.tableArn,
+        exportName:
+          "PodcastTrackerApiDataStack:ExportsOutputFnGetAttPodcastTrackerTable03301A6BArnF51E623B",
+      }
+    );
+    legacyTableArnExport.overrideLogicalId(
+      "ExportsOutputFnGetAttPodcastTrackerTable03301A6BArnF51E623B"
+    );
+
     new cdk.CfnOutput(this, "TableName", {
       value: this.table.tableName,
     });
