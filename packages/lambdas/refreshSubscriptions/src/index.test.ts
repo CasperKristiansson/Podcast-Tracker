@@ -63,9 +63,9 @@ describe("refresh subscriptions lambda", () => {
 
     const getShowSpy = vi
       .spyOn(spotifyInternal, "getShow")
-      .mockImplementation(async (showId: string) => {
+      .mockImplementation((showId: string) => {
         if (showId === "show-1") {
-          return {
+          return Promise.resolve({
             id: "show-1",
             title: "First Show",
             publisher: "Awesome Audio",
@@ -79,10 +79,10 @@ describe("refresh subscriptions lambda", () => {
             languages: [],
             availableMarkets: [],
             mediaType: "audio",
-          };
+          });
         }
         if (showId === "show-2") {
-          return {
+          return Promise.resolve({
             id: "show-2",
             title: "",
             publisher: "",
@@ -96,9 +96,9 @@ describe("refresh subscriptions lambda", () => {
             languages: [],
             availableMarkets: [],
             mediaType: null,
-          };
+          });
         }
-        throw new Error(`Unexpected showId ${showId}`);
+        return Promise.reject(new Error(`Unexpected showId ${showId}`));
       });
 
     dynamoMock.on(UpdateCommand).resolves({});

@@ -143,7 +143,7 @@ describe("profile lambda", () => {
   });
 
   it("collectSubscriptionRecords skips invalid entries", () => {
-    const target: Array<Record<string, unknown>> = [];
+    const target: Record<string, unknown>[] = [];
     __internal.collectSubscriptionRecords(
       {
         Items: [

@@ -47,6 +47,16 @@ const formatDate = (value: string | null | undefined): string => {
   }
 };
 
+const normalizeDateInput = (value: unknown): string | null => {
+  if (typeof value === "string" && value.length > 0) {
+    return value;
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  return null;
+};
+
 export default function ProfileApp(): JSX.Element {
   const {
     data,
@@ -172,6 +182,13 @@ export default function ProfileApp(): JSX.Element {
     [fetchEpisodes, fetchProgress, markProgress, refetchProfile]
   );
 
+  const handleCelebrateClick = useCallback(
+    (show: ProfileShow) => {
+      void handleCelebrate(show);
+    },
+    [handleCelebrate]
+  );
+
   if (loading) {
     return (
       <div className="relative isolate w-full">
@@ -254,7 +271,7 @@ export default function ProfileApp(): JSX.Element {
                 <SpotlightCard
                   key={show.showId}
                   show={show}
-                  onCelebrate={handleCelebrate}
+                  onCelebrate={handleCelebrateClick}
                   celebrating={
                     celebration?.showId === show.showId
                       ? celebration.seed
@@ -276,7 +293,7 @@ export default function ProfileApp(): JSX.Element {
               <LibraryCard
                 key={show.showId}
                 show={show}
-                onCelebrate={handleCelebrate}
+                onCelebrate={handleCelebrateClick}
                 celebrating={
                   celebration?.showId === show.showId ? celebration.seed : null
                 }
@@ -339,6 +356,8 @@ function SpotlightCard({
   celebrating,
   disabled,
 }: SpotlightCardProps): JSX.Element {
+  const syncedAtValue = normalizeDateInput(show.subscriptionSyncedAt);
+
   return (
     <TiltCard className="group bg-gradient-to-br from-white/[0.08] via-white/[0.03] to-transparent">
       <div className="flex flex-col gap-5">
@@ -372,10 +391,7 @@ function SpotlightCard({
               Total episodes · {formatNumber(show.totalEpisodes)}
             </p>
             <p className="text-xs text-white/50">
-              Synced{" "}
-              {show.subscriptionSyncedAt
-                ? formatDate(show.subscriptionSyncedAt)
-                : "just now"}
+              Synced {syncedAtValue ? formatDate(syncedAtValue) : "just now"}
             </p>
           </div>
           <InteractiveButton
@@ -410,6 +426,8 @@ function LibraryCard({
   disabled,
 }: LibraryCardProps): JSX.Element {
   const hasUnlistened = show.unlistenedEpisodes > 0;
+  const addedAtValue = normalizeDateInput(show.addedAt);
+
   return (
     <TiltCard className="bg-white/[0.03]">
       <div className="flex flex-col gap-5">
@@ -438,7 +456,9 @@ function LibraryCard({
         </div>
 
         <div className="flex flex-col gap-3 text-xs text-white/60 sm:flex-row sm:items-center sm:justify-between">
-          <p>Subscribed since {formatDate(show.addedAt)}</p>
+          <p>
+            Subscribed since {addedAtValue ? formatDate(addedAtValue) : "Unknown"}
+          </p>
           <InteractiveButton
             variant="ghost"
             onClick={() => {
