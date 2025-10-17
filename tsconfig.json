@@ -16,7 +16,8 @@
     "apps/**/*.tsx",
     "packages/**/*.ts",
     "packages/**/*.tsx",
-    "infra/**/*.ts"
+    "infra/**/*.ts",
+    "vitest.setup.ts"
   ],
   "exclude": ["node_modules", "dist", "build", "coverage", "cdk.out"]
 }
