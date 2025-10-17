@@ -193,6 +193,7 @@ export type UserSubscription = {
   ratingStars?: Maybe<Scalars['Int']['output']>;
   ratingUpdatedAt?: Maybe<Scalars['AWSDateTime']['output']>;
   showId: Scalars['ID']['output'];
+  subscriptionSyncedAt?: Maybe<Scalars['AWSDateTime']['output']>;
   title: Scalars['String']['output'];
   totalEpisodes: Scalars['Int']['output'];
 };

@@ -17,6 +17,7 @@ type UserSubscription {
   image: String!
   addedAt: AWSDateTime!
   totalEpisodes: Int!
+  subscriptionSyncedAt: AWSDateTime
   ratingStars: Int
   ratingReview: String
   ratingUpdatedAt: AWSDateTime
