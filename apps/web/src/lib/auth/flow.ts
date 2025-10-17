@@ -23,7 +23,13 @@ import {
 const AUTHORIZE_ENDPOINT = "/oauth2/authorize";
 const TOKEN_ENDPOINT = "/oauth2/token";
 
-const buildAuthorizeUrl = (state: string, codeChallenge: string): string => {
+type AuthorizePrompt = "login" | "select_account" | "consent";
+
+const buildAuthorizeUrl = (
+  state: string,
+  codeChallenge: string,
+  prompt: AuthorizePrompt = "select_account"
+): string => {
   const params = new URLSearchParams({
     response_type: "code",
     client_id: clientId,
@@ -33,12 +39,20 @@ const buildAuthorizeUrl = (state: string, codeChallenge: string): string => {
     code_challenge: codeChallenge,
     code_challenge_method: "S256",
     state,
-    prompt: "login",
   });
+  // Defaulting to select_account avoids Cognito re-provisioning returning
+  // social users, which can otherwise trigger immutable attribute errors.
+  params.set("prompt", prompt);
   return `https://${cognitoDomain}${AUTHORIZE_ENDPOINT}?${params.toString()}`;
 };
 
-export const beginLogin = async (): Promise<void> => {
+export interface BeginLoginOptions {
+  prompt?: AuthorizePrompt;
+}
+
+export const beginLogin = async (
+  options?: BeginLoginOptions
+): Promise<void> => {
   if (typeof window === "undefined") {
     throw new Error("Login flow must be initiated in the browser.");
   }
@@ -50,7 +64,11 @@ export const beginLogin = async (): Promise<void> => {
   storeCodeVerifier(verifier);
   storeState(state);
 
-  window.location.href = buildAuthorizeUrl(state, codeChallenge);
+  window.location.href = buildAuthorizeUrl(
+    state,
+    codeChallenge,
+    options?.prompt
+  );
 };
 
 const buildTokenRequestBody = (

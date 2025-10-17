@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { beginLogin, completeLogin } from "../../lib/auth/flow";
 
 type Status = "pending" | "success" | "error";
@@ -6,6 +6,7 @@ type Status = "pending" | "success" | "error";
 export default function AuthCallback(): JSX.Element {
   const [status, setStatus] = useState<Status>("pending");
   const [message, setMessage] = useState<string>("Completing sign-in…");
+  const hasRetriedWithPrompt = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,8 +24,29 @@ export default function AuthCallback(): JSX.Element {
             window.location.replace("/app/profile");
           }, 1200);
         } else {
-          setStatus("error");
-          setMessage(result.message);
+          const immutableEmailError = result.message.includes(
+            "Attribute cannot be updated"
+          );
+
+          if (immutableEmailError && !hasRetriedWithPrompt.current) {
+            hasRetriedWithPrompt.current = true;
+            setStatus("pending");
+            setMessage("Reconnecting your Google account…");
+            beginLogin({ prompt: "login" }).catch((err) => {
+              if (cancelled) {
+                return;
+              }
+              setStatus("error");
+              const fallbackMessage =
+                err instanceof Error
+                  ? err.message
+                  : "Unable to restart Google sign-in.";
+              setMessage(fallbackMessage);
+            });
+          } else {
+            setStatus("error");
+            setMessage(result.message);
+          }
         }
       })
       .catch((error) => {
@@ -68,7 +90,7 @@ export default function AuthCallback(): JSX.Element {
             onClick={() => {
               setStatus("pending");
               setMessage("Redirecting to Google sign-in…");
-              beginLogin().catch((err) => {
+              beginLogin({ prompt: "login" }).catch((err) => {
                 setStatus("error");
                 const description =
                   err instanceof Error
