@@ -19,7 +19,7 @@
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:watch": "graphql-codegen --config codegen.ts --watch",
     "test:ci": "vitest run",
-    "deploy:backend": "AWS_PROFILE=${AWS_PROFILE:-Personal} npm run --workspace infra cdk:deploy -- --all --require-approval never --profile ${AWS_PROFILE:-Personal}",
+    "deploy:backend": "npm run --workspace infra cdk:deploy -- --all --require-approval never --profile Personal",
     "deploy:web": "bash ./scripts/deploy-web.sh"
   },
   "workspaces": [
