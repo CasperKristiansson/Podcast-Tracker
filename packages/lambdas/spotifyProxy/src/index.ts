@@ -62,6 +62,7 @@ export const handler = async (event: AppSyncEvent) => {
         () => searchShows(term, args.limit, args.offset)
       );
     }
+    case "show":
     case "getShow": {
       const args = event.arguments as { showId?: string };
       const showId = args.showId?.trim();
@@ -327,6 +328,8 @@ function mapShow(show: SpotifyShow) {
     description: show.description,
     image: show.images?.[0]?.url ?? null,
     totalEpisodes: show.total_episodes ?? 0,
+    externalUrl: show.external_urls?.spotify ?? null,
+    categories: show.genres ?? [],
   };
 }
 
@@ -338,7 +341,9 @@ function mapEpisode(episode: SpotifyEpisode) {
     showId: derivedShowId ?? /* c8 ignore next */ null,
     title: episode.name,
     description: episode.description,
-    audioUrl: episode.audio_preview_url,
+    audioUrl: episode.audio_preview_url ?? episode.external_urls?.spotify ?? null,
+    image: episode.images?.[0]?.url ?? null,
+    linkUrl: episode.external_urls?.spotify ?? null,
     publishedAt: episode.release_date,
     durationSec: Math.round((episode.duration_ms ?? 0) / 1000),
   };
@@ -357,6 +362,8 @@ interface SpotifyShow {
   description: string;
   images?: SpotifyImage[];
   total_episodes?: number;
+  external_urls?: Record<string, string>;
+  genres?: string[];
 }
 
 interface SpotifyEpisode {
@@ -364,9 +371,11 @@ interface SpotifyEpisode {
   name: string;
   description: string;
   audio_preview_url?: string | null;
+  external_urls?: { spotify?: string };
   release_date: string;
   duration_ms?: number;
   show?: { id: string };
+  images?: SpotifyImage[];
 }
 
 interface SpotifyEpisodesResponse {

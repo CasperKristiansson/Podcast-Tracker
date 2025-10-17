@@ -16,6 +16,9 @@ type UserSubscription {
   publisher: String!
   image: String!
   addedAt: AWSDateTime!
+  ratingStars: Int
+  ratingReview: String
+  ratingUpdatedAt: AWSDateTime
 }
 
 type Episode {
@@ -25,6 +28,9 @@ type Episode {
   audioUrl: String!
   publishedAt: AWSDateTime!
   durationSec: Int!
+  description: String
+  image: String
+  linkUrl: String
 }
 
 type Progress {
@@ -41,6 +47,8 @@ type Show {
   description: String
   image: String
   totalEpisodes: Int!
+  externalUrl: String
+  categories: [String!]!
 }
 
 type SubscriptionConnection implements PaginatedResult {
@@ -58,6 +66,10 @@ type Query {
   mySubscriptions(limit: Int, nextToken: String): SubscriptionConnection!
   episodes(showId: ID!, limit: Int, nextToken: String): EpisodeConnection!
   search(term: String!, limit: Int, offset: Int): [Show!]!
+  show(showId: ID!): Show!
+  mySubscription(showId: ID!): UserSubscription
+  episode(showId: ID!, episodeId: ID!): Episode
+  episodeProgress(episodeIds: [ID!]!): [Progress!]!
 }
 
 type Mutation {
@@ -77,6 +89,8 @@ type Mutation {
     positionSec: Int!
     completed: Boolean!
   ): Progress!
+  unsubscribe(showId: ID!): Boolean!
+  rateShow(showId: ID!, stars: Int!, review: String): UserSubscription!
 }
 
 type Subscription {

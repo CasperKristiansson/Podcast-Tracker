@@ -1,0 +1,8 @@
+{
+  "version": "2018-05-29",
+  "operation": "GetItem",
+  "key": {
+    "pk": $util.dynamodb.toDynamoDBJson("show#" + $ctx.args.showId),
+    "sk": $util.dynamodb.toDynamoDBJson("ep#" + $ctx.args.episodeId)
+  }
+}

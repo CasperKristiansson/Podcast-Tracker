@@ -1,0 +1,11 @@
+#set($items = [])
+#if($ctx.result && $ctx.result.items)
+  #foreach($item in $ctx.result.items)
+    #set($map = $util.dynamodb.toMapValues($item))
+    $util.qr($map.remove("pk"))
+    $util.qr($map.remove("sk"))
+    $util.qr($map.remove("dataType"))
+    $util.qr($items.add($map))
+  #end
+#end
+$util.toJson($items)

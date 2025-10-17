@@ -1,0 +1,9 @@
+{
+  "version": "2018-05-29",
+  "operation": "DeleteItem",
+  "key": {
+    "pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub),
+    "sk": $util.dynamodb.toDynamoDBJson("sub#" + $ctx.args.showId)
+  },
+  "returnValues": "ALL_OLD"
+}

@@ -1,0 +1,29 @@
+#set($now = $util.time.nowISO8601())
+#set($expression = "SET ratingStars = :stars, ratingUpdatedAt = :updated")
+#set($values = {
+  ":stars": $util.dynamodb.toDynamoDBJson($ctx.args.stars),
+  ":updated": $util.dynamodb.toDynamoDBJson($now)
+})
+#if($ctx.args.containsKey("review") && !$util.isNull($ctx.args.review))
+  #set($expression = $expression + ", ratingReview = :review")
+  $util.qr($values.put(":review", $util.dynamodb.toDynamoDBJson($ctx.args.review)))
+#else
+  #set($expression = $expression + ", ratingReview = :review")
+  $util.qr($values.put(":review", {"NULL": true}))
+#end
+{
+  "version": "2018-05-29",
+  "operation": "UpdateItem",
+  "key": {
+    "pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub),
+    "sk": $util.dynamodb.toDynamoDBJson("sub#" + $ctx.args.showId)
+  },
+  "update": {
+    "expression": $expression,
+    "expressionValues": $values
+  },
+  "condition": {
+    "expression": "attribute_exists(pk) AND attribute_exists(sk)"
+  },
+  "returnValues": "ALL_NEW"
+}

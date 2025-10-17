@@ -1,0 +1,27 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import EpisodeDetailApp from '~/components/podcast/EpisodeDetailApp';
+
+export const prerender = false;
+
+const { showId, episodeId } = Astro.params;
+
+if (!showId || !episodeId) {
+  throw new Error('showId and episodeId parameters are required');
+}
+
+---
+
+<BaseLayout
+  title="Episode"
+  description="Detailed view for a podcast episode with progress controls."
+  showChrome={false}
+>
+  <section class="min-h-screen">
+    <EpisodeDetailApp
+      client:only="react"
+      showId={showId}
+      episodeId={episodeId}
+    />
+  </section>
+</BaseLayout>

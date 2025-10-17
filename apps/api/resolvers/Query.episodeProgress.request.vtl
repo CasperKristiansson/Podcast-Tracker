@@ -1,0 +1,74 @@
+#set($episodeIds = $ctx.args.episodeIds)
+#if(!$episodeIds || $episodeIds.size() == 0)
+{
+  "version": "2018-05-29",
+  "operation": "Query",
+  "query": {
+    "expression": "pk = :pk",
+    "expressionValues": {
+      ":pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub)
+    }
+  },
+  "limit": 1,
+  "filter": {
+    "expression": "attribute_not_exists(#dummy)",
+    "expressionNames": {
+      "#dummy": "pk"
+    }
+  }
+}
+#else
+#set($filterValues = {":progress": $util.dynamodb.toDynamoDBJson("progress")})
+#set($tokens = [])
+#set($index = 0)
+#foreach($episodeId in $episodeIds)
+  #if($episodeId)
+    #set($token = ":e" + $index)
+    #set($index = $index + 1)
+    $util.qr($tokens.add($token))
+    $util.qr($filterValues.put($token, $util.dynamodb.toDynamoDBJson($episodeId)))
+  #end
+#end
+#set($tokenCount = $tokens.size())
+#if($tokenCount == 0)
+{
+  "version": "2018-05-29",
+  "operation": "Query",
+  "query": {
+    "expression": "pk = :pk",
+    "expressionValues": {
+      ":pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub)
+    }
+  },
+  "limit": 1,
+  "filter": {
+    "expression": "attribute_not_exists(#dummy)",
+    "expressionNames": {
+      "#dummy": "pk"
+    }
+  }
+}
+#else
+#set($joinedTokens = "")
+#foreach($token in $tokens)
+  #if($velocityCount == 1)
+    #set($joinedTokens = $token)
+  #else
+    #set($joinedTokens = $joinedTokens + ", " + $token)
+  #end
+#end
+{
+  "version": "2018-05-29",
+  "operation": "Query",
+  "query": {
+    "expression": "pk = :pk",
+    "expressionValues": {
+      ":pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub)
+    }
+  },
+  "filter": {
+    "expression": "(dataType = :progress) AND episodeId IN ($joinedTokens)",
+    "expressionValues": $util.toJson($filterValues)
+  }
+}
+#end

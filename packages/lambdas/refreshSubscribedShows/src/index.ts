@@ -38,6 +38,7 @@ interface SpotifyEpisode {
   external_urls?: { spotify?: string };
   release_date: string;
   duration_ms?: number;
+  images?: { url: string }[];
 }
 
 const tableName = requiredEnv("TABLE_NAME");
@@ -275,6 +276,8 @@ function mapEpisode(showId: string, episode: SpotifyEpisode): DynamoItem {
     title: episode.name,
     description: episode.description ?? null,
     audioUrl: resolveAudioUrl(episode),
+    image: episode.images?.[0]?.url ?? null,
+    linkUrl: episode.external_urls?.spotify ?? null,
     publishedAt: episode.release_date,
     durationSec: Math.round((episode.duration_ms ?? 0) / 1000),
     updatedAt: new Date().toISOString(),

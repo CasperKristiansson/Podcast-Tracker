@@ -10,6 +10,9 @@ query MySubscriptions($limit: Int, $nextToken: String) {
       publisher
       image
       addedAt
+      ratingStars
+      ratingReview
+      ratingUpdatedAt
     }
     nextToken
   }
@@ -24,8 +27,60 @@ query EpisodesByShow($showId: ID!, $limit: Int, $nextToken: String) {
       audioUrl
       publishedAt
       durationSec
+      description
+      image
+      linkUrl
     }
     nextToken
+  }
+}
+
+query ShowById($showId: ID!) {
+  show(showId: $showId) {
+    id
+    title
+    publisher
+    description
+    image
+    totalEpisodes
+    externalUrl
+    categories
+  }
+}
+
+query MySubscriptionByShow($showId: ID!) {
+  mySubscription(showId: $showId) {
+    showId
+    title
+    publisher
+    image
+    addedAt
+    ratingStars
+    ratingReview
+    ratingUpdatedAt
+  }
+}
+
+query EpisodeDetails($showId: ID!, $episodeId: ID!) {
+  episode(showId: $showId, episodeId: $episodeId) {
+    showId
+    episodeId
+    title
+    audioUrl
+    publishedAt
+    durationSec
+    description
+    image
+    linkUrl
+  }
+}
+
+query EpisodeProgressByIds($episodeIds: [ID!]!) {
+  episodeProgress(episodeIds: $episodeIds) {
+    episodeId
+    positionSec
+    completed
+    updatedAt
   }
 }
 
@@ -57,6 +112,30 @@ mutation SubscribeToShow(
     publisher
     image
     addedAt
+    ratingStars
+    ratingReview
+    ratingUpdatedAt
+  }
+}
+
+mutation UnsubscribeFromShow($showId: ID!) {
+  unsubscribe(showId: $showId)
+}
+
+mutation RateShow(
+  $showId: ID!
+  $stars: Int!
+  $review: String
+) {
+  rateShow(showId: $showId, stars: $stars, review: $review) {
+    showId
+    title
+    publisher
+    image
+    addedAt
+    ratingStars
+    ratingReview
+    ratingUpdatedAt
   }
 }
 

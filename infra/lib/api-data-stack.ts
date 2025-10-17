@@ -144,6 +144,13 @@ export class ApiDataStack extends cdk.Stack {
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
+    spotifyLambdaDataSource.createResolver("ShowResolver", {
+      typeName: "Query",
+      fieldName: "show",
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
     tableDataSource.createResolver("MySubscriptionsResolver", {
       typeName: "Query",
       fieldName: "mySubscriptions",
@@ -166,6 +173,39 @@ export class ApiDataStack extends cdk.Stack {
       ),
     });
 
+    tableDataSource.createResolver("MySubscriptionResolver", {
+      typeName: "Query",
+      fieldName: "mySubscription",
+      requestMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, "Query.mySubscription.request.vtl")
+      ),
+      responseMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, "Query.mySubscription.response.vtl")
+      ),
+    });
+
+    tableDataSource.createResolver("EpisodeResolver", {
+      typeName: "Query",
+      fieldName: "episode",
+      requestMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, "Query.episode.request.vtl")
+      ),
+      responseMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, "Query.episode.response.vtl")
+      ),
+    });
+
+    tableDataSource.createResolver("EpisodeProgressResolver", {
+      typeName: "Query",
+      fieldName: "episodeProgress",
+      requestMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, "Query.episodeProgress.request.vtl")
+      ),
+      responseMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, "Query.episodeProgress.response.vtl")
+      ),
+    });
+
     tableDataSource.createResolver("SubscribeResolver", {
       typeName: "Mutation",
       fieldName: "subscribe",
@@ -174,6 +214,28 @@ export class ApiDataStack extends cdk.Stack {
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromFile(
         path.join(resolverDir, "Mutation.subscribe.response.vtl")
+      ),
+    });
+
+    tableDataSource.createResolver("UnsubscribeResolver", {
+      typeName: "Mutation",
+      fieldName: "unsubscribe",
+      requestMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, "Mutation.unsubscribe.request.vtl")
+      ),
+      responseMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, "Mutation.unsubscribe.response.vtl")
+      ),
+    });
+
+    tableDataSource.createResolver("RateShowResolver", {
+      typeName: "Mutation",
+      fieldName: "rateShow",
+      requestMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, "Mutation.rateShow.request.vtl")
+      ),
+      responseMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, "Mutation.rateShow.response.vtl")
       ),
     });
 
