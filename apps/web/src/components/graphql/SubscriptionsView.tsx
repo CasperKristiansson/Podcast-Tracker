@@ -106,6 +106,9 @@ export default function SubscriptionsView(): JSX.Element {
                     {item.title}
                   </h3>
                   <p className="text-sm text-brand-muted">{item.publisher}</p>
+                  <p className="text-xs text-brand-muted/70">
+                    {item.totalEpisodes ?? 0} episodes tracked
+                  </p>
                 </div>
                 <a
                   className="inline-flex w-max items-center gap-2 text-sm font-medium text-brand-primary transition hover:text-brand-accent"

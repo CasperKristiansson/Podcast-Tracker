@@ -16,6 +16,7 @@ type UserSubscription {
   publisher: String!
   image: String!
   addedAt: AWSDateTime!
+  totalEpisodes: Int!
   ratingStars: Int
   ratingReview: String
   ratingUpdatedAt: AWSDateTime
@@ -89,6 +90,7 @@ type Mutation {
     title: String!
     publisher: String!
     image: String!
+    totalEpisodes: Int
   ): UserSubscription!
   markProgress(
     episodeId: ID!

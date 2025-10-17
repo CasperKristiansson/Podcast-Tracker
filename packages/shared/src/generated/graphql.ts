@@ -78,6 +78,7 @@ export type MutationSubscribeArgs = {
   publisher: Scalars['String']['input'];
   showId: Scalars['ID']['input'];
   title: Scalars['String']['input'];
+  totalEpisodes?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -193,6 +194,7 @@ export type UserSubscription = {
   ratingUpdatedAt?: Maybe<Scalars['AWSDateTime']['output']>;
   showId: Scalars['ID']['output'];
   title: Scalars['String']['output'];
+  totalEpisodes: Scalars['Int']['output'];
 };
 
 export type HealthCheckQueryVariables = Exact<{ [key: string]: never; }>;
@@ -206,7 +208,7 @@ export type MySubscriptionsQueryVariables = Exact<{
 }>;
 
 
-export type MySubscriptionsQuery = { __typename: 'Query', mySubscriptions: { __typename: 'SubscriptionConnection', nextToken?: string | null | undefined, items: Array<{ __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined }> } };
+export type MySubscriptionsQuery = { __typename: 'Query', mySubscriptions: { __typename: 'SubscriptionConnection', nextToken?: string | null | undefined, items: Array<{ __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined }> } };
 
 export type EpisodesByShowQueryVariables = Exact<{
   showId: Scalars['ID']['input'];
@@ -229,7 +231,7 @@ export type MySubscriptionByShowQueryVariables = Exact<{
 }>;
 
 
-export type MySubscriptionByShowQuery = { __typename: 'Query', mySubscription?: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined } | null | undefined };
+export type MySubscriptionByShowQuery = { __typename: 'Query', mySubscription?: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined } | null | undefined };
 
 export type EpisodeDetailsQueryVariables = Exact<{
   showId: Scalars['ID']['input'];
@@ -260,10 +262,11 @@ export type SubscribeToShowMutationVariables = Exact<{
   title: Scalars['String']['input'];
   publisher: Scalars['String']['input'];
   image: Scalars['String']['input'];
+  totalEpisodes?: InputMaybe<Scalars['Int']['input']>;
 }>;
 
 
-export type SubscribeToShowMutation = { __typename: 'Mutation', subscribe: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined } };
+export type SubscribeToShowMutation = { __typename: 'Mutation', subscribe: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined } };
 
 export type UnsubscribeFromShowMutationVariables = Exact<{
   showId: Scalars['ID']['input'];
@@ -279,7 +282,7 @@ export type RateShowMutationVariables = Exact<{
 }>;
 
 
-export type RateShowMutation = { __typename: 'Mutation', rateShow: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined } };
+export type RateShowMutation = { __typename: 'Mutation', rateShow: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined } };
 
 export type MarkEpisodeProgressMutationVariables = Exact<{
   episodeId: Scalars['ID']['input'];
@@ -322,6 +325,7 @@ export const MySubscriptionsDocument = gql`
       publisher
       image
       addedAt
+      totalEpisodes
       ratingStars
       ratingReview
       ratingUpdatedAt
@@ -384,6 +388,7 @@ export const MySubscriptionByShowDocument = gql`
     publisher
     image
     addedAt
+    totalEpisodes
     ratingStars
     ratingReview
     ratingUpdatedAt
@@ -445,13 +450,20 @@ export const SearchShowsDocument = gql`
     `;
 export type SearchShowsQueryResult = ApolloReactCommon.QueryResult<SearchShowsQuery, SearchShowsQueryVariables>;
 export const SubscribeToShowDocument = gql`
-    mutation SubscribeToShow($showId: ID!, $title: String!, $publisher: String!, $image: String!) {
-  subscribe(showId: $showId, title: $title, publisher: $publisher, image: $image) {
+    mutation SubscribeToShow($showId: ID!, $title: String!, $publisher: String!, $image: String!, $totalEpisodes: Int) {
+  subscribe(
+    showId: $showId
+    title: $title
+    publisher: $publisher
+    image: $image
+    totalEpisodes: $totalEpisodes
+  ) {
     showId
     title
     publisher
     image
     addedAt
+    totalEpisodes
     ratingStars
     ratingReview
     ratingUpdatedAt
@@ -473,6 +485,7 @@ export const RateShowDocument = gql`
     publisher
     image
     addedAt
+    totalEpisodes
     ratingStars
     ratingReview
     ratingUpdatedAt

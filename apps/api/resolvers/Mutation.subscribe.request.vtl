@@ -13,6 +13,7 @@
     "title": $util.dynamodb.toDynamoDBJson($ctx.args.title),
     "publisher": $util.dynamodb.toDynamoDBJson($ctx.args.publisher),
     "image": $util.dynamodb.toDynamoDBJson($ctx.args.image),
+    "totalEpisodes": $util.dynamodb.toDynamoDBJson($util.defaultIfNull($ctx.args.totalEpisodes, 0)),
     "addedAt": $util.dynamodb.toDynamoDBJson($util.time.nowISO8601())
   },
   "returnValues": "ALL_NEW"

@@ -223,6 +223,10 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
             title: show.title ?? "",
             publisher: show.publisher ?? "",
             image: show.image ?? "",
+            totalEpisodes:
+              typeof show.totalEpisodes === "number"
+                ? show.totalEpisodes
+                : 0,
           },
         });
       }

@@ -127,6 +127,8 @@ export default function PodcastSearchBar({
           title: show.title ?? "",
           publisher: show.publisher ?? "",
           image: show.image ?? "",
+          totalEpisodes:
+            typeof show.totalEpisodes === "number" ? show.totalEpisodes : 0,
         },
       });
     } catch (subscribeError) {
