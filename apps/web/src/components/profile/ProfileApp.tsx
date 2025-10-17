@@ -25,6 +25,7 @@ import {
 } from "@shared";
 import { AuroraBackground, InteractiveButton } from "@ui";
 import { cn } from "@ui/lib/cn";
+import { GraphQLProvider } from "../graphql/GraphQLProvider";
 
 interface CelebrationState {
   showId: string;
@@ -57,7 +58,7 @@ const normalizeDateInput = (value: unknown): string | null => {
   return null;
 };
 
-export default function ProfileApp(): JSX.Element {
+function ProfileAppContent(): JSX.Element {
   const {
     data,
     loading,
@@ -312,6 +313,14 @@ export default function ProfileApp(): JSX.Element {
         ) : null}
       </div>
     </div>
+  );
+}
+
+export default function ProfileApp(): JSX.Element {
+  return (
+    <GraphQLProvider>
+      <ProfileAppContent />
+    </GraphQLProvider>
   );
 }
 

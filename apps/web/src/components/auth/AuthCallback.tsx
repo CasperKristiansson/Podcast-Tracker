@@ -64,7 +64,7 @@ export default function AuthCallback(): JSX.Element {
         <div className="flex flex-col gap-2 text-sm text-brand-muted">
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-lg bg-brand-primary px-4 py-2 font-semibold text-brand-text transition hover:bg-brand-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent"
+            className="inline-flex items-center justify-center rounded-lg bg-brand-primary px-4 py-2 font-semibold text-brand-text transition hover:bg-brand-primary/90 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-brand-accent"
             onClick={() => {
               setStatus("pending");
               setMessage("Redirecting to Google sign-in…");
