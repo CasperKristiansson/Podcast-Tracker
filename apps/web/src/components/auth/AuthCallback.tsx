@@ -1,12 +1,65 @@
 import { useEffect, useRef, useState } from "react";
 import { beginLogin, completeLogin } from "../../lib/auth/flow";
+import {
+  clearPromptRetryStage,
+  getPromptRetryStage,
+  setPromptRetryStage,
+  type PromptRetryStage,
+} from "../../lib/auth/storage";
 
 type Status = "pending" | "success" | "error";
+
+const RETRY_SEQUENCE: PromptRetryStage[] = ["login", "consent"];
+
+const getNextStage = (
+  current: PromptRetryStage | null
+): PromptRetryStage | null => {
+  const index = current ? RETRY_SEQUENCE.indexOf(current) : -1;
+  const nextIndex = index + 1;
+  return nextIndex < RETRY_SEQUENCE.length ? RETRY_SEQUENCE[nextIndex] : null;
+};
+
+const getAutoRetryMessage = (stage: PromptRetryStage): string => {
+  return stage === "consent"
+    ? "Refreshing Google permissions…"
+    : "Reconnecting your Google account…";
+};
+
+const getManualRetryMessage = (stage: PromptRetryStage): string => {
+  return stage === "consent"
+    ? "Refreshing Google permissions…"
+    : "Redirecting to Google sign-in…";
+};
 
 export default function AuthCallback(): JSX.Element {
   const [status, setStatus] = useState<Status>("pending");
   const [message, setMessage] = useState<string>("Completing sign-in…");
-  const hasRetriedWithPrompt = useRef(false);
+  const promptRetryInitialized = useRef(false);
+  const promptRetryStageRef = useRef<PromptRetryStage | null>(null);
+
+  const updateRetryStage = (stage: PromptRetryStage | null) => {
+    promptRetryStageRef.current = stage;
+    try {
+      if (stage) {
+        setPromptRetryStage(stage);
+      } else {
+        clearPromptRetryStage();
+      }
+    } catch {
+      if (stage) {
+        promptRetryStageRef.current = null;
+      }
+    }
+  };
+
+  if (!promptRetryInitialized.current) {
+    try {
+      promptRetryStageRef.current = getPromptRetryStage();
+    } catch {
+      promptRetryStageRef.current = null;
+    }
+    promptRetryInitialized.current = true;
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -18,24 +71,30 @@ export default function AuthCallback(): JSX.Element {
         }
 
         if (result.status === "success") {
+          updateRetryStage(null);
           setStatus("success");
           setMessage("Signed in successfully. Redirecting…");
           window.setTimeout(() => {
             window.location.replace("/app/profile");
           }, 1200);
-        } else {
-          const immutableEmailError = result.message.includes(
-            "Attribute cannot be updated"
-          );
+          return;
+        }
 
-          if (immutableEmailError && !hasRetriedWithPrompt.current) {
-            hasRetriedWithPrompt.current = true;
+        const immutableEmailError = result.message.includes(
+          "Attribute cannot be updated"
+        );
+
+        if (immutableEmailError) {
+          const nextStage = getNextStage(promptRetryStageRef.current);
+          if (nextStage) {
+            updateRetryStage(nextStage);
             setStatus("pending");
-            setMessage("Reconnecting your Google account…");
-            beginLogin({ prompt: "login" }).catch((err) => {
+            setMessage(getAutoRetryMessage(nextStage));
+            beginLogin({ prompt: nextStage }).catch((err) => {
               if (cancelled) {
                 return;
               }
+              updateRetryStage(null);
               setStatus("error");
               const fallbackMessage =
                 err instanceof Error
@@ -43,14 +102,23 @@ export default function AuthCallback(): JSX.Element {
                   : "Unable to restart Google sign-in.";
               setMessage(fallbackMessage);
             });
-          } else {
-            setStatus("error");
-            setMessage(result.message);
+            return;
           }
+          updateRetryStage(null);
+          setStatus("error");
+          setMessage(
+            `${result.message} Please clear your browser cookies or contact support if the issue keeps happening.`
+          );
+          return;
         }
+
+        updateRetryStage(null);
+        setStatus("error");
+        setMessage(result.message);
       })
       .catch((error) => {
         if (!cancelled) {
+          updateRetryStage(null);
           setStatus("error");
           const description =
             error instanceof Error
@@ -89,9 +157,14 @@ export default function AuthCallback(): JSX.Element {
             className="inline-flex items-center justify-center rounded-lg bg-brand-primary px-4 py-2 font-semibold text-brand-text transition hover:bg-brand-primary/90 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-brand-accent"
             onClick={() => {
               setStatus("pending");
-              setMessage("Redirecting to Google sign-in…");
-              beginLogin({ prompt: "login" }).catch((err) => {
+              const nextStage = getNextStage(promptRetryStageRef.current);
+              const targetStage =
+                nextStage ?? promptRetryStageRef.current ?? "login";
+              setMessage(getManualRetryMessage(targetStage));
+              updateRetryStage(targetStage);
+              beginLogin({ prompt: targetStage }).catch((err) => {
                 setStatus("error");
+                updateRetryStage(null);
                 const description =
                   err instanceof Error
                     ? err.message

@@ -1,6 +1,9 @@
 const CODE_VERIFIER_KEY = "podcastTracker:auth:codeVerifier";
 const STATE_KEY = "podcastTracker:auth:state";
 const TOKENS_KEY = "podcastTracker:auth:tokens";
+const PROMPT_RETRY_KEY = "podcastTracker:auth:promptRetry";
+
+export type PromptRetryStage = "login" | "consent";
 
 export interface StoredTokens {
   idToken: string;
@@ -64,4 +67,26 @@ export const getTokens = (): StoredTokens | null => {
 
 export const clearTokens = (): void => {
   getSessionStorage().removeItem(TOKENS_KEY);
+};
+
+export const getPromptRetryStage = (): PromptRetryStage | null => {
+  const raw = getSessionStorage().getItem(PROMPT_RETRY_KEY);
+  if (!raw) {
+    return null;
+  }
+  if (raw === "1" || raw === "login") {
+    return "login";
+  }
+  if (raw === "consent") {
+    return "consent";
+  }
+  return null;
+};
+
+export const setPromptRetryStage = (stage: PromptRetryStage): void => {
+  getSessionStorage().setItem(PROMPT_RETRY_KEY, stage);
+};
+
+export const clearPromptRetryStage = (): void => {
+  getSessionStorage().removeItem(PROMPT_RETRY_KEY);
 };

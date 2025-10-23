@@ -10,6 +10,7 @@ import {
   generateState,
 } from "./pkce";
 import {
+  clearPromptRetryStage,
   clearTokens,
   consumeCodeVerifier,
   consumeState,
@@ -188,6 +189,7 @@ export const completeLogin = async (
   const payload = (await response.json()) as Record<string, unknown>;
   const tokens = parseTokenResponse(payload);
   storeTokens(tokens);
+  clearPromptRetryStage();
 
   try {
     window.history.replaceState({}, document.title, parsedUrl.pathname);
@@ -203,6 +205,7 @@ export const completeLogin = async (
 
 export const signOut = (): void => {
   clearTokens();
+  clearPromptRetryStage();
 };
 
 export { getTokens };
