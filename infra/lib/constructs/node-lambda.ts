@@ -19,7 +19,7 @@ export class NodeLambda extends nodejs.NodejsFunction {
       runtime: lambda.Runtime.NODEJS_22_X,
       bundling: {
         externalModules: ["aws-sdk"],
-        format: nodejs.OutputFormat.ESM,
+        format: nodejs.OutputFormat.CJS,
         minify: true,
         sourceMap: true,
         sourcesContent: false,
