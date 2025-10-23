@@ -142,28 +142,18 @@ export default function PodcastSearchBar({
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="flex flex-col gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-white/40">
-            Find podcasts
-          </p>
-          <h2 className="mt-1 text-2xl font-semibold text-white">
-            Explore the catalog
-          </h2>
-        </div>
-        <SearchInput
-          value={query}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          onFocus={() => setIsOpen(true)}
-          onClear={handleClear}
-          allowClear
-          isLoading={loading}
-          placeholder="Search podcasts by title, publisher, or topic…"
-          autoComplete="off"
-          spellCheck="false"
-        />
-      </div>
+      <SearchInput
+        value={query}
+        onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+        onFocus={() => setIsOpen(true)}
+        onClear={handleClear}
+        allowClear
+        isLoading={loading}
+        placeholder="Search podcasts by title, publisher, or topic…"
+        autoComplete="off"
+        spellCheck="false"
+      />
 
       {shouldShowPanel ? (
         <div className="absolute left-0 right-0 top-[calc(100%+1rem)] z-20">

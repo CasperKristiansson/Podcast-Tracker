@@ -29,14 +29,14 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
       allowClear && typeof value === "string" && value.length > 0 && onClear;
 
     return (
-      <div className="relative">
+      <div className="relative w-full">
         <input
           ref={ref}
           type="search"
           value={value}
           onChange={onChange}
           className={cn(
-            "w-full rounded-full border border-white/15 bg-white/[0.06] py-3 pl-12 pr-12 text-sm text-white placeholder:text-white/40 outline-none transition focus:border-[#a996ff]/60 focus:ring-2 focus:ring-[#8f73ff]/40",
+            "w-full max-w-[400px] rounded-full border border-white/15 bg-white/[0.06] py-3 pl-12 pr-12 text-sm text-white placeholder:text-white/40 outline-none transition focus:border-[#a996ff]/60 focus:ring-2 focus:ring-[#8f73ff]/40",
             className
           )}
           {...props}

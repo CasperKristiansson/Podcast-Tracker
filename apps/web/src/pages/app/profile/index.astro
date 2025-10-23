@@ -8,10 +8,8 @@ import PodcastSearchBarWithProvider from "../../../components/search/PodcastSear
   title="Profile"
   description="Track your podcasts, celebrate progress, and see what's waiting next."
 >
-  <div slot="search" class="px-6 py-10">
-    <div class="mx-auto w-full max-w-3xl">
-      <PodcastSearchBarWithProvider client:only="react" />
-    </div>
+  <div slot="search" class="relative py-4">
+    <PodcastSearchBarWithProvider client:only="react" />
   </div>
   <section class="relative flex min-h-screen w-full flex-col">
     <ProfileApp client:only="react" />
