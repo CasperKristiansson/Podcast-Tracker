@@ -53,15 +53,13 @@ const hasSearch = Astro.slots.has("search");
     <div class="flex min-h-screen flex-col">
       <main class="flex-1">
         {
-          hasSearch
-            ? (
-                <div class="relative px-6 pt-8">
-                  <div class="relative mx-auto w-full max-w-6xl">
-                    <slot name="search" />
-                  </div>
-                </div>
-              )
-            : null
+          hasSearch ? (
+            <div class="absolute px-6 pt-4 w-full z-10">
+              <div class="relative mx-auto w-full max-w-6xl">
+                <slot name="search" />
+              </div>
+            </div>
+          ) : null
         }
         <slot />
       </main>

@@ -143,7 +143,7 @@ export default function PodcastSearchBar({
     (loading || (debouncedQuery.length >= 2 && (shows.length > 0 || called)));
 
   const containerClasses =
-    ["relative inline-block", className].filter(Boolean).join(" ") || undefined;
+    ["relative w-full", className].filter(Boolean).join(" ") || undefined;
 
   return (
     <div ref={containerRef} className={containerClasses}>
