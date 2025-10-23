@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import EpisodeDetailApp from '~/components/podcast/EpisodeDetailApp';
-import PodcastSearchBar from '~/components/search/PodcastSearchBar';
+import PodcastSearchBarWithProvider from '~/components/search/PodcastSearchBarWithProvider';
 
 export const prerender = false;
 
@@ -17,7 +17,7 @@ if (!showId || !episodeId) {
   title="Episode"
   description="Detailed view for a podcast episode with progress controls."
 >
-  <PodcastSearchBar slot="search" client:only="react" />
+  <PodcastSearchBarWithProvider slot="search" client:only="react" />
   <section class="min-h-screen">
     <EpisodeDetailApp
       client:only="react"

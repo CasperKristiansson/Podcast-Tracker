@@ -17,7 +17,7 @@ import {
 } from "@shared";
 import { GlowCard, InteractiveButton, SearchInput } from "@ui";
 
-interface PodcastSearchBarProps {
+export interface PodcastSearchBarProps {
   limit?: number;
 }
 

@@ -1,11 +1,11 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import PodcastSearchBar from '../../components/search/PodcastSearchBar';
+import PodcastSearchBarWithProvider from '../../components/search/PodcastSearchBarWithProvider';
 import SubscriptionsApp from '../../components/graphql/SubscriptionsApp';
 ---
 
 <BaseLayout title="Subscriptions" description="Your podcast subscriptions.">
-  <PodcastSearchBar slot="search" client:only="react" />
+  <PodcastSearchBarWithProvider slot="search" client:only="react" />
   <section class="mx-auto flex max-w-5xl flex-col gap-10 px-6 py-16 md:py-24">
     <div class="space-y-3 text-center md:text-left">
       <p class="text-xs uppercase tracking-[0.4em] text-brand-muted">Dashboard</p>
