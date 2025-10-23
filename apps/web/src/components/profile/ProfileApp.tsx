@@ -192,18 +192,22 @@ function ProfileAppContent(): JSX.Element {
 
   if (loading) {
     return (
-      <div className="relative isolate overflow-hidden px-6 py-20 sm:px-10">
+      <div className="relative isolate flex min-h-screen items-center justify-center overflow-hidden px-6 py-24 md:px-12 md:py-32">
         <AuroraBackground className="opacity-45 saturate-200 mix-blend-screen" />
-        <div className="pointer-events-none absolute -top-48 left-1/2 h-[40rem] w-[40rem] -translate-x-1/2 rounded-full bg-[#d8c3ff]/22 blur-[200px]" />
-        <div className="pointer-events-none absolute -bottom-48 left-[-12%] h-[32rem] w-[32rem] rounded-full bg-[#6e49ff]/18 blur-[170px]" />
-        <div className="pointer-events-none absolute -right-40 top-20 h-[30rem] w-[30rem] rounded-full bg-[#57dfff]/14 blur-[170px]" />
-        <div className="relative z-10 flex min-h-[320px] flex-col items-center justify-center gap-4 text-center text-white/80">
+        <div className="pointer-events-none absolute -top-48 left-1/2 h-[40rem] w-[40rem] -translate-x-1/2 rounded-full bg-[#d9c4ff]/26 blur-[210px]" />
+        <div className="pointer-events-none absolute -bottom-48 left-[-12%] h-[32rem] w-[32rem] rounded-full bg-[#5a2ae4]/24 blur-[190px]" />
+        <div className="pointer-events-none absolute -right-40 top-20 h-[30rem] w-[30rem] rounded-full bg-[#291150]/20 blur-[190px]" />
+        <div className="relative z-10 w-full max-w-lg rounded-[36px] border border-white/15 bg-[#190d3a]/85 px-10 py-12 text-center text-white/80 shadow-[0_40px_120px_rgba(18,7,60,0.55)] backdrop-blur-2xl">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs uppercase tracking-[0.35em] text-white/70">
             Syncing profile
             <span className="h-1 w-1 animate-pulse rounded-full bg-[#f5e4ff]" />
           </span>
-          <p className="text-lg font-semibold text-white">
+          <p className="mt-6 text-lg font-semibold text-white">
             Loading your soundscape…
+          </p>
+          <p className="mt-3 text-sm text-white/65">
+            We’re fetching the latest shows, progress, and celebrations for your
+            account.
           </p>
         </div>
       </div>
@@ -212,17 +216,22 @@ function ProfileAppContent(): JSX.Element {
 
   if (error) {
     return (
-      <div className="relative isolate overflow-hidden px-6 py-16 text-sm text-rose-100 sm:px-10">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,135,188,0.25),_transparent_75%)]" />
+      <div className="relative isolate flex min-h-screen items-center justify-center overflow-hidden px-6 py-24 text-sm text-white md:px-12 md:py-32">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(154,114,255,0.26),_transparent_75%)]" />
         <AuroraBackground className="opacity-35 saturate-200 mix-blend-screen" />
-        <div className="relative z-10 mx-auto flex max-w-md flex-col items-center gap-6 text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-rose-200/30 bg-rose-400/20 px-4 py-1 text-xs uppercase tracking-[0.35em] text-rose-100/80">
+        <div className="relative z-10 w-full max-w-lg rounded-[36px] border border-white/15 bg-[#1d0a3f]/85 px-10 py-12 text-center shadow-[0_45px_120px_rgba(35,12,82,0.55)] backdrop-blur-2xl">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#d5c3ff]/40 bg-[#7c5cff]/25 px-4 py-1 text-xs uppercase tracking-[0.35em] text-[#f0eaff]/80">
             Profile hiccup
           </span>
-          <p className="text-base font-semibold text-rose-50">
+          <p className="mt-6 text-base font-semibold text-white">
             Failed to load profile: {error.message}
           </p>
+          <p className="mt-3 text-xs text-[#d6ccff]/75">
+            We couldn’t reach the profile service. Give it another try in a
+            moment.
+          </p>
           <InteractiveButton
+            className="mt-6"
             onClick={() => {
               void refetchProfile();
             }}
@@ -237,13 +246,13 @@ function ProfileAppContent(): JSX.Element {
   return (
     <div className="relative isolate min-h-screen w-full overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-56 left-1/2 h-[44rem] w-[44rem] -translate-x-1/2 rounded-full bg-[#efe3ff]/22 blur-[220px]" />
-        <div className="absolute -bottom-56 left-[-18%] h-[36rem] w-[36rem] rounded-full bg-[#7a58ff]/18 blur-[190px]" />
-        <div className="absolute -right-48 top-24 h-[34rem] w-[34rem] rounded-full bg-[#5ee2ff]/14 blur-[190px]" />
+        <div className="absolute -top-56 left-1/2 h-[44rem] w-[44rem] -translate-x-1/2 rounded-full bg-[#efe3ff]/26 blur-[240px]" />
+        <div className="absolute -bottom-56 left-[-18%] h-[36rem] w-[36rem] rounded-full bg-[#5830d9]/22 blur-[210px]" />
+        <div className="absolute -right-48 top-24 h-[34rem] w-[34rem] rounded-full bg-[#271052]/20 blur-[210px]" />
       </div>
       <AuroraBackground className="opacity-45 saturate-200 mix-blend-screen" />
       <div className="relative z-10">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-16">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-6 pb-24 pt-28 md:px-12 md:pb-32 md:pt-36">
           <header className="space-y-6 text-center md:text-left">
             <span className="inline-flex items-center justify-center gap-2 self-center rounded-full border border-white/20 bg-white/10 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.45em] text-white/70 md:self-start">
               Listening atlas
@@ -263,23 +272,23 @@ function ProfileAppContent(): JSX.Element {
             <StatCard
               label="Active Shows"
               value={stats.totalShows}
-              accent="from-[#deb2ff] via-[#a67bff] to-[#6541ff]"
+              accent="from-[#cdb6ff] via-[#9c75ff] to-[#5d31d1]"
             />
             <StatCard
               label="Episodes Completed"
               value={stats.episodesCompleted}
-              accent="from-[#ffbdec] via-[#f76fdc] to-[#b43cff]"
+              accent="from-[#dcbfff] via-[#ab7dff] to-[#6c3ae0]"
             />
             <StatCard
               label="Episodes In Progress"
               value={stats.episodesInProgress}
-              accent="from-[#9af9ff] via-[#4ad0ff] to-[#2476ff]"
+              accent="from-[#bea6ff] via-[#8a5cff] to-[#4e29aa]"
             />
           </section>
 
           {spotlight.length > 0 ? (
-            <section className="relative overflow-hidden rounded-[32px] border border-white/12 bg-white/[0.05] p-8 backdrop-blur-2xl">
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(135,97,255,0.22),_transparent_70%)]" />
+            <section className="relative overflow-hidden rounded-[32px] border border-white/12 bg-[#1b0c3c]/85 p-8 backdrop-blur-2xl">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(143,109,255,0.22),_transparent_70%)]" />
               <div className="relative space-y-6">
                 <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                   <div className="space-y-2">
@@ -322,8 +331,8 @@ function ProfileAppContent(): JSX.Element {
             </section>
           ) : null}
 
-          <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.04] p-8 backdrop-blur-2xl">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(94,158,255,0.2),_transparent_75%)]" />
+          <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#14072f]/85 p-8 backdrop-blur-2xl">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(128,94,255,0.18),_transparent_75%)]" />
             <div className="relative space-y-6">
               <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <h2 className="text-2xl font-semibold text-white">
@@ -497,7 +506,7 @@ function LibraryCard({
             </p>
           </div>
           {hasUnlistened ? (
-            <span className="rounded-full border border-[#8bffe2]/45 bg-[#32d9b0]/25 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-[#e8fff6]">
+            <span className="rounded-full border border-[#d7c8ff]/45 bg-[#6a42ff]/30 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-[#f2edff]">
               {show.unlistenedEpisodes} to go
             </span>
           ) : (
@@ -550,7 +559,7 @@ function MetricBadge({ label, value, accent = false }: MetricBadgeProps) {
       className={cn(
         "rounded-2xl border px-4 py-3 transition-colors duration-300",
         accent
-          ? "border-[#7efff0]/50 bg-[linear-gradient(135deg,rgba(66,255,213,0.22),rgba(73,139,255,0.18))] text-[#e8fff8] shadow-[0_18px_40px_rgba(82,236,255,0.25)]"
+          ? "border-[#d7c6ff]/55 bg-[linear-gradient(135deg,rgba(149,110,255,0.28),rgba(81,48,176,0.2))] text-[#f3edff] shadow-[0_18px_40px_rgba(92,63,186,0.35)]"
           : "border-white/12 bg-white/[0.06] text-white/75"
       )}
     >
