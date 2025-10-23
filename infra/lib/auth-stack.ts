@@ -23,9 +23,9 @@ export class AuthStack extends cdk.Stack {
       autoVerify: { email: true },
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
       standardAttributes: {
-        email: { required: true, mutable: false },
+        email: { required: true, mutable: true },
       },
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     const googleIdentityProvider = new cognito.UserPoolIdentityProviderGoogle(

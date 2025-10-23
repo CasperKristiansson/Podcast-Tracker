@@ -32,15 +32,15 @@ const configStack = new ConfigStack(app, "PodcastTrackerConfigStack", {
   crossRegionReferences: true,
 });
 
-const authStack = new AuthStack(app, "PodcastTrackerAuthStack", {
+const authStackV2 = new AuthStack(app, "PodcastTrackerAuthStackV2", {
   env: { account, region: primaryRegion },
   crossRegionReferences: true,
 });
 
 const apiDataStack = new ApiDataStack(app, "PodcastTrackerApiDataStack", {
   env: { account, region: primaryRegion },
-  userPool: authStack.userPool,
-  userPoolClient: authStack.userPoolClient,
+  userPool: authStackV2.userPool,
+  userPoolClient: authStackV2.userPoolClient,
   crossRegionReferences: true,
 });
 
