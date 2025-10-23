@@ -4,13 +4,11 @@ import '../styles/global.css';
 type Props = {
   title?: string;
   description?: string;
-  showChrome?: boolean;
 };
 
 const {
   title = 'Podcast Tracker',
   description = 'Track the shows you love with real-time episode updates.',
-  showChrome = true
 } = Astro.props as Props;
 const hasSearch = Astro.slots.has('search');
 ---
@@ -34,14 +32,6 @@ const hasSearch = Astro.slots.has('search');
       document.documentElement.classList.add('dark');
     </script>
     <div class="flex min-h-screen flex-col">
-      {showChrome && (
-        <header class="border-b border-white/5 bg-brand-surface/80 px-6 py-4 backdrop-blur">
-          <div class="mx-auto flex max-w-5xl items-center justify-between text-brand-text">
-            <a class="text-lg font-semibold" href="/">Podcast Tracker</a>
-            <span class="text-sm text-brand-muted">Serverless MVP</span>
-          </div>
-        </header>
-      )}
       <main class="flex-1">
         {hasSearch && (
           <div class="border-b border-white/5 bg-brand-surface/50 px-6 py-6">
@@ -52,13 +42,6 @@ const hasSearch = Astro.slots.has('search');
         )}
         <slot />
       </main>
-      {showChrome && (
-        <footer class="border-t border-white/5 bg-brand-surface/60 px-6 py-4">
-          <div class="mx-auto max-w-5xl text-sm text-brand-muted">
-            &copy; {new Date().getFullYear()} Podcast Tracker. All rights reserved.
-          </div>
-        </footer>
-      )}
     </div>
   </body>
 </html>
