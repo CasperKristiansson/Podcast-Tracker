@@ -223,7 +223,7 @@ function ProfileAppContent(): JSX.Element {
           <span className="inline-flex items-center gap-2 rounded-full border border-[#d5c3ff]/40 bg-[#7c5cff]/25 px-4 py-1 text-xs uppercase tracking-[0.35em] text-[#f0eaff]/80">
             Profile hiccup
           </span>
-          <p className="mt-6 text-base font-semibold text-white">
+          <p className="mt-6 text-base font-semibold">
             Failed to load profile: {error.message}
           </p>
           <p className="mt-3 text-xs text-[#d6ccff]/75">
@@ -261,7 +261,7 @@ function ProfileAppContent(): JSX.Element {
             <h1 className="bg-gradient-to-r from-[#f6ecff] via-[#c7adff] to-[#8cd4ff] bg-clip-text text-4xl font-semibold text-transparent md:text-5xl">
               Your sound galaxy, refreshed.
             </h1>
-            <p className="mx-auto max-w-2xl text-base text-white/75 md:mx-0">
+            <p className="mx-auto max-w-2xl text-white/75 md:mx-0">
               Keep track of every story you follow with a luminous snapshot of
               the shows you love. Stats update in real-time as you celebrate
               each episode.

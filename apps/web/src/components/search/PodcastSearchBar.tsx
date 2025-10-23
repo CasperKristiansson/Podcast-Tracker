@@ -19,6 +19,7 @@ import { GlowCard, InteractiveButton, SearchInput } from "@ui";
 
 export interface PodcastSearchBarProps {
   limit?: number;
+  className?: string;
 }
 
 const DEBOUNCE_MS = 250;
@@ -45,6 +46,7 @@ const pickDescription = (
 
 export default function PodcastSearchBar({
   limit = 6,
+  className,
 }: PodcastSearchBarProps): JSX.Element {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -140,8 +142,11 @@ export default function PodcastSearchBar({
     isOpen &&
     (loading || (debouncedQuery.length >= 2 && (shows.length > 0 || called)));
 
+  const containerClasses =
+    ["relative inline-block", className].filter(Boolean).join(" ") || undefined;
+
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className={containerClasses}>
       <SearchInput
         value={query}
         onChange={handleInputChange}
@@ -156,7 +161,7 @@ export default function PodcastSearchBar({
       />
 
       {shouldShowPanel ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+1rem)] z-20">
+        <div className="absolute left-0 top-[calc(100%+0.75rem)] z-20 min-w-full">
           <GlowCard className="px-5 py-5">
             {error ? (
               <ErrorState error={error} />

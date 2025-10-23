@@ -29,7 +29,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
       allowClear && typeof value === "string" && value.length > 0 && onClear;
 
     return (
-      <div className="relative w-full">
+      <div className="relative w-full max-w-[400px]">
         <input
           ref={ref}
           type="search"
