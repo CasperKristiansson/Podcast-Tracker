@@ -1,13 +1,13 @@
 ---
-import BaseLayout from '../../../layouts/BaseLayout.astro';
-import ProfileApp from '../../../components/profile/ProfileApp';
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import ProfileApp from "../../../components/profile/ProfileApp";
 ---
 
 <BaseLayout
   title="Profile"
   description="Track your podcasts, celebrate progress, and see what's waiting next."
 >
-  <section class="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 py-16 md:py-24">
+  <section class="relative flex min-h-screen w-full flex-col">
     <ProfileApp client:only="react" />
   </section>
 </BaseLayout>

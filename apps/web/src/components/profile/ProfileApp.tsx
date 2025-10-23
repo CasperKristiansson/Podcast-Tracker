@@ -235,7 +235,7 @@ function ProfileAppContent(): JSX.Element {
   }
 
   return (
-    <div className="relative isolate overflow-hidden px-6 py-16 md:px-12 md:py-24">
+    <div className="relative isolate min-h-screen w-full overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-56 left-1/2 h-[44rem] w-[44rem] -translate-x-1/2 rounded-full bg-[#efe3ff]/22 blur-[220px]" />
         <div className="absolute -bottom-56 left-[-18%] h-[36rem] w-[36rem] rounded-full bg-[#7a58ff]/18 blur-[190px]" />
