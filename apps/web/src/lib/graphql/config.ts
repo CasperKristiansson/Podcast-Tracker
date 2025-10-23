@@ -8,11 +8,6 @@ const ensure = (value: unknown, key: string): string => {
   return value;
 };
 
-const { PUBLIC_APPSYNC_URL, PUBLIC_APPSYNC_REALTIME_URL } = import.meta.env;
+const { PUBLIC_APPSYNC_URL } = import.meta.env;
 
 export const appsyncUrl = ensure(PUBLIC_APPSYNC_URL, "PUBLIC_APPSYNC_URL");
-export const appsyncRealtimeUrl = ensure(
-  PUBLIC_APPSYNC_REALTIME_URL,
-  "PUBLIC_APPSYNC_REALTIME_URL"
-);
-export const appsyncRealtimeHost = new URL(appsyncRealtimeUrl).host;

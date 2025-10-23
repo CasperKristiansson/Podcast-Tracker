@@ -16,7 +16,11 @@ const getNextStage = (
 ): PromptRetryStage | null => {
   const index = current ? RETRY_SEQUENCE.indexOf(current) : -1;
   const nextIndex = index + 1;
-  return nextIndex < RETRY_SEQUENCE.length ? RETRY_SEQUENCE[nextIndex] : null;
+  if (nextIndex < 0 || nextIndex >= RETRY_SEQUENCE.length) {
+    return null;
+  }
+  const stage = RETRY_SEQUENCE[nextIndex];
+  return stage ?? null;
 };
 
 const getAutoRetryMessage = (stage: PromptRetryStage): string => {

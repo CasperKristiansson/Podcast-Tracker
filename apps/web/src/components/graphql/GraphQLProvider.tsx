@@ -1,26 +1,12 @@
-import {
-  ApolloClient,
-  ApolloLink,
-  HttpLink,
-  InMemoryCache,
-} from "@apollo/client";
+import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client";
 import { ApolloProvider } from "@apollo/client/react";
-import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
-import { getMainDefinition } from "@apollo/client/utilities";
-import { Kind, OperationTypeNode } from "graphql";
-import type { ComponentProps, ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
-import { createClient as createWsClient, type Client } from "graphql-ws";
+import type { ComponentProps } from "react";
+import { useEffect, useState } from "react";
 import { beginLogin, getTokens, signOut } from "../../lib/auth/flow";
-import {
-  appsyncRealtimeHost,
-  appsyncRealtimeUrl,
-  appsyncUrl,
-} from "../../lib/graphql/config";
+import { appsyncUrl } from "../../lib/graphql/config";
 
 interface ApolloResources {
   client: ApolloClient;
-  ws: Client;
 }
 
 const createApolloResources = (idToken: string): ApolloResources => {
@@ -31,42 +17,18 @@ const createApolloResources = (idToken: string): ApolloResources => {
     },
   });
 
-  const ws = createWsClient({
-    url: appsyncRealtimeUrl,
-    connectionParams: () => ({
-      host: appsyncRealtimeHost,
-      Authorization: idToken,
-      authToken: idToken,
-    }),
-    lazy: true,
-    keepAlive: 30_000,
-    retryAttempts: Infinity,
-    shouldRetry: () => true,
-  });
-
-  const wsLink = new GraphQLWsLink(ws);
-
-  const subscriptionMatcher = ({ query }: { query: unknown }) => {
-    const definition = getMainDefinition(
-      query as Parameters<typeof getMainDefinition>[0]
-    );
-    return (
-      definition.kind === Kind.OPERATION_DEFINITION &&
-      definition.operation === OperationTypeNode.SUBSCRIPTION
-    );
-  };
-
-  const link = ApolloLink.split(subscriptionMatcher, wsLink, httpLink);
-
   const client = new ApolloClient({
-    link,
+    link: httpLink,
     cache: new InMemoryCache(),
   });
 
-  return { client, ws };
+  return { client };
 };
 
-const useApolloClient = () => {
+function useApolloClient(): {
+  resource: ApolloResources | null;
+  error: string | null;
+} {
   const [resource, setResource] = useState<ApolloResources | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,30 +46,23 @@ const useApolloClient = () => {
       return undefined;
     }
 
-    let cleanup: (() => void) | undefined;
-
     try {
       const resources = createApolloResources(tokens.idToken);
       setResource(resources);
-
-      cleanup = () => {
-        void resources.ws.dispose();
-        void resources.client.stop();
-      };
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to create GraphQL client.";
       setError(message);
     }
 
-    return cleanup;
+    return undefined;
   }, []);
 
-  return useMemo(() => ({ resource, error }), [resource, error]);
-};
+  return { resource, error };
+}
 
 interface GraphQLProviderProps {
-  children: ReactNode | ReactNode[];
+  children: ComponentProps<typeof ApolloProvider>["children"];
 }
 
 export function GraphQLProvider({
@@ -132,11 +87,5 @@ export function GraphQLProvider({
       </div>
     );
   }
-
-  type ApolloProviderProps = ComponentProps<typeof ApolloProvider>;
-  const safeChildren = children as ApolloProviderProps["children"];
-
-  return (
-    <ApolloProvider client={resource.client}>{safeChildren}</ApolloProvider>
-  );
+  return <ApolloProvider client={resource.client}>{children}</ApolloProvider>;
 }

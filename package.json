@@ -13,7 +13,7 @@
     "clean": "rm -rf node_modules **/node_modules",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "test": "vitest",
-    "lint": "eslint .",
+    "lint": "tsc --project tsconfig.json --noEmit && eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "codegen": "graphql-codegen --config codegen.ts",
