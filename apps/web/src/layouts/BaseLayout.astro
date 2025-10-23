@@ -27,10 +27,15 @@ const hasSearch = Astro.slots.has('search');
       href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap"
     />
   </head>
-  <body class="min-h-screen bg-brand-black text-brand-text selection:bg-brand-primary/40">
+  <body class="relative min-h-screen bg-[radial-gradient(circle_at_top,_rgba(132,88,255,0.2),_rgba(11,7,46,0.92)_55%,_rgba(3,1,16,1))] text-brand-text selection:bg-brand-primary/40">
     <script is:inline>
       document.documentElement.classList.add('dark');
     </script>
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0 overflow-hidden">
+      <div class="absolute -top-48 left-1/2 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-[#c8adff]/22 blur-[160px]" />
+      <div class="absolute -bottom-40 left-[-12%] h-[28rem] w-[28rem] rounded-full bg-[#6e49ff]/16 blur-[150px]" />
+      <div class="absolute -right-36 top-14 h-[30rem] w-[30rem] rounded-full bg-[#58dcff]/12 blur-[150px]" />
+    </div>
     <div class="flex min-h-screen flex-col">
       <main class="flex-1">
         {hasSearch && (

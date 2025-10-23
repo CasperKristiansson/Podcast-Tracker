@@ -192,10 +192,19 @@ function ProfileAppContent(): JSX.Element {
 
   if (loading) {
     return (
-      <div className="relative isolate w-full">
-        <AuroraBackground className="opacity-80" />
-        <div className="relative z-10 mx-auto flex max-w-5xl items-center justify-center px-6 py-24 text-sm text-white/70">
-          Loading your soundscape…
+      <div className="relative isolate overflow-hidden px-6 py-20 sm:px-10">
+        <AuroraBackground className="opacity-45 saturate-200 mix-blend-screen" />
+        <div className="pointer-events-none absolute -top-48 left-1/2 h-[40rem] w-[40rem] -translate-x-1/2 rounded-full bg-[#d8c3ff]/22 blur-[200px]" />
+        <div className="pointer-events-none absolute -bottom-48 left-[-12%] h-[32rem] w-[32rem] rounded-full bg-[#6e49ff]/18 blur-[170px]" />
+        <div className="pointer-events-none absolute -right-40 top-20 h-[30rem] w-[30rem] rounded-full bg-[#57dfff]/14 blur-[170px]" />
+        <div className="relative z-10 flex min-h-[320px] flex-col items-center justify-center gap-4 text-center text-white/80">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs uppercase tracking-[0.35em] text-white/70">
+            Syncing profile
+            <span className="h-1 w-1 animate-pulse rounded-full bg-[#f5e4ff]" />
+          </span>
+          <p className="text-lg font-semibold text-white">
+            Loading your soundscape…
+          </p>
         </div>
       </div>
     );
@@ -203,110 +212,150 @@ function ProfileAppContent(): JSX.Element {
 
   if (error) {
     return (
-      <div className="rounded-3xl border border-red-500/40 bg-red-500/20 p-6 text-sm text-red-100">
-        Failed to load profile: {error.message}
+      <div className="relative isolate overflow-hidden px-6 py-16 text-sm text-rose-100 sm:px-10">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,135,188,0.25),_transparent_75%)]" />
+        <AuroraBackground className="opacity-35 saturate-200 mix-blend-screen" />
+        <div className="relative z-10 mx-auto flex max-w-md flex-col items-center gap-6 text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-rose-200/30 bg-rose-400/20 px-4 py-1 text-xs uppercase tracking-[0.35em] text-rose-100/80">
+            Profile hiccup
+          </span>
+          <p className="text-base font-semibold text-rose-50">
+            Failed to load profile: {error.message}
+          </p>
+          <InteractiveButton
+            onClick={() => {
+              void refetchProfile();
+            }}
+          >
+            Try again
+          </InteractiveButton>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="relative isolate">
-      <AuroraBackground className="opacity-70" />
-      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-16 px-6 py-16 md:py-24">
-        <header className="space-y-4 text-center md:text-left">
-          <span className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.08] px-4 py-1 text-[11px] uppercase tracking-[0.45em] text-white/60">
-            Your Listening Atlas
-          </span>
-          <h1 className="text-4xl font-semibold text-white md:text-5xl">
-            Welcome back, curator.
-          </h1>
-          <p className="mx-auto max-w-2xl text-sm text-white/70 md:mx-0">
-            Your personal profile keeps an ambient snapshot of every podcast you
-            care about—what’s waiting in your queue, what’s halfway through, and
-            the stories you’ve completed.
-          </p>
-        </header>
+    <div className="relative isolate overflow-hidden px-6 py-16 md:px-12 md:py-24">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-56 left-1/2 h-[44rem] w-[44rem] -translate-x-1/2 rounded-full bg-[#efe3ff]/22 blur-[220px]" />
+        <div className="absolute -bottom-56 left-[-18%] h-[36rem] w-[36rem] rounded-full bg-[#7a58ff]/18 blur-[190px]" />
+        <div className="absolute -right-48 top-24 h-[34rem] w-[34rem] rounded-full bg-[#5ee2ff]/14 blur-[190px]" />
+      </div>
+      <AuroraBackground className="opacity-45 saturate-200 mix-blend-screen" />
+      <div className="relative z-10">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-16">
+          <header className="space-y-6 text-center md:text-left">
+            <span className="inline-flex items-center justify-center gap-2 self-center rounded-full border border-white/20 bg-white/10 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.45em] text-white/70 md:self-start">
+              Listening atlas
+              <span className="inline-block h-1 w-1 rounded-full bg-[#f6ecff]" />
+            </span>
+            <h1 className="bg-gradient-to-r from-[#f6ecff] via-[#c7adff] to-[#8cd4ff] bg-clip-text text-4xl font-semibold text-transparent md:text-5xl">
+              Your sound galaxy, refreshed.
+            </h1>
+            <p className="mx-auto max-w-2xl text-base text-white/75 md:mx-0">
+              Keep track of every story you follow with a luminous snapshot of
+              the shows you love. Stats update in real-time as you celebrate
+              each episode.
+            </p>
+          </header>
 
-        <section className="grid gap-6 md:grid-cols-3">
-          <StatCard
-            label="Active Shows"
-            value={stats.totalShows}
-            accent="from-[#86A8FF] to-[#6243FF]"
-          />
-          <StatCard
-            label="Episodes Completed"
-            value={stats.episodesCompleted}
-            accent="from-[#F3B0FF] to-[#943DFF]"
-          />
-          <StatCard
-            label="Episodes In Progress"
-            value={stats.episodesInProgress}
-            accent="from-[#9BF6FF] to-[#00B5D8]"
-          />
-        </section>
+          <section className="grid gap-6 md:grid-cols-3">
+            <StatCard
+              label="Active Shows"
+              value={stats.totalShows}
+              accent="from-[#deb2ff] via-[#a67bff] to-[#6541ff]"
+            />
+            <StatCard
+              label="Episodes Completed"
+              value={stats.episodesCompleted}
+              accent="from-[#ffbdec] via-[#f76fdc] to-[#b43cff]"
+            />
+            <StatCard
+              label="Episodes In Progress"
+              value={stats.episodesInProgress}
+              accent="from-[#9af9ff] via-[#4ad0ff] to-[#2476ff]"
+            />
+          </section>
 
-        {spotlight.length > 0 ? (
-          <section className="space-y-6">
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div>
+          {spotlight.length > 0 ? (
+            <section className="relative overflow-hidden rounded-[32px] border border-white/12 bg-white/[0.05] p-8 backdrop-blur-2xl">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(135,97,255,0.22),_transparent_70%)]" />
+              <div className="relative space-y-6">
+                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-semibold text-white">
+                      Spotlights · Unfinished Adventures
+                    </h2>
+                    <p className="text-sm text-white/65">
+                      The shows most eager for your attention. Pick one and log
+                      your next listen—confetti and cheers included.
+                    </p>
+                  </div>
+                  <InteractiveButton
+                    variant="ghost"
+                    onClick={() => {
+                      void refetchProfile();
+                      setToast("Profile refreshed.");
+                    }}
+                  >
+                    Refresh overview
+                  </InteractiveButton>
+                </div>
+                <div className="grid gap-6 md:grid-cols-2">
+                  {spotlight.map((show) => (
+                    <SpotlightCard
+                      key={show.showId}
+                      show={show}
+                      onCelebrate={handleCelebrateClick}
+                      celebrating={
+                        celebration?.showId === show.showId
+                          ? celebration.seed
+                          : null
+                      }
+                      disabled={
+                        pendingShowId === show.showId || progressMutating
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.04] p-8 backdrop-blur-2xl">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(94,158,255,0.2),_transparent_75%)]" />
+            <div className="relative space-y-6">
+              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <h2 className="text-2xl font-semibold text-white">
-                  Spotlights · Unfinished Adventures
+                  Your Entire Library
                 </h2>
-                <p className="text-sm text-white/60">
-                  The shows most eager for your attention. Pick one and log your
-                  next listen—with animated cheers to celebrate.
+                <p className="text-sm text-white/60 md:max-w-md md:text-right">
+                  Browse everything you&apos;ve saved—mark progress, celebrate
+                  completions, or jump back into a show you love.
                 </p>
               </div>
-              <InteractiveButton
-                variant="ghost"
-                onClick={() => {
-                  void refetchProfile();
-                  setToast("Profile refreshed.");
-                }}
-              >
-                Refresh
-              </InteractiveButton>
-            </div>
-            <div className="grid gap-6 md:grid-cols-2">
-              {spotlight.map((show) => (
-                <SpotlightCard
-                  key={show.showId}
-                  show={show}
-                  onCelebrate={handleCelebrateClick}
-                  celebrating={
-                    celebration?.showId === show.showId
-                      ? celebration.seed
-                      : null
-                  }
-                  disabled={pendingShowId === show.showId || progressMutating}
-                />
-              ))}
+              <div className="grid gap-6 md:grid-cols-2">
+                {shows.map((show) => (
+                  <LibraryCard
+                    key={show.showId}
+                    show={show}
+                    onCelebrate={handleCelebrateClick}
+                    celebrating={
+                      celebration?.showId === show.showId
+                        ? celebration.seed
+                        : null
+                    }
+                    disabled={pendingShowId === show.showId || progressMutating}
+                  />
+                ))}
+              </div>
             </div>
           </section>
-        ) : null}
-
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold text-white">
-            Your Entire Library
-          </h2>
-          <div className="grid gap-6 md:grid-cols-2">
-            {shows.map((show) => (
-              <LibraryCard
-                key={show.showId}
-                show={show}
-                onCelebrate={handleCelebrateClick}
-                celebrating={
-                  celebration?.showId === show.showId ? celebration.seed : null
-                }
-                disabled={pendingShowId === show.showId || progressMutating}
-              />
-            ))}
-          </div>
-        </section>
+        </div>
 
         {toast ? (
-          <div className="pointer-events-none fixed inset-x-0 bottom-10 flex justify-center">
-            <div className="rounded-full border border-white/20 bg-black/70 px-6 py-2 text-xs font-medium text-white shadow-lg shadow-black/40 backdrop-blur">
+          <div className="pointer-events-none absolute inset-x-0 bottom-8 flex justify-center px-4">
+            <div className="rounded-full border border-white/20 bg-gradient-to-r from-[#6f4bff]/85 via-[#3b1ec8]/85 to-[#14106d]/90 px-6 py-2 text-xs font-medium text-white shadow-[0_25px_60px_rgba(25,9,80,0.55)]">
               {toast}
             </div>
           </div>
@@ -332,16 +381,16 @@ interface StatCardProps {
 
 function StatCard({ label, value, accent }: StatCardProps): JSX.Element {
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] px-8 py-10 text-left shadow-[0_30px_70px_rgba(35,24,73,0.4)] backdrop-blur-lg transition-transform duration-500 hover:-translate-y-1">
+    <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-white/[0.08] px-8 py-10 text-left shadow-[0_45px_100px_rgba(26,16,84,0.55)] backdrop-blur-2xl transition-transform duration-500 hover:-translate-y-1">
       <div
         className={cn(
-          "absolute inset-x-1/3 -top-24 h-52 rounded-full blur-3xl",
-          `bg-gradient-to-b ${accent}`
+          "absolute -inset-16 opacity-60 blur-3xl",
+          `bg-gradient-to-br ${accent}`
         )}
         aria-hidden
       />
       <div className="relative z-10 space-y-3">
-        <p className="text-xs uppercase tracking-[0.4em] text-white/60">
+        <p className="text-xs uppercase tracking-[0.45em] text-white/70">
           {label}
         </p>
         <div className="text-4xl font-semibold text-white">
@@ -368,7 +417,7 @@ function SpotlightCard({
   const syncedAtValue = normalizeDateInput(show.subscriptionSyncedAt);
 
   return (
-    <TiltCard className="group bg-gradient-to-br from-white/[0.08] via-white/[0.03] to-transparent">
+    <TiltCard className="group bg-[linear-gradient(140deg,rgba(162,122,255,0.22),rgba(66,40,162,0.36))]">
       <div className="flex flex-col gap-5">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -379,7 +428,7 @@ function SpotlightCard({
               {show.title}
             </h3>
           </div>
-          <span className="rounded-full border border-white/20 bg-white/[0.06] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.35em] text-white/70">
+          <span className="rounded-full border border-[#d8c8ff]/50 bg-[#7d59ff]/30 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.35em] text-white">
             {show.unlistenedEpisodes} waiting
           </span>
         </div>
@@ -438,7 +487,7 @@ function LibraryCard({
   const addedAtValue = normalizeDateInput(show.addedAt);
 
   return (
-    <TiltCard className="bg-white/[0.03]">
+    <TiltCard className="bg-[linear-gradient(150deg,rgba(120,88,255,0.18),rgba(33,19,96,0.32))]">
       <div className="flex flex-col gap-5">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
@@ -448,18 +497,18 @@ function LibraryCard({
             </p>
           </div>
           {hasUnlistened ? (
-            <span className="rounded-full border border-emerald-300/40 bg-emerald-500/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-emerald-100">
+            <span className="rounded-full border border-[#8bffe2]/45 bg-[#32d9b0]/25 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-[#e8fff6]">
               {show.unlistenedEpisodes} to go
             </span>
           ) : (
-            <span className="rounded-full border border-white/20 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-white/60">
+            <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-white/70">
               Fully caught up
             </span>
           )}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <MetricBadge label="Complete" value={show.completedEpisodes} />
+          <MetricBadge label="Completed" value={show.completedEpisodes} />
           <MetricBadge label="Progress" value={show.inProgressEpisodes} />
           <MetricBadge label="Total" value={show.totalEpisodes} />
         </div>
@@ -499,10 +548,10 @@ function MetricBadge({ label, value, accent = false }: MetricBadgeProps) {
   return (
     <div
       className={cn(
-        "rounded-2xl border px-4 py-3",
+        "rounded-2xl border px-4 py-3 transition-colors duration-300",
         accent
-          ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-100"
-          : "border-white/10 bg-white/[0.04] text-white/70"
+          ? "border-[#7efff0]/50 bg-[linear-gradient(135deg,rgba(66,255,213,0.22),rgba(73,139,255,0.18))] text-[#e8fff8] shadow-[0_18px_40px_rgba(82,236,255,0.25)]"
+          : "border-white/12 bg-white/[0.06] text-white/75"
       )}
     >
       <p className="text-[11px] uppercase tracking-[0.35em]">{label}</p>
@@ -547,9 +596,9 @@ function TiltCard({ children, className }: TiltCardProps): JSX.Element {
     <div
       ref={ref}
       className={cn(
-        "relative overflow-hidden rounded-3xl border border-white/10 p-8 shadow-[0_35px_80px_rgba(28,20,70,0.45)] backdrop-blur-xl transition-transform duration-500",
-        "before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/[0.08] before:via-transparent before:to-transparent before:opacity-0 before:transition before:duration-500 hover:before:opacity-100",
-        "after:pointer-events-none after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.2),_transparent)] after:opacity-0 after:transition after:duration-500 hover:after:opacity-100",
+        "relative overflow-hidden rounded-3xl border border-white/12 p-8 shadow-[0_45px_110px_rgba(24,14,78,0.5)] backdrop-blur-2xl transition-transform duration-500 hover:-translate-y-1",
+        "before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.22),_transparent_70%)] before:opacity-0 before:transition before:duration-500 hover:before:opacity-100",
+        "after:pointer-events-none after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_bottom,_rgba(144,94,255,0.28),_transparent_75%)] after:opacity-0 after:transition after:duration-500 hover:after:opacity-100",
         className
       )}
       style={{

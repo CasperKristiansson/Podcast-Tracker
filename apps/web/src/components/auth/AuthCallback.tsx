@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { AuroraBackground, InteractiveButton } from "@ui";
 import { beginLogin, completeLogin } from "../../lib/auth/flow";
 import {
   clearPromptRetryStage,
@@ -137,54 +138,99 @@ export default function AuthCallback(): JSX.Element {
     };
   }, []);
 
-  return (
-    <div className="mx-auto flex max-w-md flex-col gap-6 rounded-xl bg-brand-surface/60 p-8 text-center shadow-lg shadow-brand-primary/20">
-      <h1 className="text-2xl font-semibold text-brand-text">
-        Authenticating…
-      </h1>
-      <p
-        className={`text-sm ${
-          status === "error"
-            ? "text-red-200"
-            : status === "success"
-              ? "text-brand-text"
-              : "text-brand-muted"
-        }`}
-      >
-        {message}
-      </p>
+  const badgeText =
+    status === "error"
+      ? "Re-auth required"
+      : status === "success"
+        ? "Signed in"
+        : "Authenticating";
+  const headingText =
+    status === "success"
+      ? "All set!"
+      : status === "error"
+        ? "We hit a snag"
+        : "Authenticating…";
+  const badgeClasses =
+    status === "error"
+      ? "border-[#ffb6d1]/50 bg-[#57162d]/60 text-[#ffdbe8]"
+      : status === "success"
+        ? "border-[#74ffe7]/45 bg-[#0c3e4f]/60 text-[#cafff7]"
+        : "border-[#d2c2ff]/55 bg-[#281764]/60 text-[#f4ebff]";
+  const messageClasses =
+    status === "error"
+      ? "text-[#ffd7e5]"
+      : status === "success"
+        ? "text-[#d4fff7]"
+        : "text-white/75";
+  const hintText =
+    status === "success"
+      ? "Redirecting you to your profile."
+      : status === "pending"
+        ? "Hang tight while we verify your Google session."
+        : "";
 
-      {status === "error" ? (
-        <div className="flex flex-col gap-2 text-sm text-brand-muted">
-          <button
-            type="button"
-            className="inline-flex items-center justify-center rounded-lg bg-brand-primary px-4 py-2 font-semibold text-brand-text transition hover:bg-brand-primary/90 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-brand-accent"
-            onClick={() => {
-              setStatus("pending");
-              const nextStage = getNextStage(promptRetryStageRef.current);
-              const targetStage =
-                nextStage ?? promptRetryStageRef.current ?? "login";
-              setMessage(getManualRetryMessage(targetStage));
-              updateRetryStage(targetStage);
-              beginLogin({ prompt: targetStage }).catch((err) => {
-                setStatus("error");
-                updateRetryStage(null);
-                const description =
-                  err instanceof Error
-                    ? err.message
-                    : "Unable to restart Google sign-in.";
-                setMessage(description);
-              });
-            }}
-          >
-            Try again
-          </button>
-          <span>
-            If the issue persists, clear your cookies and restart the sign-in
-            flow.
-          </span>
-        </div>
+  return (
+    <div className="relative isolate mx-auto w-full max-w-xl overflow-hidden rounded-[36px] border border-white/12 bg-[radial-gradient(circle_at_top,_rgba(120,86,255,0.3),_rgba(19,11,66,0.84)_60%,_rgba(6,3,23,0.92))] px-8 py-12 text-center shadow-[0_50px_130px_rgba(18,7,60,0.55)] backdrop-blur-2xl sm:px-12">
+      {status === "pending" ? (
+        <style>
+          {`@keyframes callback-glide { 0% { transform: translateX(-100%); } 100% { transform: translateX(140%); } }`}
+        </style>
       ) : null}
+      <AuroraBackground className="opacity-35 saturate-200 mix-blend-screen" />
+      <div className="pointer-events-none absolute -top-44 left-1/2 h-[30rem] w-[30rem] -translate-x-1/2 rounded-full bg-[#efe3ff]/20 blur-[180px]" />
+      <div className="pointer-events-none absolute -bottom-40 left-[-15%] h-[26rem] w-[26rem] rounded-full bg-[#6a4dff]/18 blur-[160px]" />
+      <div className="pointer-events-none absolute -right-32 top-16 h-[24rem] w-[24rem] rounded-full bg-[#58e8ff]/14 blur-[150px]" />
+      <div className="relative z-10 flex flex-col items-center gap-6">
+        <span
+          className={`inline-flex items-center justify-center gap-2 rounded-full border px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.45em] ${badgeClasses}`}
+        >
+          {badgeText}
+        </span>
+        <h1 className="text-2xl font-semibold text-white md:text-3xl">
+          {headingText}
+        </h1>
+        <p className={`text-sm leading-relaxed ${messageClasses}`}>{message}</p>
+        {hintText ? <p className="text-xs text-white/55">{hintText}</p> : null}
+        {status === "pending" ? (
+          <div className="relative h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-white/15">
+            <span
+              className="absolute inset-y-0 -left-1/2 w-1/2 rounded-full bg-gradient-to-r from-[#cbb4ff] via-[#8a6dff] to-transparent"
+              style={{ animation: "callback-glide 1.6s ease-in-out infinite" }}
+            />
+          </div>
+        ) : null}
+
+        {status === "error" ? (
+          <div className="flex w-full max-w-xs flex-col items-center gap-3 text-sm text-white/70">
+            <InteractiveButton
+              className="w-full justify-center"
+              onClick={() => {
+                setStatus("pending");
+                const nextStage = getNextStage(promptRetryStageRef.current);
+                const targetStage =
+                  nextStage ?? promptRetryStageRef.current ?? "login";
+                setMessage(getManualRetryMessage(targetStage));
+                updateRetryStage(targetStage);
+                beginLogin({ prompt: targetStage }).catch((err) => {
+                  setStatus("error");
+                  updateRetryStage(null);
+                  const description =
+                    err instanceof Error
+                      ? err.message
+                      : "Unable to restart Google sign-in.";
+                  setMessage(description);
+                });
+              }}
+            >
+              Try again
+            </InteractiveButton>
+            <span className="text-xs text-white/55">
+              If the issue persists, clear your cookies and restart the sign-in
+              flow.
+            </span>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
