@@ -18,7 +18,8 @@
   }
 }
 #else
-#set($filterValues = {":progress": $util.dynamodb.toDynamoDBJson("progress")})
+#set($filterValues = $util.map())
+$util.qr($filterValues.put(":progress", $util.dynamodb.toDynamoDB("progress")))
 #set($tokens = [])
 #set($index = 0)
 #foreach($episodeId in $episodeIds)
@@ -26,7 +27,7 @@
     #set($token = ":e${index}")
     #set($index = $index + 1)
     $util.qr($tokens.add($token))
-    $util.qr($filterValues.put($token, $util.dynamodb.toDynamoDBJson($episodeId)))
+    $util.qr($filterValues.put($token, $util.dynamodb.toDynamoDB($episodeId)))
   #end
 #end
 #set($tokenCount = $tokens.size())
