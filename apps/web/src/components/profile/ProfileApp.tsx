@@ -196,8 +196,53 @@ function ProfileAppContent(): JSX.Element {
         setUnsubscribingId(show.showId);
         await unsubscribeFromShow({
           variables: { showId: show.showId },
+          update: (cache) => {
+            cache.updateQuery<MyProfileQuery>(
+              {
+                query: MyProfileDocument,
+                variables: {},
+              },
+              (existing) => {
+                const currentProfile = existing?.myProfile;
+                if (!currentProfile) {
+                  return existing;
+                }
+
+                const showsList = currentProfile.shows ?? [];
+                const spotlightList = currentProfile.spotlight ?? [];
+                const showRemoved = showsList.some(
+                  (profileShow) => profileShow?.showId === show.showId
+                );
+
+                if (!showRemoved) {
+                  return existing;
+                }
+
+                const filteredShows = showsList.filter(
+                  (profileShow) => profileShow?.showId !== show.showId
+                );
+                const filteredSpotlight = spotlightList.filter(
+                  (profileShow) => profileShow?.showId !== show.showId
+                );
+
+                const currentStats = currentProfile.stats;
+                const updatedStats = {
+                  ...currentStats,
+                  totalShows: Math.max(0, (currentStats.totalShows ?? 0) - 1),
+                };
+
+                return {
+                  myProfile: {
+                    __typename: currentProfile.__typename,
+                    stats: updatedStats,
+                    spotlight: filteredSpotlight,
+                    shows: filteredShows,
+                  },
+                };
+              }
+            );
+          },
         });
-        await refetchProfile();
         setToast(`Removed ${show.title} from your library.`);
       } catch (err) {
         console.error("Failed to unsubscribe", err);
@@ -206,7 +251,7 @@ function ProfileAppContent(): JSX.Element {
         setUnsubscribingId(null);
       }
     },
-    [refetchProfile, unsubscribeFromShow]
+    [unsubscribeFromShow]
   );
 
   const handleUnsubscribeClick = useCallback(
