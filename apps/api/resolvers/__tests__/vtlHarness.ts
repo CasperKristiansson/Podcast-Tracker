@@ -212,61 +212,46 @@ function buildSubscribeResponse(ctx: RuntimeContext, util: AppSyncUtil) {
     util.error((ctx.error as Error).message ?? "Error", "MappingTemplate");
   }
 
-  const clone = (record: Record<string, unknown> | undefined | null) =>
-    record ? { ...record } : undefined;
+  const asRecord = (
+    value: unknown
+  ): Record<string, unknown> | undefined => {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+    return undefined;
+  };
 
-  let source = clone(ctx.result as Record<string, unknown> | undefined);
-  if (!source || Object.keys(source).length === 0) {
-    source = clone(
-      ctx.stash.get("subscription") as Record<string, unknown> | undefined
-    );
-  }
-  if (!source) {
-    source = {};
-  }
+  const primarySource =
+    asRecord(ctx.result) ?? asRecord(ctx.stash.get("subscription")) ?? {};
 
-  for (const key of ["pk", "sk", "dataType"]) {
-    delete source[key];
-  }
-
-  const showId = util.defaultIfNull(
-    (source.showId as string | undefined) ?? null,
-    ctx.args.showId as string
-  );
-  const title = util.defaultIfNull(
-    (source.title as string | undefined) ?? null,
-    ctx.args.title as string
-  );
-  const publisher = util.defaultIfNull(
-    (source.publisher as string | undefined) ?? null,
-    ctx.args.publisher as string
-  );
-  const image = util.defaultIfNull(
-    (source.image as string | undefined) ?? null,
-    ctx.args.image as string
-  );
-  const addedAt = util.defaultIfNull(
-    (source.addedAt as string | undefined) ??
-      (ctx.stash.get("addedAt") as string | undefined) ??
-      null,
-    util.time.nowISO8601()
-  );
-  const totalEpisodes = util.defaultIfNull(
-    (source.totalEpisodes as number | undefined | null) ??
-      (ctx.stash.get("totalEpisodes") as number | undefined | null) ??
-      null,
-    0
-  );
+  const showId =
+    (primarySource.showId as string | undefined) ??
+    (ctx.args.showId as string);
+  const title =
+    (primarySource.title as string | undefined) ?? (ctx.args.title as string);
+  const publisher =
+    (primarySource.publisher as string | undefined) ??
+    (ctx.args.publisher as string);
+  const image =
+    (primarySource.image as string | undefined) ?? (ctx.args.image as string);
+  const addedAt =
+    (primarySource.addedAt as string | undefined) ??
+    (ctx.stash.get("addedAt") as string | undefined) ??
+    util.time.nowISO8601();
+  const totalEpisodes =
+    (primarySource.totalEpisodes as number | undefined | null) ??
+    (ctx.stash.get("totalEpisodes") as number | undefined | null) ??
+    0;
   const subscriptionSyncedAt =
-    (source.subscriptionSyncedAt as string | undefined | null) ??
+    (primarySource.subscriptionSyncedAt as string | undefined | null) ??
     (ctx.stash.get("subscriptionSyncedAt") as string | undefined | null) ??
     null;
   const ratingStars =
-    (source.ratingStars as number | undefined | null) ?? null;
+    (primarySource.ratingStars as number | undefined | null) ?? null;
   const ratingReview =
-    (source.ratingReview as string | undefined | null) ?? null;
+    (primarySource.ratingReview as string | undefined | null) ?? null;
   const ratingUpdatedAt =
-    (source.ratingUpdatedAt as string | undefined | null) ?? null;
+    (primarySource.ratingUpdatedAt as string | undefined | null) ?? null;
 
   return {
     showId,

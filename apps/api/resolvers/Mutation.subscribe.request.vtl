@@ -22,8 +22,6 @@ $util.qr($ctx.stash.put("subscriptionSyncedAt", $now))
     "sk": $util.dynamodb.toDynamoDBJson($sk)
   },
   "attributeValues": {
-    "pk": $util.dynamodb.toDynamoDBJson($pk),
-    "sk": $util.dynamodb.toDynamoDBJson($sk),
     "dataType": $util.dynamodb.toDynamoDBJson("subscription"),
     "showId": $util.dynamodb.toDynamoDBJson($ctx.args.showId),
     "title": $util.dynamodb.toDynamoDBJson($ctx.args.title),
