@@ -1,10 +1,15 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import AuthCallback from '../../components/auth/AuthCallback';
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import AuthCallback from "../../components/auth/AuthCallback";
 ---
 
-<BaseLayout title="Completing Sign-in" description="Processing Google sign-in response.">
-  <section class="mx-auto flex max-w-4xl flex-col items-center gap-10 px-6 py-16 md:py-24">
+<BaseLayout
+  title="Completing Sign-in"
+  description="Processing Google sign-in response."
+>
+  <section
+    class="mx-auto flex max-w-4xl flex-col items-center gap-10 px-6 py-16 md:py-24"
+  >
     <AuthCallback client:only="react" />
   </section>
 </BaseLayout>

@@ -1,6 +1,6 @@
 import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client";
 import { ApolloProvider } from "@apollo/client/react";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { beginLogin, getTokens, signOut } from "../../lib/auth/flow";
 import { appsyncUrl } from "../../lib/graphql/config";
@@ -63,12 +63,22 @@ function useApolloClient(): {
 
 interface GraphQLProviderProps {
   children: ComponentProps<typeof ApolloProvider>["children"];
+  fallback?: ReactNode;
 }
 
 export function GraphQLProvider({
   children,
+  fallback,
 }: GraphQLProviderProps): JSX.Element {
   const { resource, error } = useApolloClient();
+
+  const fallbackContent = fallback ?? (
+    <div className="flex items-center justify-center">
+      <div className="animate-pulse rounded-md bg-brand-surface/60 px-4 py-2 text-sm text-brand-muted">
+        Connecting to AppSync…
+      </div>
+    </div>
+  );
 
   if (error) {
     return (
@@ -79,13 +89,7 @@ export function GraphQLProvider({
   }
 
   if (!resource) {
-    return (
-      <div className="flex items-center justify-center">
-        <div className="animate-pulse rounded-md bg-brand-surface/60 px-4 py-2 text-sm text-brand-muted">
-          Connecting to AppSync…
-        </div>
-      </div>
-    );
+    return <>{fallbackContent}</>;
   }
   return <ApolloProvider client={resource.client}>{children}</ApolloProvider>;
 }

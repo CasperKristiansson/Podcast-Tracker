@@ -7,7 +7,7 @@ export default function PodcastSearchBarWithProvider(
   props: PodcastSearchBarProps
 ): JSX.Element {
   return (
-    <GraphQLProvider>
+    <GraphQLProvider fallback={null}>
       <PodcastSearchBar {...props} />
     </GraphQLProvider>
   );

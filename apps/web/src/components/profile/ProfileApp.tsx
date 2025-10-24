@@ -383,6 +383,7 @@ function ProfileAppContent(): JSX.Element {
                     );
                   }
                 }}
+                className="transition-transform duration-200 hover:scale-[1.03] focus-visible:scale-[1.03]"
               >
                 Add your first show
               </InteractiveButton>

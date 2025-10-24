@@ -26,7 +26,7 @@ export interface PodcastSearchBarProps {
   className?: string;
 }
 
-const DEBOUNCE_MS = 200;
+const DEBOUNCE_MS = 300;
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
@@ -62,6 +62,7 @@ export default function PodcastSearchBar({
   const listRef = useRef<HTMLUListElement | null>(null);
   const statusRef = useRef<HTMLDivElement | null>(null);
   const listboxId = useId();
+  const toastId = useId();
 
   const [runSearch, { data, loading, error }] = useLazyQuery<
     SearchShowsQuery,
@@ -71,12 +72,14 @@ export default function PodcastSearchBar({
     fetchPolicy: "cache-and-network",
   });
 
-  const [subscribeToShow, { loading: subscribing }] = useMutation<
+  const [subscribeToShow] = useMutation<
     SubscribeToShowMutation,
     SubscribeToShowMutationVariables
   >(SubscribeToShowDocument);
 
   const shows = useMemo(() => data?.search ?? [], [data]);
+  const [pendingShowId, setPendingShowId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -97,9 +100,13 @@ export default function PodcastSearchBar({
       return;
     }
 
-    void runSearch({
+    if (!debouncedQuery) {
+      return;
+    }
+
+    runSearch({
       variables: { term: debouncedQuery, limit },
-    });
+    }).catch(() => undefined);
   }, [debouncedQuery, limit, runSearch, isOpen]);
 
   useEffect(() => {
@@ -269,6 +276,7 @@ export default function PodcastSearchBar({
     show: SearchShowsQuery["search"][number]
   ): Promise<void> => {
     try {
+      setPendingShowId(show.id);
       await subscribeToShow({
         variables: {
           showId: show.id,
@@ -279,8 +287,14 @@ export default function PodcastSearchBar({
             typeof show.totalEpisodes === "number" ? show.totalEpisodes : 0,
         },
       });
+      setToast(`Added "${show.title ?? "podcast"}" to your library.`);
+      window.setTimeout(() => setToast(null), 2200);
     } catch (subscribeError) {
       console.error("Failed to subscribe", subscribeError);
+      setToast("We couldn’t add that show. Try again in a moment.");
+      window.setTimeout(() => setToast(null), 2500);
+    } finally {
+      setPendingShowId(null);
     }
   };
 
@@ -445,13 +459,25 @@ export default function PodcastSearchBar({
                         onSelect={navigateToShow}
                         onHover={setActiveIndex}
                         onSubscribe={handleSubscribe}
-                        isSubscribing={subscribing}
+                        pendingShowId={pendingShowId}
                       />
                     )}
                   </div>
                 </form>
               </div>
             </div>
+            {toast ? (
+              <div
+                id={toastId}
+                role="status"
+                aria-live="polite"
+                className="pointer-events-none fixed inset-x-0 bottom-10 flex justify-center px-4"
+              >
+                <div className="rounded-full border border-white/15 bg-white/15 px-4 py-2 text-xs text-white shadow-[0_20px_50px_rgba(12,4,40,0.55)] backdrop-blur">
+                  {toast}
+                </div>
+              </div>
+            ) : null}
           </div>,
           document.body
         )
@@ -493,12 +519,12 @@ interface ResultListProps {
   onSelect: (showId: string) => void;
   onHover: (index: number) => void;
   onSubscribe: (show: SearchShowsQuery["search"][number]) => Promise<void>;
-  isSubscribing: boolean;
+  pendingShowId: string | null;
 }
 
 const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
   (
-    { id, shows, activeIndex, onSelect, onHover, onSubscribe, isSubscribing },
+    { id, shows, activeIndex, onSelect, onHover, onSubscribe, pendingShowId },
     ref
   ) => (
     <ul
@@ -569,9 +595,9 @@ const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
               onClick={() => {
                 void onSubscribe(show);
               }}
-              isLoading={isSubscribing}
+              isLoading={pendingShowId === show.id}
               loadingLabel="Adding…"
-              className="ml-auto flex-shrink-0"
+              className="ml-auto flex-shrink-0 transition-transform duration-200 hover:scale-[1.04] focus-visible:scale-[1.04]"
             >
               Add
             </InteractiveButton>
