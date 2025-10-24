@@ -441,6 +441,10 @@ function mapShow(show: SpotifyShow, overrides?: { isSubscribed?: boolean }) {
 function mapEpisode(episode: SpotifyEpisode) {
   const derivedShowId = episode.show?.id ?? episode.id.split(":")[0];
   const languages = normalizeEpisodeLanguages(episode);
+  const releaseDate = normalizeReleaseDate(
+    episode.release_date,
+    episode.release_date_precision
+  );
   return {
     id: episode.id,
     episodeId: episode.id,
@@ -451,7 +455,7 @@ function mapEpisode(episode: SpotifyEpisode) {
     audioUrl: episode.audio_preview_url ?? episode.external_urls?.spotify ?? "",
     image: episode.images?.[0]?.url ?? null,
     linkUrl: episode.external_urls?.spotify ?? null,
-    publishedAt: episode.release_date,
+    publishedAt: releaseDate,
     durationSec: Math.round((episode.duration_ms ?? 0) / 1000),
     explicit: episode.explicit ?? null,
     isExternallyHosted: episode.is_externally_hosted ?? null,
@@ -459,6 +463,39 @@ function mapEpisode(episode: SpotifyEpisode) {
     releaseDatePrecision: episode.release_date_precision ?? null,
     languages,
   };
+}
+
+function normalizeReleaseDate(
+  value: string,
+  precision: string | undefined
+): string | null {
+  if (!value) {
+    return null;
+  }
+
+  if (!precision || precision === "day") {
+    const isoDate = new Date(value);
+    if (!Number.isNaN(isoDate.getTime())) {
+      return isoDate.toISOString();
+    }
+    return null;
+  }
+
+  const dateMatch = value.match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/);
+  if (!dateMatch) {
+    return null;
+  }
+
+  const [, year, rawMonth, rawDay] = dateMatch;
+  const month = rawMonth ?? "01";
+  const day = rawDay ?? "01";
+  const dateString = `${year}-${month}-${day}`;
+  const isoDate = new Date(dateString);
+  if (!Number.isNaN(isoDate.getTime())) {
+    return isoDate.toISOString();
+  }
+
+  return null;
 }
 
 function normalizeEpisodeLanguages(episode: SpotifyEpisode): string[] {
