@@ -24,6 +24,17 @@ describe("Mutation.subscribe mapping templates", () => {
 
     expect(request).toEqual(requestSnapshot);
 
+    (runtime.ctx as any).result = {
+      Attributes: {
+        showId: { S: "show-1" },
+        title: { S: "Example Show" },
+        publisher: { S: "Publisher" },
+        image: { S: "https://example.com/image.png" },
+        totalEpisodes: { N: "97" },
+        addedAt: { S: "2025-04-01T12:00:00.000Z" },
+      },
+    };
+
     const responseRendered = renderTemplate(responseTemplate, runtime);
     const response = JSON.parse(responseRendered);
 
@@ -56,6 +67,17 @@ describe("Mutation.subscribe mapping templates", () => {
     const requestRendered = renderTemplate(requestTemplate, runtime);
     const request = JSON.parse(requestRendered);
     expect(request.attributeValues.totalEpisodes.N).toBe("0");
+
+    (runtime.ctx as any).result = {
+      Attributes: {
+        showId: { S: "show-2" },
+        title: { S: "Unknown" },
+        publisher: { S: "Publisher" },
+        image: { S: "https://example.com/cover.png" },
+        totalEpisodes: { N: "0" },
+        addedAt: { S: "2025-04-02T08:30:00.000Z" },
+      },
+    };
 
     const responseRendered = renderTemplate(responseTemplate, runtime);
     const response = JSON.parse(responseRendered);
