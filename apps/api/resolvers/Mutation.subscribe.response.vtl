@@ -1,15 +1,17 @@
 #if($ctx.error)
   $util.error($ctx.error.message, $ctx.error.type)
 #end
-#set($result = {
-  "showId" : $ctx.args.showId,
-  "title" : $ctx.args.title,
-  "publisher" : $ctx.args.publisher,
-  "image" : $ctx.args.image,
-  "addedAt" : $ctx.stash.get("addedAt"),
-  "totalEpisodes" : $ctx.stash.get("totalEpisodes"),
-  "ratingStars" : null,
-  "ratingReview" : null,
-  "ratingUpdatedAt" : null
-})
-$util.toJson($result)
+#set($item = $ctx.stash.get("subscriptionItem"))
+#if(!$item)
+  #set($item = $util.map())
+#end
+$util.qr($item.put("showId", $ctx.args.showId))
+$util.qr($item.put("title", $ctx.args.title))
+$util.qr($item.put("publisher", $ctx.args.publisher))
+$util.qr($item.put("image", $ctx.args.image))
+$util.qr($item.put("addedAt", $ctx.stash.get("addedAt")))
+$util.qr($item.put("totalEpisodes", $ctx.stash.get("totalEpisodes")))
+$util.qr($item.put("ratingStars", null))
+$util.qr($item.put("ratingReview", null))
+$util.qr($item.put("ratingUpdatedAt", null))
+$util.toJson($item)

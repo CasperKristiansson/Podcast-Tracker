@@ -2,25 +2,26 @@
 #set($pk = "user#${ctx.identity.sub}")
 #set($sk = "sub#${ctx.args.showId}")
 #set($totalEpisodes = $util.defaultIfNull($ctx.args.totalEpisodes, 0))
+#set($item = $util.map())
+$util.qr($item.put("pk", $pk))
+$util.qr($item.put("sk", $sk))
+$util.qr($item.put("dataType", "subscription"))
+$util.qr($item.put("showId", $ctx.args.showId))
+$util.qr($item.put("title", $ctx.args.title))
+$util.qr($item.put("publisher", $ctx.args.publisher))
+$util.qr($item.put("image", $ctx.args.image))
+$util.qr($item.put("totalEpisodes", $totalEpisodes))
+$util.qr($item.put("subscriptionSyncedAt", $now))
+$util.qr($item.put("addedAt", $now))
+$util.qr($ctx.stash.put("subscriptionItem", $item))
 $util.qr($ctx.stash.put("addedAt", $now))
 $util.qr($ctx.stash.put("totalEpisodes", $totalEpisodes))
 {
   "version": "2018-05-29",
   "operation": "PutItem",
-  "key": {
-    "pk": $util.dynamodb.toDynamoDBJson($pk),
-    "sk": $util.dynamodb.toDynamoDBJson($sk)
-  },
-  "attributeValues": {
-    "pk": $util.dynamodb.toDynamoDBJson($pk),
-    "sk": $util.dynamodb.toDynamoDBJson($sk),
-    "dataType": $util.dynamodb.toDynamoDBJson("subscription"),
-    "showId": $util.dynamodb.toDynamoDBJson($ctx.args.showId),
-    "title": $util.dynamodb.toDynamoDBJson($ctx.args.title),
-    "publisher": $util.dynamodb.toDynamoDBJson($ctx.args.publisher),
-    "image": $util.dynamodb.toDynamoDBJson($ctx.args.image),
-    "totalEpisodes": $util.dynamodb.toDynamoDBJson($totalEpisodes),
-    "subscriptionSyncedAt": $util.dynamodb.toDynamoDBJson($now),
-    "addedAt": $util.dynamodb.toDynamoDBJson($now)
-  }
+  "key": $util.dynamodb.toMapValues({
+    "pk" : $pk,
+    "sk" : $sk
+  }),
+  "attributeValues": $util.dynamodb.toMapValues($item)
 }
