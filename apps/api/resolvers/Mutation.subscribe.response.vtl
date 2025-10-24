@@ -1,15 +1,75 @@
 #if($ctx.error)
   $util.error($ctx.error.message, $ctx.error.type)
 #end
-#set($result = $util.dynamodb.toMapValues($ctx.result).Attributes)
+#set($source = $ctx.stash.get("subscription"))
+#if(!$util.isNull($ctx.result) && !$util.isNull($ctx.result.Attributes))
+  #set($source = $util.dynamodb.toMapValues($ctx.result.Attributes))
+#elseif(!$util.isNull($ctx.result))
+  #set($source = $util.dynamodb.toMapValues($ctx.result))
+#end
+#if($util.isNull($source))
+  #set($source = $util.map())
+#end
+#foreach($key in ["pk", "sk", "dataType"])
+  #if($source.containsKey($key))
+    $util.qr($source.remove($key))
+  #end
+#end
+#set($showId = $source.showId)
+#if($util.isNull($showId))
+  #set($showId = $ctx.args.showId)
+#end
+#set($title = $source.title)
+#if($util.isNull($title))
+  #set($title = $ctx.args.title)
+#end
+#set($publisher = $source.publisher)
+#if($util.isNull($publisher))
+  #set($publisher = $ctx.args.publisher)
+#end
+#set($image = $source.image)
+#if($util.isNull($image))
+  #set($image = $ctx.args.image)
+#end
+#set($addedAt = $source.addedAt)
+#if($util.isNull($addedAt))
+  #set($addedAt = $ctx.stash.get("addedAt"))
+#end
+#if($util.isNull($addedAt))
+  #set($addedAt = $util.time.nowISO8601())
+#end
+#set($totalEpisodes = $source.totalEpisodes)
+#if($util.isNull($totalEpisodes))
+  #set($totalEpisodes = $ctx.stash.get("totalEpisodes"))
+#end
+#if($util.isNull($totalEpisodes))
+  #set($totalEpisodes = 0)
+#end
+#set($subscriptionSyncedAt = $source.subscriptionSyncedAt)
+#if($util.isNull($subscriptionSyncedAt))
+  #set($subscriptionSyncedAt = $ctx.stash.get("subscriptionSyncedAt"))
+#end
+#set($ratingStars = $source.ratingStars)
+#if($util.isNull($ratingStars))
+  #set($ratingStars = null)
+#end
+#set($ratingReview = $source.ratingReview)
+#if($util.isNull($ratingReview))
+  #set($ratingReview = null)
+#end
+#set($ratingUpdatedAt = $source.ratingUpdatedAt)
+#if($util.isNull($ratingUpdatedAt))
+  #set($ratingUpdatedAt = null)
+#end
 #set($response = $util.map())
-$util.qr($response.put("showId", $result.showId))
-$util.qr($response.put("title", $result.title))
-$util.qr($response.put("publisher", $result.publisher))
-$util.qr($response.put("image", $result.image))
-$util.qr($response.put("addedAt", $result.addedAt))
-$util.qr($response.put("totalEpisodes", $result.totalEpisodes))
-$util.qr($response.put("ratingStars", null))
-$util.qr($response.put("ratingReview", null))
-$util.qr($response.put("ratingUpdatedAt", null))
+$util.qr($response.put("showId", $showId))
+$util.qr($response.put("title", $title))
+$util.qr($response.put("publisher", $publisher))
+$util.qr($response.put("image", $image))
+$util.qr($response.put("addedAt", $addedAt))
+$util.qr($response.put("totalEpisodes", $totalEpisodes))
+$util.qr($response.put("subscriptionSyncedAt", $subscriptionSyncedAt))
+$util.qr($response.put("ratingStars", $ratingStars))
+$util.qr($response.put("ratingReview", $ratingReview))
+$util.qr($response.put("ratingUpdatedAt", $ratingUpdatedAt))
 $util.toJson($response)

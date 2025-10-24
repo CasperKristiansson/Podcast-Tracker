@@ -104,9 +104,47 @@ export function createRuntime({
         );
       },
       toMapValues: (value: Record<string, unknown>) => {
+        const parse = (entry: unknown): unknown => {
+          if (entry === null || entry === undefined) {
+            return null;
+          }
+          if (typeof entry !== "object") {
+            return entry;
+          }
+          if (Array.isArray(entry)) {
+            return entry.map(parse);
+          }
+          const attribute = entry as Record<string, unknown>;
+          if ("S" in attribute) {
+            return attribute.S as string;
+          }
+          if ("N" in attribute) {
+            return Number(attribute.N);
+          }
+          if ("BOOL" in attribute) {
+            return Boolean(attribute.BOOL);
+          }
+          if ("NULL" in attribute) {
+            return null;
+          }
+          if ("L" in attribute) {
+            const list = attribute.L as unknown[];
+            return Array.isArray(list) ? list.map(parse) : [];
+          }
+          if ("M" in attribute) {
+            const mapEntry = attribute.M as Record<string, unknown>;
+            const mapped: Record<string, unknown> = {};
+            for (const [mapKey, mapValue] of Object.entries(mapEntry)) {
+              mapped[mapKey] = parse(mapValue);
+            }
+            return mapped;
+          }
+          return attribute;
+        };
+
         const mapValues: Record<string, unknown> = {};
-        for (const [key, entry] of Object.entries(value)) {
-          mapValues[key] = util.dynamodb.toDynamoDBJson(entry);
+        for (const [key, entry] of Object.entries(value ?? {})) {
+          mapValues[key] = parse(entry);
         }
         return mapValues;
       },
@@ -130,28 +168,41 @@ function buildSubscribeRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   const pk = `user#${String(ctx.identity.sub)}`;
   const sk = `sub#${showId}`;
 
-  const item = {
-    pk,
-    sk,
-    dataType: "subscription",
+  const subscription = {
     showId,
     title,
     publisher,
     image,
+    addedAt: now,
     totalEpisodes,
     subscriptionSyncedAt: now,
-    addedAt: now,
   };
 
-  util.qr(ctx.stash.put("subscriptionItem", item));
+  util.qr(ctx.stash.put("subscription", subscription));
   util.qr(ctx.stash.put("addedAt", now));
   util.qr(ctx.stash.put("totalEpisodes", totalEpisodes));
+  util.qr(ctx.stash.put("subscriptionSyncedAt", now));
 
   return {
     version: "2018-05-29",
     operation: "PutItem",
-    key: util.dynamodb.toMapValues({ pk, sk }),
-    attributeValues: util.dynamodb.toMapValues(item),
+    key: {
+      pk: util.dynamodb.toDynamoDBJson(pk),
+      sk: util.dynamodb.toDynamoDBJson(sk),
+    },
+    attributeValues: {
+      pk: util.dynamodb.toDynamoDBJson(pk),
+      sk: util.dynamodb.toDynamoDBJson(sk),
+      dataType: util.dynamodb.toDynamoDBJson("subscription"),
+      showId: util.dynamodb.toDynamoDBJson(showId),
+      title: util.dynamodb.toDynamoDBJson(title),
+      publisher: util.dynamodb.toDynamoDBJson(publisher),
+      image: util.dynamodb.toDynamoDBJson(image),
+      totalEpisodes: util.dynamodb.toDynamoDBJson(totalEpisodes),
+      subscriptionSyncedAt: util.dynamodb.toDynamoDBJson(now),
+      addedAt: util.dynamodb.toDynamoDBJson(now),
+    },
+    returnValues: "NONE",
   };
 }
 
@@ -160,21 +211,64 @@ function buildSubscribeResponse(ctx: RuntimeContext, util: AppSyncUtil) {
     util.error((ctx.error as Error).message ?? "Error", "MappingTemplate");
   }
 
-  const showId = String(ctx.args.showId);
-  const title = String(ctx.args.title);
-  const publisher = String(ctx.args.publisher);
-  const image = String(ctx.args.image);
+  let source =
+    (ctx.stash.get("subscription") as Record<string, unknown> | undefined) ??
+    {};
+
+  if (ctx.result && typeof ctx.result === "object") {
+    const resultRecord = ctx.result as Record<string, unknown>;
+    if ("Attributes" in resultRecord && resultRecord.Attributes) {
+      source = util.dynamodb.toMapValues(
+        resultRecord.Attributes as Record<string, unknown>
+      );
+    } else if (Object.keys(resultRecord).length > 0) {
+      source = util.dynamodb.toMapValues(resultRecord);
+    }
+  }
+
+  delete (source as any).pk;
+  delete (source as any).sk;
+  delete (source as any).dataType;
+
+  const showId =
+    (source.showId as string | undefined) ?? (ctx.args.showId as string);
+  const title =
+    (source.title as string | undefined) ?? (ctx.args.title as string);
+  const publisher =
+    (source.publisher as string | undefined) ??
+    (ctx.args.publisher as string);
+  const image =
+    (source.image as string | undefined) ?? (ctx.args.image as string);
+  const addedAt =
+    (source.addedAt as string | undefined) ??
+    (ctx.stash.get("addedAt") as string | undefined) ??
+    util.time.nowISO8601();
+  const totalEpisodes =
+    (source.totalEpisodes as number | undefined) ??
+    (ctx.stash.get("totalEpisodes") as number | undefined) ??
+    0;
+  const subscriptionSyncedAt =
+    (source.subscriptionSyncedAt as string | undefined) ??
+    (ctx.stash.get("subscriptionSyncedAt") as string | undefined) ??
+    null;
+  const ratingStars =
+    (source.ratingStars as number | undefined | null) ?? null;
+  const ratingReview =
+    (source.ratingReview as string | undefined | null) ?? null;
+  const ratingUpdatedAt =
+    (source.ratingUpdatedAt as string | undefined | null) ?? null;
 
   return {
     showId,
     title,
     publisher,
     image,
-    addedAt: ctx.stash.get("addedAt"),
-    totalEpisodes: ctx.stash.get("totalEpisodes"),
-    ratingStars: null,
-    ratingReview: null,
-    ratingUpdatedAt: null,
+    addedAt,
+    totalEpisodes,
+    subscriptionSyncedAt,
+    ratingStars,
+    ratingReview,
+    ratingUpdatedAt,
   };
 }
 

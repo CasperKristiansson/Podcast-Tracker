@@ -2,8 +2,18 @@
 #set($pk = "user#${ctx.identity.sub}")
 #set($sk = "sub#${ctx.args.showId}")
 #set($totalEpisodes = $util.defaultIfNull($ctx.args.totalEpisodes, 0))
+#set($subscription = $util.map())
+$util.qr($subscription.put("showId", $ctx.args.showId))
+$util.qr($subscription.put("title", $ctx.args.title))
+$util.qr($subscription.put("publisher", $ctx.args.publisher))
+$util.qr($subscription.put("image", $ctx.args.image))
+$util.qr($subscription.put("addedAt", $now))
+$util.qr($subscription.put("totalEpisodes", $totalEpisodes))
+$util.qr($subscription.put("subscriptionSyncedAt", $now))
+$util.qr($ctx.stash.put("subscription", $subscription))
 $util.qr($ctx.stash.put("addedAt", $now))
 $util.qr($ctx.stash.put("totalEpisodes", $totalEpisodes))
+$util.qr($ctx.stash.put("subscriptionSyncedAt", $now))
 {
   "version": "2018-05-29",
   "operation": "PutItem",
@@ -23,5 +33,5 @@ $util.qr($ctx.stash.put("totalEpisodes", $totalEpisodes))
     "subscriptionSyncedAt": $util.dynamodb.toDynamoDBJson($now),
     "addedAt": $util.dynamodb.toDynamoDBJson($now)
   },
-  "returnValues": "ALL_NEW"
+  "returnValues": "NONE"
 }
