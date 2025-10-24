@@ -43,16 +43,15 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           {...props}
         />
         <span
-          className="pointer-events-none absolute inset-y-0 left-10 flex items-center text-white/50"
+          className="pointer-events-none absolute inset-y-0 left-10 flex items-center text-white"
           style={{ marginLeft: "10px" }}
         >
           {leadingIcon ?? (
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              className="h-4 w-4 fill-current"
-            >
-              <path d="M15.5 14h-.79l-.28-.27a6.471 6.471 0 0 0 1.57-4.23A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14Z" />
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4">
+              <path
+                fill="currentColor"
+                d="M15.5 14h-.79l-.28-.27a6.471 6.471 0 0 0 1.57-4.23A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14Z"
+              />
             </svg>
           )}
         </span>
