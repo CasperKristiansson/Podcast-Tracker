@@ -1,0 +1,14 @@
+---
+import { heroStars } from "../data/heroStars";
+---
+<Fragment>
+  {heroStars.map((star) => (
+    <circle
+      cx={star.cx}
+      cy={star.cy}
+      r={star.r}
+      fill="#D7D4FF"
+      fill-opacity={star.opacity}
+    ></circle>
+  ))}
+</Fragment>

@@ -1,5 +1,6 @@
+---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { heroStars } from "../data/heroStars";
+import HeroStarfield from "../components/HeroStarfield.astro";
 ---
 
 <BaseLayout
@@ -65,15 +66,7 @@ import { heroStars } from "../data/heroStars";
         <ellipse cx="800" cy="101.7" rx="240" ry="271.2" fill="url(#columnGlow)"
         ></ellipse>
         <g class="hero-starfield">
-          {heroStars.map((star) => (
-            <circle
-              cx={star.cx}
-              cy={star.cy}
-              r={star.r}
-              fill="#D7D4FF"
-              fill-opacity={star.opacity}
-            ></circle>
-          ))}
+          <HeroStarfield />
         </g>
         <g id="mountain-range">
           <path
