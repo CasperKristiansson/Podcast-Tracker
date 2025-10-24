@@ -1,10 +1,14 @@
-import {
+import { createPortal } from "react-dom";
+import React, {
+  forwardRef,
+  useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
   type ChangeEvent,
-  type KeyboardEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { useLazyQuery, useMutation } from "@apollo/client/react";
 import {
@@ -15,14 +19,14 @@ import {
   type SubscribeToShowMutation,
   type SubscribeToShowMutationVariables,
 } from "@shared";
-import { GlowCard, InteractiveButton, SearchInput } from "@ui";
+import { InteractiveButton, SearchInput } from "@ui";
 
 export interface PodcastSearchBarProps {
   limit?: number;
   className?: string;
 }
 
-const DEBOUNCE_MS = 250;
+const DEBOUNCE_MS = 200;
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
@@ -51,9 +55,15 @@ export default function PodcastSearchBar({
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const statusRef = useRef<HTMLDivElement | null>(null);
+  const listboxId = useId();
 
-  const [runSearch, { data, loading, error, called }] = useLazyQuery<
+  const [runSearch, { data, loading, error }] = useLazyQuery<
     SearchShowsQuery,
     SearchShowsQueryVariables
   >(SearchShowsDocument, {
@@ -79,26 +89,82 @@ export default function PodcastSearchBar({
   }, [query]);
 
   useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
     if (debouncedQuery.length < 2) {
       return;
     }
+
     void runSearch({
       variables: { term: debouncedQuery, limit },
     });
-  }, [debouncedQuery, limit, runSearch]);
+  }, [debouncedQuery, limit, runSearch, isOpen]);
 
   useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
+        dialogRef.current &&
+        !dialogRef.current.contains(event.target as Node)
       ) {
-        setIsOpen(false);
+        closePalette();
+      }
+    };
+
+    const handleKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closePalette();
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKey);
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    setActiveIndex(0);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    if (activeIndex >= shows.length) {
+      setActiveIndex(shows.length > 0 ? shows.length - 1 : 0);
+    }
+  }, [activeIndex, shows.length, isOpen]);
+
+  const openPalette = useCallback(() => {
+    setIsOpen(true);
+  }, []);
+
+  const closePalette = useCallback(() => {
+    setIsOpen(false);
+    setQuery("");
+    setDebouncedQuery("");
+    setActiveIndex(0);
+    triggerRef.current?.focus();
   }, []);
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -108,14 +174,65 @@ export default function PodcastSearchBar({
     }
   };
 
+  const handleInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((prev) =>
+        shows.length === 0 ? prev : Math.min(prev + 1, shows.length - 1)
+      );
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((prev) =>
+        shows.length === 0 ? prev : Math.max(prev - 1, 0)
+      );
+      return;
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      if (shows.length > 0) {
+        setActiveIndex(0);
+      }
+      return;
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      if (shows.length > 0) {
+        setActiveIndex(shows.length - 1);
+      }
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const show = shows[activeIndex];
+      if (show) {
+        navigateToShow(show.id);
+      }
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closePalette();
+    }
+  };
+
   const handleClear = () => {
     setQuery("");
     setDebouncedQuery("");
+    setActiveIndex(0);
+    inputRef.current?.focus();
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Escape") {
-      setIsOpen(false);
+  const navigateToShow = (showId: string) => {
+    closePalette();
+    if (typeof window !== "undefined") {
+      window.location.href = `/app/show/${showId}`;
     }
   };
 
@@ -138,146 +255,309 @@ export default function PodcastSearchBar({
     }
   };
 
-  const shouldShowPanel =
-    isOpen &&
-    (loading || (debouncedQuery.length >= 2 && (shows.length > 0 || called)));
+  const hasQuery = debouncedQuery.length >= 2;
+  const shouldShowResults = isOpen && hasQuery;
 
-  const containerClasses =
-    ["relative w-full", className].filter(Boolean).join(" ") || undefined;
+  useEffect(() => {
+    if (!statusRef.current) {
+      return;
+    }
+    if (loading) {
+      statusRef.current.textContent = "Searching podcasts…";
+      return;
+    }
+    if (error) {
+      statusRef.current.textContent = "Search failed.";
+      return;
+    }
+    if (!hasQuery) {
+      statusRef.current.textContent = "Type at least two characters to search.";
+      return;
+    }
+    statusRef.current.textContent = `Found ${shows.length} podcast${
+      shows.length === 1 ? "" : "s"
+    }.`;
+  }, [loading, error, hasQuery, shows.length]);
+
+  const trapFocus = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Tab" || !dialogRef.current) {
+      return;
+    }
+    const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable.length === 0) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusable.item(0);
+    const last = focusable.item(focusable.length - 1);
+    if (!first || !last) {
+      return;
+    }
+    const current = document.activeElement as HTMLElement | null;
+
+    if (event.shiftKey) {
+      if (current === first || !current) {
+        event.preventDefault();
+        last.focus();
+      }
+    } else if (current === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }, []);
+
+  const overlay =
+    isOpen && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[70]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="podcast-search-title"
+            onKeyDown={trapFocus}
+          >
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => closePalette()}
+            />
+            <div
+              className="relative flex w-full justify-center px-4"
+              style={{
+                paddingTop: `calc(env(safe-area-inset-top, 0px) + 3.5rem)`,
+              }}
+            >
+              <div
+                ref={dialogRef}
+                className="w-full max-w-3xl overflow-hidden rounded-3xl border border-white/12 bg-[#150a2f]/90 shadow-[0_50px_140px_rgba(18,7,60,0.55)] backdrop-blur-2xl"
+              >
+                <div className="flex items-center justify-between gap-4 px-6 pt-6">
+                  <h2
+                    id="podcast-search-title"
+                    className="text-sm font-semibold uppercase tracking-[0.35em] text-white/60"
+                  >
+                    Search podcasts
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={closePalette}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/70 transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
+                    aria-label="Close podcast search"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="h-4 w-4"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 0 0 5.7 7.11L10.59 12l-4.9 4.89a1 1 0 0 0 1.41 1.41L12 13.41l4.89 4.89a1 1 0 0 0 1.41-1.41L13.41 12l4.89-4.89a1 1 0 0 0 0-1.4Z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <form
+                  role="search"
+                  className="flex flex-col gap-4 px-6 pb-6"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const show = shows[activeIndex];
+                    if (show) {
+                      navigateToShow(show.id);
+                    }
+                  }}
+                >
+                  <SearchInput
+                    ref={inputRef}
+                    value={query}
+                    onChange={handleInputChange}
+                    onKeyDown={handleInputKeyDown}
+                    onFocus={() => setIsOpen(true)}
+                    onClear={handleClear}
+                    allowClear
+                    isLoading={loading}
+                    placeholder="Search podcasts by title, publisher, or topic…"
+                    autoComplete="off"
+                    spellCheck="false"
+                    aria-autocomplete="list"
+                    aria-controls={listboxId}
+                    aria-expanded={shouldShowResults}
+                    aria-activedescendant={
+                      shows[activeIndex]
+                        ? `${listboxId}-option-${activeIndex}`
+                        : undefined
+                    }
+                    aria-label="Search podcasts"
+                    className="w-full"
+                  />
+
+                  <div
+                    ref={statusRef}
+                    role="status"
+                    aria-live="polite"
+                    className="text-xs text-white/55"
+                  />
+
+                  <div className="rounded-2xl border border-white/12 bg-[#1d0d3b]/75 p-2">
+                    {error ? (
+                      <ErrorState error={error} />
+                    ) : !hasQuery ? (
+                      <EmptyPrompt />
+                    ) : shows.length === 0 && !loading ? (
+                      <EmptyState />
+                    ) : (
+                      <ResultList
+                        ref={listRef}
+                        id={listboxId}
+                        shows={shows}
+                        activeIndex={activeIndex}
+                        onSelect={navigateToShow}
+                        onHover={setActiveIndex}
+                        onSubscribe={handleSubscribe}
+                        isSubscribing={subscribing}
+                      />
+                    )}
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
-    <div ref={containerRef} className={containerClasses}>
-      <SearchInput
-        value={query}
-        onChange={handleInputChange}
-        onKeyDown={handleKeyDown}
-        onFocus={() => setIsOpen(true)}
-        onClear={handleClear}
-        allowClear
-        isLoading={loading}
-        placeholder="Search podcasts by title, publisher, or topic…"
-        autoComplete="off"
-        spellCheck="false"
-      />
-
-      {shouldShowPanel ? (
-        <div className="absolute left-0 top-[calc(100%+0.75rem)] z-20 min-w-full">
-          <GlowCard className="px-5 py-5">
-            {error ? (
-              <ErrorState error={error} />
-            ) : shows.length === 0 && debouncedQuery.length >= 2 && !loading ? (
-              <EmptyState />
-            ) : (
-              <ResultList
-                shows={shows}
-                onSelect={() => {
-                  setIsOpen(false);
-                }}
-                onSubscribe={handleSubscribe}
-                isSubscribing={subscribing}
-              />
-            )}
-          </GlowCard>
-        </div>
-      ) : null}
-    </div>
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={openPalette}
+        className={[
+          "inline-flex h-10 items-center justify-start gap-3 rounded-full border border-white/10 bg-white/5 px-4 text-sm text-white/70 transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]",
+          className,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4">
+          <path
+            fill="currentColor"
+            d="M15.5 14h-.79l-.28-.27a6.471 6.471 0 0 0 1.57-4.23A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14Z"
+          />
+        </svg>
+        <span className="text-white/70">Search podcasts…</span>
+        <span className="ml-auto hidden items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.35em] text-white/60 sm:inline-flex">
+          ⌘K
+        </span>
+      </button>
+      {overlay}
+    </>
   );
 }
 
 interface ResultListProps {
+  id: string;
   shows: SearchShowsQuery["search"];
-  onSelect: () => void;
+  activeIndex: number;
+  onSelect: (showId: string) => void;
+  onHover: (index: number) => void;
   onSubscribe: (show: SearchShowsQuery["search"][number]) => Promise<void>;
   isSubscribing: boolean;
 }
 
-const ResultList = ({
-  shows,
-  onSelect,
-  onSubscribe,
-  isSubscribing,
-}: ResultListProps): JSX.Element => (
-  <ul className="space-y-4">
-    {shows.map((show) => (
-      <li
-        key={show.id}
-        className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.06]"
-      >
-        <a
-          href={`/app/show/${show.id}`}
-          onClick={() => onSelect()}
-          className="flex flex-1 items-center gap-4"
-        >
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05] shadow-[0_18px_40px_rgba(41,23,90,0.35)]">
-            {show.image ? (
-              <img
-                src={show.image}
-                alt={show.title ?? "Podcast artwork"}
-                className="h-full w-full object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <span className="text-xs uppercase tracking-[0.3em] text-white/40">
-                Pod
-              </span>
-            )}
-          </div>
-          <div className="min-w-0 space-y-1">
-            <p className="truncate text-sm font-semibold text-white">
-              {show.title ?? "Untitled show"}
-            </p>
-            <p className="truncate text-xs uppercase tracking-[0.3em] text-white/50">
-              {show.publisher}
-            </p>
-            <ShowDescription show={show} />
-            <MetadataRow show={show} />
-          </div>
-        </a>
-        <InteractiveButton
-          variant="secondary"
-          onClick={() => {
-            void onSubscribe(show);
-          }}
-          isLoading={isSubscribing}
-          loadingLabel="Adding…"
-        >
-          Add
-        </InteractiveButton>
-      </li>
-    ))}
-  </ul>
+const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
+  (
+    { id, shows, activeIndex, onSelect, onHover, onSubscribe, isSubscribing },
+    ref
+  ) => (
+    <ul
+      ref={ref}
+      id={id}
+      role="listbox"
+      className="flex max-h-[min(70vh,720px)] flex-col gap-2 overflow-y-auto overscroll-contain px-1 py-1"
+    >
+      {shows.map((show, index) => {
+        const optionId = `${id}-option-${index}`;
+        const isActive = index === activeIndex;
+        const description = pickDescription(show);
+
+        return (
+          <li
+            key={show.id}
+            id={optionId}
+            role="option"
+            aria-selected={isActive}
+            className={`flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/25 hover:bg-white/10 ${
+              isActive ? "border-white/25 bg-white/10" : ""
+            }`}
+            onMouseEnter={() => onHover(index)}
+          >
+            <button
+              type="button"
+              className="flex flex-1 min-w-0 items-center gap-4 text-left"
+              onClick={() => onSelect(show.id)}
+            >
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05] shadow-[0_18px_40px_rgba(41,23,90,0.35)]">
+                {show.image ? (
+                  <img
+                    src={show.image}
+                    alt={show.title ?? "Podcast artwork"}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className="text-xs uppercase tracking-[0.3em] text-white/40">
+                    Pod
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0 space-y-1">
+                <p className="truncate text-sm font-semibold text-white">
+                  {show.title ?? "Untitled show"}
+                </p>
+                <p className="truncate text-[11px] uppercase tracking-[0.3em] text-white/50">
+                  {show.publisher}
+                </p>
+                {description.value ? (
+                  description.isHtml ? (
+                    <div
+                      className="prose prose-invert prose-xs line-clamp-2 text-white/50 prose-p:my-0"
+                      dangerouslySetInnerHTML={{ __html: description.value }}
+                    />
+                  ) : (
+                    <p className="line-clamp-2 text-xs leading-snug text-white/50">
+                      {description.value}
+                    </p>
+                  )
+                ) : null}
+                <MetadataRow show={show} />
+              </div>
+            </button>
+            <InteractiveButton
+              variant="secondary"
+              onClick={() => {
+                void onSubscribe(show);
+              }}
+              isLoading={isSubscribing}
+              loadingLabel="Adding…"
+              className="ml-auto flex-shrink-0"
+            >
+              Add
+            </InteractiveButton>
+          </li>
+        );
+      })}
+    </ul>
+  )
 );
 
-const ShowDescription = ({
+function MetadataRow({
   show,
 }: {
   show: SearchShowsQuery["search"][number];
-}): JSX.Element | null => {
-  const { value, isHtml } = pickDescription(show);
-
-  if (!isNonEmptyString(value)) {
-    return null;
-  }
-
-  if (isHtml) {
-    return (
-      <div
-        className="prose prose-invert prose-xs line-clamp-2 text-white/50 prose-p:my-0"
-        dangerouslySetInnerHTML={{ __html: value }}
-      />
-    );
-  }
-
-  return (
-    <p className="line-clamp-2 text-xs leading-snug text-white/50">{value}</p>
-  );
-};
-
-const MetadataRow = ({
-  show,
-}: {
-  show: SearchShowsQuery["search"][number];
-}): JSX.Element | null => {
+}): JSX.Element | null {
   const languages = show.languages?.filter(isNonEmptyString) ?? [];
   const categories = show.categories?.filter(isNonEmptyString) ?? [];
   const totalEpisodes = show.totalEpisodes ?? 0;
@@ -294,15 +574,21 @@ const MetadataRow = ({
   return (
     <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-white/40">
       {totalEpisodes > 0 ? <span>{totalEpisodes} eps</span> : null}
-      {show.explicit ? <span className="text-red-200">Explicit</span> : null}
+      {show.explicit ? <span className="text-[#ff9fb0]">Explicit</span> : null}
       {languages.length ? <span>{languages.join(" · ")}</span> : null}
       {categories.length ? <span>{categories[0]}</span> : null}
     </div>
   );
-};
+}
+
+const EmptyPrompt = (): JSX.Element => (
+  <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-sm text-white/60">
+    Start typing to find a podcast.
+  </div>
+);
 
 const EmptyState = (): JSX.Element => (
-  <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-sm text-white/60">
+  <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-sm text-white/60">
     No podcasts matched that search. Try another title or publisher.
   </div>
 );
