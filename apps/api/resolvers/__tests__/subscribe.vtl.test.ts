@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createRuntime, renderTemplate } from "./vtlHarness";
+import requestSnapshot from "./subscribe.request.snap.json";
 
 const requestTemplate = "Mutation.subscribe.request.vtl";
 const responseTemplate = "Mutation.subscribe.response.vtl";
@@ -21,12 +22,7 @@ describe("Mutation.subscribe mapping templates", () => {
     const requestRendered = renderTemplate(requestTemplate, runtime);
     const request = JSON.parse(requestRendered);
 
-    expect(request).toMatchObject({
-      version: "2018-05-29",
-      operation: "PutItem",
-    });
-    expect(request.key.pk.S).toBe("user#user-1");
-    expect(request.attributeValues.totalEpisodes.N).toBe("97");
+    expect(request).toEqual(requestSnapshot);
 
     const responseRendered = renderTemplate(responseTemplate, runtime);
     const response = JSON.parse(responseRendered);

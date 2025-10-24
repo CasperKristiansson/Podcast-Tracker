@@ -1,0 +1,20 @@
+{
+  "version": "2018-05-29",
+  "operation": "PutItem",
+  "key": {
+    "pk": { "S": "user#user-1" },
+    "sk": { "S": "sub#show-1" }
+  },
+  "attributeValues": {
+    "pk": { "S": "user#user-1" },
+    "sk": { "S": "sub#show-1" },
+    "dataType": { "S": "subscription" },
+    "showId": { "S": "show-1" },
+    "title": { "S": "Example Show" },
+    "publisher": { "S": "Publisher" },
+    "image": { "S": "https://example.com/image.png" },
+    "totalEpisodes": { "N": "97" },
+    "subscriptionSyncedAt": { "S": "2025-04-01T12:00:00.000Z" },
+    "addedAt": { "S": "2025-04-01T12:00:00.000Z" }
+  }
+}

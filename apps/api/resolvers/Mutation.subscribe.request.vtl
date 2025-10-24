@@ -2,25 +2,25 @@
 #set($pk = "user#${ctx.identity.sub}")
 #set($sk = "sub#${ctx.args.showId}")
 #set($totalEpisodes = $util.defaultIfNull($ctx.args.totalEpisodes, 0))
-#set($key = $util.map())
-$util.qr($key.put("pk", $util.dynamodb.toDynamoDBJson($pk)))
-$util.qr($key.put("sk", $util.dynamodb.toDynamoDBJson($sk)))
-#set($attributes = $util.map())
-$util.qr($attributes.put("pk", $util.dynamodb.toDynamoDBJson($pk)))
-$util.qr($attributes.put("sk", $util.dynamodb.toDynamoDBJson($sk)))
-$util.qr($attributes.put("dataType", $util.dynamodb.toDynamoDBJson("subscription")))
-$util.qr($attributes.put("showId", $util.dynamodb.toDynamoDBJson($ctx.args.showId)))
-$util.qr($attributes.put("title", $util.dynamodb.toDynamoDBJson($ctx.args.title)))
-$util.qr($attributes.put("publisher", $util.dynamodb.toDynamoDBJson($ctx.args.publisher)))
-$util.qr($attributes.put("image", $util.dynamodb.toDynamoDBJson($ctx.args.image)))
-$util.qr($attributes.put("totalEpisodes", $util.dynamodb.toDynamoDBJson($totalEpisodes)))
-$util.qr($attributes.put("subscriptionSyncedAt", $util.dynamodb.toDynamoDBJson($now)))
-$util.qr($attributes.put("addedAt", $util.dynamodb.toDynamoDBJson($now)))
 $util.qr($ctx.stash.put("addedAt", $now))
 $util.qr($ctx.stash.put("totalEpisodes", $totalEpisodes))
-#set($request = $util.map())
-$util.qr($request.put("version", "2018-05-29"))
-$util.qr($request.put("operation", "PutItem"))
-$util.qr($request.put("key", $key))
-$util.qr($request.put("attributeValues", $attributes))
-$util.toJson($request)
+{
+  "version": "2018-05-29",
+  "operation": "PutItem",
+  "key": {
+    "pk": $util.dynamodb.toDynamoDBJson($pk),
+    "sk": $util.dynamodb.toDynamoDBJson($sk)
+  },
+  "attributeValues": {
+    "pk": $util.dynamodb.toDynamoDBJson($pk),
+    "sk": $util.dynamodb.toDynamoDBJson($sk),
+    "dataType": $util.dynamodb.toDynamoDBJson("subscription"),
+    "showId": $util.dynamodb.toDynamoDBJson($ctx.args.showId),
+    "title": $util.dynamodb.toDynamoDBJson($ctx.args.title),
+    "publisher": $util.dynamodb.toDynamoDBJson($ctx.args.publisher),
+    "image": $util.dynamodb.toDynamoDBJson($ctx.args.image),
+    "totalEpisodes": $util.dynamodb.toDynamoDBJson($totalEpisodes),
+    "subscriptionSyncedAt": $util.dynamodb.toDynamoDBJson($now),
+    "addedAt": $util.dynamodb.toDynamoDBJson($now)
+  }
+}
