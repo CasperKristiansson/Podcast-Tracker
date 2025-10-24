@@ -278,7 +278,7 @@ function ProfileAppContent(): JSX.Element {
       </div>
       <AuroraBackground className="min-h-screen opacity-45 saturate-200 mix-blend-screen" />
       <div className="relative z-10">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-6 pb-24 pt-24 md:px-12 md:pb-32">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-3 pb-12 pt-12 sm:px-5 sm:pb-16 sm:pt-16 md:px-10 md:pb-28 md:pt-22">
           <header className="space-y-6 text-center md:text-left">
             <span className="inline-flex items-center justify-center gap-2 self-center rounded-full border border-white/20 bg-white/10 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.45em] text-white/70 md:self-start">
               Listening atlas
@@ -313,7 +313,7 @@ function ProfileAppContent(): JSX.Element {
           </section>
 
           {spotlight.length > 0 ? (
-            <section className="relative overflow-hidden rounded-[32px] border border-white/12 bg-[#1b0c3c]/85 p-8 backdrop-blur-2xl">
+            <section className="relative overflow-hidden rounded-[32px] border border-white/12 bg-[#1b0c3c]/85 p-4 md:p-7">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(143,109,255,0.22),_transparent_70%)]" />
               <div className="relative space-y-6">
                 <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -358,7 +358,7 @@ function ProfileAppContent(): JSX.Element {
           ) : null}
 
           {shows.length > 0 ? (
-            <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#14072f]/85 p-8 backdrop-blur-2xl">
+            <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#14072f]/85 p-2 backdrop-blur-2xl">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(128,94,255,0.18),_transparent_75%)]" />
               <div className="relative space-y-6">
                 <div className="flex flex-col gap-3 text-center md:flex-row md:items-end md:justify-between md:text-left">

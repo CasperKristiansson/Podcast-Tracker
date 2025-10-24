@@ -1,5 +1,5 @@
-#set($pk = "user#${ctx.identity.sub}")
-#set($sk = "sub#${ctx.args.showId}")
+#set($pk = $util.strings.append("user#", $ctx.identity.sub))
+#set($sk = $util.strings.append("sub#", $ctx.args.showId))
 {
   "version": "2018-05-29",
   "operation": "DeleteItem",
