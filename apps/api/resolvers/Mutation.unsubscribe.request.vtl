@@ -1,10 +1,8 @@
-#set($pk = $util.strings.append("user#", $ctx.identity.sub))
-#set($sk = $util.strings.append("sub#", $ctx.args.showId))
 {
   "version": "2018-05-29",
   "operation": "DeleteItem",
   "key": {
-    "pk": $util.dynamodb.toDynamoDBJson($pk),
-    "sk": $util.dynamodb.toDynamoDBJson($sk)
+    "pk": $util.dynamodb.toDynamoDBJson("user#${ctx.identity.sub}"),
+    "sk": $util.dynamodb.toDynamoDBJson("sub#${ctx.args.showId}")
   }
 }
