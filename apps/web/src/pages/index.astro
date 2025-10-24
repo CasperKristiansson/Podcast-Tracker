@@ -127,6 +127,18 @@ import { heroStars } from "../data/heroStars";
 </BaseLayout>
 
 <style>
+  @media (max-width: 640px) {
+    :global(.hero-title) {
+      width: 100vw;
+      max-width: 100vw;
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: clamp(2.5rem, 16vw, 3.5rem);
+    }
+  }
+
   :global(.hero-starfield circle) {
     animation: star-twinkle 3.6s ease-in-out infinite;
     transform-origin: center;
