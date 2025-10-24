@@ -1,12 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PointerEvent,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import {
   EpisodesByShowDocument,
@@ -344,7 +336,7 @@ function ProfileAppContent(): JSX.Element {
                     completions, or jump back into a show you love.
                   </p>
                 </div>
-                <div className="grid gap-6 md:grid-cols-2">
+                <div className="flex flex-col gap-4">
                   {shows.map((show) => (
                     <LibraryCard
                       key={show.showId}
@@ -530,35 +522,40 @@ function LibraryCard({
 }: LibraryCardProps): JSX.Element {
   const hasUnlistened = show.unlistenedEpisodes > 0;
   const addedAtValue = normalizeDateInput(show.addedAt);
+  const hasImage = typeof show.image === "string" && show.image.length > 0;
 
   return (
-    <TiltCard className="bg-[linear-gradient(150deg,rgba(120,88,255,0.18),rgba(33,19,96,0.32))]">
-      <div className="flex flex-col gap-5">
-        <div className="flex items-start justify-between gap-4">
+    <div className="relative overflow-hidden rounded-3xl border border-white/12 bg-white/[0.04] p-6 shadow-[0_35px_90px_rgba(24,14,78,0.45)] backdrop-blur-2xl">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div className="flex flex-1 items-center gap-4 sm:gap-5">
+          <div className="flex-none overflow-hidden rounded-2xl border border-white/15 bg-[#1a113a]/70">
+            {hasImage ? (
+              <img
+                src={show.image}
+                alt={`${show.title} cover art`}
+                className="h-20 w-20 object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="h-20 w-20 bg-gradient-to-br from-[#4a2c91] to-[#221044]" />
+            )}
+          </div>
           <div className="space-y-2">
-            <h3 className="text-xl font-semibold text-white">{show.title}</h3>
-            <p className="text-xs uppercase tracking-[0.35em] text-white/50">
+            <h3 className="text-lg font-semibold text-white">{show.title}</h3>
+            <p className="text-xs uppercase tracking-[0.35em] text-white/45">
               {show.publisher}
             </p>
+            <p className="text-sm font-medium text-white/85">
+              Listened {formatNumber(show.completedEpisodes)} /{" "}
+              {formatNumber(show.totalEpisodes)}
+            </p>
+            <p className="text-xs text-white/55">
+              Remaining {formatNumber(show.unlistenedEpisodes)} episodes
+            </p>
           </div>
-          {hasUnlistened ? (
-            <span className="rounded-full border border-[#d7c8ff]/45 bg-[#6a42ff]/30 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-[#f2edff]">
-              {show.unlistenedEpisodes} to go
-            </span>
-          ) : (
-            <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-white/70">
-              Fully caught up
-            </span>
-          )}
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <MetricBadge label="Completed" value={show.completedEpisodes} />
-          <MetricBadge label="Progress" value={show.inProgressEpisodes} />
-          <MetricBadge label="Total" value={show.totalEpisodes} />
-        </div>
-
-        <div className="flex flex-col gap-3 text-xs text-white/60 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col items-start gap-2 text-xs text-white/55 sm:items-end sm:text-right">
           <p>
             Subscribed since{" "}
             {addedAtValue ? formatDate(addedAtValue) : "Unknown"}
@@ -569,7 +566,7 @@ function LibraryCard({
               void onCelebrate(show);
             }}
             disabled={!hasUnlistened}
-            className="self-start sm:self-auto"
+            className="mt-1 sm:mt-0"
             isLoading={disabled && hasUnlistened}
             loadingLabel="Logging…"
           >
@@ -579,7 +576,7 @@ function LibraryCard({
       </div>
 
       <CelebrationOverlay active={Boolean(celebrating)} seed={celebrating} />
-    </TiltCard>
+    </div>
   );
 }
 
@@ -603,57 +600,6 @@ function MetricBadge({ label, value, accent = false }: MetricBadgeProps) {
       <p className="mt-1 text-lg font-semibold text-white">
         {formatNumber(value)}
       </p>
-    </div>
-  );
-}
-
-interface TiltCardProps {
-  children: ReactNode;
-  className?: string;
-}
-
-function TiltCard({ children, className }: TiltCardProps): JSX.Element {
-  const ref = useRef<HTMLDivElement | null>(null);
-
-  const handlePointerMove = useCallback(
-    (event: PointerEvent<HTMLDivElement>) => {
-      const node = ref.current;
-      if (!node) return;
-      const rect = node.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      const rotateX = ((y / rect.height - 0.5) * 12).toFixed(2);
-      const rotateY = ((x / rect.width - 0.5) * -12).toFixed(2);
-      node.style.setProperty("--tilt-x", `${rotateX}deg`);
-      node.style.setProperty("--tilt-y", `${rotateY}deg`);
-    },
-    []
-  );
-
-  const handlePointerLeave = useCallback(() => {
-    const node = ref.current;
-    if (!node) return;
-    node.style.setProperty("--tilt-x", "0deg");
-    node.style.setProperty("--tilt-y", "0deg");
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "relative overflow-hidden rounded-3xl border border-white/12 p-8 shadow-[0_45px_110px_rgba(24,14,78,0.5)] backdrop-blur-2xl transition-transform duration-500 hover:-translate-y-1",
-        "before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.22),_transparent_70%)] before:opacity-0 before:transition before:duration-500 hover:before:opacity-100",
-        "after:pointer-events-none after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_bottom,_rgba(144,94,255,0.28),_transparent_75%)] after:opacity-0 after:transition after:duration-500 hover:after:opacity-100",
-        className
-      )}
-      style={{
-        transform:
-          "perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateZ(0)",
-      }}
-      onPointerMove={handlePointerMove}
-      onPointerLeave={handlePointerLeave}
-    >
-      <div className="relative z-10">{children}</div>
     </div>
   );
 }
