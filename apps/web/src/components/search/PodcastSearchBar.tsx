@@ -23,6 +23,8 @@ import {
   type UnsubscribeFromShowMutationVariables,
   MySubscriptionsDocument,
   type MySubscriptionsQuery,
+  MyProfileDocument,
+  type MyProfileQuery,
 } from "@shared";
 import { InteractiveButton, SearchInput } from "@ui";
 
@@ -345,6 +347,66 @@ export default function PodcastSearchBar({
             }
           );
 
+          cache.updateQuery<MyProfileQuery>(
+            {
+              query: MyProfileDocument,
+              variables: {},
+            },
+            (existingProfile) => {
+              const profile = existingProfile?.myProfile;
+              if (!profile) {
+                return existingProfile;
+              }
+
+              const showsList = profile.shows ?? [];
+              if (
+                showsList.some(
+                  (profileShow) =>
+                    profileShow?.showId === newSubscription.showId
+                )
+              ) {
+                return existingProfile;
+              }
+
+              const profileShow = {
+                __typename: "ProfileShow" as const,
+                showId: newSubscription.showId,
+                title: newSubscription.title,
+                publisher: newSubscription.publisher,
+                image: newSubscription.image ?? "",
+                addedAt: newSubscription.addedAt,
+                totalEpisodes: newSubscription.totalEpisodes ?? 0,
+                completedEpisodes: 0,
+                inProgressEpisodes: 0,
+                unlistenedEpisodes: newSubscription.totalEpisodes ?? 0,
+                subscriptionSyncedAt: null,
+              };
+
+              const currentStats =
+                profile.stats ??
+                ({
+                  __typename: "ProfileStats" as const,
+                  totalShows: 0,
+                  episodesCompleted: 0,
+                  episodesInProgress: 0,
+                } satisfies MyProfileQuery["myProfile"]["stats"]);
+
+              const updatedStats = {
+                ...currentStats,
+                totalShows: (currentStats.totalShows ?? 0) + 1,
+              };
+
+              return {
+                myProfile: {
+                  __typename: profile.__typename,
+                  stats: updatedStats,
+                  spotlight: profile.spotlight ?? [],
+                  shows: [profileShow, ...showsList],
+                },
+              } satisfies MyProfileQuery;
+            }
+          );
+
           const cacheId = cache.identify({
             __typename: "Show",
             id: show.id,
@@ -400,6 +462,56 @@ export default function PodcastSearchBar({
                     ) ?? [],
                 },
               } satisfies MySubscriptionsQuery;
+            }
+          );
+
+          cache.updateQuery<MyProfileQuery>(
+            {
+              query: MyProfileDocument,
+              variables: {},
+            },
+            (existingProfile) => {
+              const profile = existingProfile?.myProfile;
+              if (!profile) {
+                return existingProfile;
+              }
+
+              const showsList = profile.shows ?? [];
+              const spotlightList = profile.spotlight ?? [];
+              const showExists = showsList.some(
+                (profileShow) => profileShow?.showId === show.id
+              );
+
+              if (!showExists) {
+                return existingProfile;
+              }
+
+              const currentStats =
+                profile.stats ??
+                ({
+                  __typename: "ProfileStats" as const,
+                  totalShows: 0,
+                  episodesCompleted: 0,
+                  episodesInProgress: 0,
+                } satisfies MyProfileQuery["myProfile"]["stats"]);
+
+              const updatedStats = {
+                ...currentStats,
+                totalShows: Math.max(0, (currentStats.totalShows ?? 0) - 1),
+              };
+
+              return {
+                myProfile: {
+                  __typename: profile.__typename,
+                  stats: updatedStats,
+                  spotlight: spotlightList.filter(
+                    (profileShow) => profileShow?.showId !== show.id
+                  ),
+                  shows: showsList.filter(
+                    (profileShow) => profileShow?.showId !== show.id
+                  ),
+                },
+              } satisfies MyProfileQuery;
             }
           );
 
