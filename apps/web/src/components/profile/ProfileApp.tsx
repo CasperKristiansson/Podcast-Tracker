@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FocusEvent,
+  type PointerEvent,
+  type SVGProps,
+} from "react";
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import {
   EpisodesByShowDocument,
@@ -337,21 +345,28 @@ function ProfileAppContent(): JSX.Element {
                   </InteractiveButton>
                 </div>
                 <div className="grid gap-6 md:grid-cols-2">
-                  {spotlight.map((show) => (
-                    <SpotlightCard
-                      key={show.showId}
-                      show={show}
-                      onCelebrate={handleCelebrateClick}
-                      celebrating={
-                        celebration?.showId === show.showId
-                          ? celebration.seed
-                          : null
-                      }
-                      disabled={
-                        pendingShowId === show.showId || progressMutating
-                      }
-                    />
-                  ))}
+                  {spotlight.map((show) => {
+                    const isUnsubscribing = unsubscribingId === show.showId;
+                    return (
+                      <SpotlightCard
+                        key={show.showId}
+                        show={show}
+                        onCelebrate={handleCelebrateClick}
+                        onUnsubscribe={handleUnsubscribeClick}
+                        celebrating={
+                          celebration?.showId === show.showId
+                            ? celebration.seed
+                            : null
+                        }
+                        disabled={
+                          pendingShowId === show.showId ||
+                          progressMutating ||
+                          isUnsubscribing
+                        }
+                        unsubscribing={isUnsubscribing}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </section>
@@ -470,21 +485,61 @@ function StatCard({ label, value, accent }: StatCardProps): JSX.Element {
 interface SpotlightCardProps {
   show: ProfileShow;
   onCelebrate: (show: ProfileShow) => void;
+  onUnsubscribe: (show: ProfileShow) => void;
   celebrating: number | null;
   disabled: boolean;
+  unsubscribing: boolean;
 }
 
 function SpotlightCard({
   show,
   onCelebrate,
+  onUnsubscribe,
   celebrating,
   disabled,
+  unsubscribing,
 }: SpotlightCardProps): JSX.Element {
   const syncedAtValue = normalizeDateInput(show.subscriptionSyncedAt);
   const hasImage = typeof show.image === "string" && show.image.length > 0;
+  const [actionsVisible, setActionsVisible] = useState(false);
+  const showActions = actionsVisible || unsubscribing;
+
+  const handleBlurCapture = useCallback(
+    (event: FocusEvent<HTMLDivElement>) => {
+      if (unsubscribing) return;
+      const nextTarget = event.relatedTarget as Node | null;
+      if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
+        setActionsVisible(false);
+      }
+    },
+    [unsubscribing]
+  );
+
+  const handleGearPointerDown = useCallback(
+    (event: PointerEvent<HTMLButtonElement>) => {
+      if (event.pointerType !== "mouse") {
+        setActionsVisible((value) => !value);
+      }
+    },
+    []
+  );
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/12 p-8 shadow-[0_45px_110px_rgba(24,14,78,0.5)] backdrop-blur-2xl">
+    <div
+      className="group relative overflow-hidden rounded-3xl border border-white/12 p-8 shadow-[0_45px_110px_rgba(24,14,78,0.5)] backdrop-blur-2xl"
+      onMouseEnter={() => {
+        setActionsVisible(true);
+      }}
+      onMouseLeave={() => {
+        if (!unsubscribing) {
+          setActionsVisible(false);
+        }
+      }}
+      onFocusCapture={() => {
+        setActionsVisible(true);
+      }}
+      onBlurCapture={handleBlurCapture}
+    >
       <div
         className={cn(
           "absolute inset-0 bg-[linear-gradient(140deg,rgba(162,122,255,0.22),rgba(66,40,162,0.36))]",
@@ -496,7 +551,7 @@ function SpotlightCard({
       <div className="absolute inset-0 bg-[#07041c]/82" aria-hidden />
 
       <div className="relative z-10 flex flex-col gap-5">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-white/50">
               {show.publisher}
@@ -504,6 +559,44 @@ function SpotlightCard({
             <h3 className="mt-1 text-2xl font-semibold text-white">
               {show.title}
             </h3>
+          </div>
+          <div className="relative flex items-center">
+            <button
+              type="button"
+              aria-label="Show spotlight actions"
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-[#10052c]/70 text-white/60 transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c6b5ff]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07041c]",
+                showActions
+                  ? "border-white/35 text-white"
+                  : "group-hover:border-white/30 group-hover:text-white"
+              )}
+              onPointerDown={handleGearPointerDown}
+              onFocus={() => {
+                setActionsVisible(true);
+              }}
+            >
+              <SettingsIcon className="h-4 w-4" />
+            </button>
+            <InteractiveButton
+              variant="outline"
+              onClick={() => {
+                void onUnsubscribe(show);
+              }}
+              disabled={unsubscribing}
+              isLoading={unsubscribing}
+              loadingLabel="Removing…"
+              className={cn(
+                "absolute right-0 top-full z-20 mt-3 whitespace-nowrap rounded-full border-red-400/45 bg-[#2b113d]/90 px-4 py-2 text-xs font-semibold text-red-100 shadow-[0_12px_30px_rgba(168,60,90,0.35)] transition duration-200 ease-out",
+                showActions
+                  ? "pointer-events-auto opacity-100"
+                  : "pointer-events-none -translate-y-1 opacity-0",
+                unsubscribing
+                  ? "border-red-300/70 text-red-50"
+                  : "hover:border-red-300/70 hover:text-red-50 focus-visible:ring-red-200/40"
+              )}
+            >
+              Remove show
+            </InteractiveButton>
           </div>
         </div>
 
@@ -540,6 +633,24 @@ function SpotlightCard({
 
       <CelebrationOverlay active={Boolean(celebrating)} seed={celebrating} />
     </div>
+  );
+}
+
+function SettingsIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      {...props}
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
   );
 }
 
