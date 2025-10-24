@@ -57,6 +57,7 @@ query ShowById($showId: ID!) {
     languages
     availableMarkets
     mediaType
+    isSubscribed
   }
 }
 
@@ -119,6 +120,7 @@ query SearchShows($term: String!, $limit: Int, $offset: Int) {
     languages
     availableMarkets
     mediaType
+    isSubscribed
   }
 }
 

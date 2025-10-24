@@ -185,6 +185,7 @@ export type Show = {
   htmlDescription?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   image?: Maybe<Scalars['String']['output']>;
+  isSubscribed?: Maybe<Scalars['Boolean']['output']>;
   languages?: Maybe<Array<Scalars['String']['output']>>;
   mediaType?: Maybe<Scalars['String']['output']>;
   publisher: Scalars['String']['output'];
@@ -256,7 +257,7 @@ export type ShowByIdQueryVariables = Exact<{
 }>;
 
 
-export type ShowByIdQuery = { __typename: 'Query', show: { __typename: 'Show', id: string, title: string, publisher: string, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, totalEpisodes: number, externalUrl?: string | null | undefined, categories: Array<string>, explicit?: boolean | null | undefined, languages?: Array<string> | null | undefined, availableMarkets?: Array<string> | null | undefined, mediaType?: string | null | undefined } };
+export type ShowByIdQuery = { __typename: 'Query', show: { __typename: 'Show', id: string, title: string, publisher: string, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, totalEpisodes: number, externalUrl?: string | null | undefined, categories: Array<string>, explicit?: boolean | null | undefined, languages?: Array<string> | null | undefined, availableMarkets?: Array<string> | null | undefined, mediaType?: string | null | undefined, isSubscribed?: boolean | null | undefined } };
 
 export type MySubscriptionByShowQueryVariables = Exact<{
   showId: Scalars['ID']['input'];
@@ -287,7 +288,7 @@ export type SearchShowsQueryVariables = Exact<{
 }>;
 
 
-export type SearchShowsQuery = { __typename: 'Query', search: Array<{ __typename: 'Show', id: string, title: string, publisher: string, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, totalEpisodes: number, externalUrl?: string | null | undefined, categories: Array<string>, explicit?: boolean | null | undefined, languages?: Array<string> | null | undefined, availableMarkets?: Array<string> | null | undefined, mediaType?: string | null | undefined }> };
+export type SearchShowsQuery = { __typename: 'Query', search: Array<{ __typename: 'Show', id: string, title: string, publisher: string, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, totalEpisodes: number, externalUrl?: string | null | undefined, categories: Array<string>, explicit?: boolean | null | undefined, languages?: Array<string> | null | undefined, availableMarkets?: Array<string> | null | undefined, mediaType?: string | null | undefined, isSubscribed?: boolean | null | undefined }> };
 
 export type SubscribeToShowMutationVariables = Exact<{
   showId: Scalars['ID']['input'];
@@ -414,6 +415,7 @@ export const ShowByIdDocument = gql`
     languages
     availableMarkets
     mediaType
+    isSubscribed
   }
 }
     `;
@@ -484,6 +486,7 @@ export const SearchShowsDocument = gql`
     languages
     availableMarkets
     mediaType
+    isSubscribed
   }
 }
     `;

@@ -10,7 +10,7 @@ import React, {
   type ChangeEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
+import { useLazyQuery, useMutation } from "@apollo/client/react";
 import {
   SearchShowsDocument,
   type SearchShowsQuery,
@@ -89,20 +89,7 @@ export default function PodcastSearchBar({
     UnsubscribeFromShowMutationVariables
   >(UnsubscribeFromShowDocument);
 
-  const { data: subscriptionsData } = useQuery<MySubscriptionsQuery>(
-    MySubscriptionsDocument,
-    {
-      variables: MY_SUBSCRIPTIONS_VARS,
-      skip: !isOpen,
-      fetchPolicy: "cache-first",
-    }
-  );
-
   const shows = useMemo(() => data?.search ?? [], [data]);
-  const subscribedIds = useMemo(() => {
-    const items = subscriptionsData?.mySubscriptions.items ?? [];
-    return new Set(items.map((item) => item.showId));
-  }, [subscriptionsData]);
 
   const [pendingState, setPendingState] = useState<
     { showId: string; action: "add" | "remove" } | null
@@ -354,6 +341,19 @@ export default function PodcastSearchBar({
               };
             }
           );
+
+          const cacheId = cache.identify({
+            __typename: "Show",
+            id: show.id,
+          });
+          if (cacheId) {
+            cache.modify({
+              id: cacheId,
+              fields: {
+                isSubscribed: () => true,
+              },
+            });
+          }
         },
       });
       setToast(`Added "${show.title ?? "podcast"}" to your library.`);
@@ -398,6 +398,19 @@ export default function PodcastSearchBar({
               };
             }
           );
+
+          const cacheId = cache.identify({
+            __typename: "Show",
+            id: show.id,
+          });
+          if (cacheId) {
+            cache.modify({
+              id: cacheId,
+              fields: {
+                isSubscribed: () => false,
+              },
+            });
+          }
         },
       });
       setToast(`Removed "${show.title ?? "podcast"}" from your library.`);
@@ -571,10 +584,9 @@ export default function PodcastSearchBar({
                           onSelect={navigateToShow}
                           onHover={setActiveIndex}
                           onSubscribe={handleSubscribe}
-                          onUnsubscribe={handleUnsubscribe}
-                          pendingState={pendingState}
-                          subscribedIds={subscribedIds}
-                        />
+                        onUnsubscribe={handleUnsubscribe}
+                        pendingState={pendingState}
+                      />
                       )}
                     </div>
                   ) : !hasQuery ? (
@@ -640,7 +652,6 @@ interface ResultListProps {
     show: SearchShowsQuery["search"][number]
   ) => Promise<void>;
   pendingState: { showId: string; action: "add" | "remove" } | null;
-  subscribedIds: Set<string>;
 }
 
 const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
@@ -654,7 +665,6 @@ const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
       onSubscribe,
       onUnsubscribe,
       pendingState,
-      subscribedIds,
     },
     ref
   ) => (
@@ -668,7 +678,7 @@ const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
         const optionId = `${id}-option-${index}`;
         const isActive = index === activeIndex;
         const description = pickDescription(show);
-        const isSubscribed = subscribedIds.has(show.id);
+        const isSubscribed = Boolean(show.isSubscribed);
         const isPending = pendingState?.showId === show.id;
         const isRemoving = isPending && pendingState?.action === "remove";
         const isAdding = isPending && pendingState?.action === "add";

@@ -465,7 +465,7 @@ function SpotlightCard({
         style={hasImage ? { backgroundImage: `url(${show.image})` } : undefined}
         aria-hidden
       />
-      <div className="absolute inset-0 bg-[#07041c]/70" aria-hidden />
+      <div className="absolute inset-0 bg-[#07041c]/82" aria-hidden />
 
       <div className="relative z-10 flex flex-col gap-5">
         <div className="flex items-center justify-between gap-4">
