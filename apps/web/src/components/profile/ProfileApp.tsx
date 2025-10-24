@@ -252,7 +252,7 @@ function ProfileAppContent(): JSX.Element {
       </div>
       <AuroraBackground className="min-h-screen opacity-45 saturate-200 mix-blend-screen" />
       <div className="relative z-10">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-6 pb-24 pt-28 md:px-12 md:pb-32 md:pt-36">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-6 pb-24 pt-24 md:px-12 md:pb-32">
           <header className="space-y-6 text-center md:text-left">
             <span className="inline-flex items-center justify-center gap-2 self-center rounded-full border border-white/20 bg-white/10 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.45em] text-white/70 md:self-start">
               Listening atlas
