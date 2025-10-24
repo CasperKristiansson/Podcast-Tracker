@@ -314,6 +314,7 @@ describe("spotify proxy handler", () => {
         languages: [],
         availableMarkets: [],
         mediaType: null,
+        isSubscribed: false,
       },
       {
         id: "show-2",
@@ -329,6 +330,7 @@ describe("spotify proxy handler", () => {
         languages: [],
         availableMarkets: [],
         mediaType: null,
+        isSubscribed: false,
       },
     ]);
 
@@ -450,6 +452,7 @@ describe("spotify proxy handler", () => {
       languages: [],
       availableMarkets: [],
       mediaType: null,
+      isSubscribed: false,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);

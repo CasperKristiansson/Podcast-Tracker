@@ -24,7 +24,7 @@ describe("Mutation.subscribe mapping templates", () => {
 
     expect(request).toEqual(requestSnapshot);
 
-    (runtime.ctx as any).result = {
+    runtime.ctx.result = {
       pk: "user#user-1",
       sk: "sub#show-1",
       dataType: "subscription",
@@ -43,7 +43,7 @@ describe("Mutation.subscribe mapping templates", () => {
     const responseRendered = renderTemplate(responseTemplate, runtime);
     const response = JSON.parse(responseRendered);
 
-    expect(response).toEqual((runtime.ctx as any).result);
+    expect(response).toEqual(runtime.ctx.result);
   });
 
   it("defaults totalEpisodes to 0 when null", () => {
@@ -63,7 +63,7 @@ describe("Mutation.subscribe mapping templates", () => {
     const request = JSON.parse(requestRendered);
     expect(request.attributeValues.totalEpisodes.N).toBe("0");
 
-    (runtime.ctx as any).result = {
+    runtime.ctx.result = {
       pk: "user#user-2",
       sk: "sub#show-2",
       dataType: "subscription",
@@ -78,7 +78,7 @@ describe("Mutation.subscribe mapping templates", () => {
 
     const responseRendered = renderTemplate(responseTemplate, runtime);
     const response = JSON.parse(responseRendered);
-    expect(response).toEqual((runtime.ctx as any).result);
+    expect(response).toEqual(runtime.ctx.result);
   });
 
   it("falls back to staged values when DynamoDB returns no attributes", () => {
@@ -95,7 +95,7 @@ describe("Mutation.subscribe mapping templates", () => {
     });
 
     renderTemplate(requestTemplate, runtime);
-    (runtime.ctx as any).result = null;
+    runtime.ctx.result = null;
 
     const responseRendered = renderTemplate(responseTemplate, runtime);
     const response = JSON.parse(responseRendered);

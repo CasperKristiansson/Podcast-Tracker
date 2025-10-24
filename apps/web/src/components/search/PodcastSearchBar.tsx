@@ -316,12 +316,13 @@ export default function PodcastSearchBar({
             (existing) => {
               if (!existing?.mySubscriptions) {
                 return {
+                  __typename: "Query",
                   mySubscriptions: {
                     __typename: "SubscriptionConnection",
                     items: [newSubscription],
                     nextToken: null,
                   },
-                };
+                } satisfies MySubscriptionsQuery;
               }
 
               const items = existing.mySubscriptions.items ?? [];
@@ -335,11 +336,12 @@ export default function PodcastSearchBar({
               }
 
               return {
+                __typename: existing.__typename ?? "Query",
                 mySubscriptions: {
                   ...existing.mySubscriptions,
                   items: [newSubscription, ...items],
                 },
-              };
+              } satisfies MySubscriptionsQuery;
             }
           );
 
@@ -389,6 +391,7 @@ export default function PodcastSearchBar({
               }
 
               return {
+                __typename: existing.__typename ?? "Query",
                 mySubscriptions: {
                   ...existing.mySubscriptions,
                   items:
@@ -396,7 +399,7 @@ export default function PodcastSearchBar({
                       (subscription) => subscription?.showId !== show.id
                     ) ?? [],
                 },
-              };
+              } satisfies MySubscriptionsQuery;
             }
           );
 

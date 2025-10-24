@@ -79,6 +79,7 @@ describe("refresh subscriptions lambda", () => {
             languages: [],
             availableMarkets: [],
             mediaType: "audio",
+            isSubscribed: false,
           });
         }
         if (showId === "show-2") {
@@ -96,6 +97,7 @@ describe("refresh subscriptions lambda", () => {
             languages: [],
             availableMarkets: [],
             mediaType: null,
+            isSubscribed: false,
           });
         }
         return Promise.reject(new Error(`Unexpected showId ${showId}`));
@@ -191,6 +193,7 @@ describe("refresh subscriptions lambda", () => {
       languages: [],
       availableMarkets: [],
       mediaType: null,
+      isSubscribed: false,
     });
 
     dynamoMock
@@ -257,6 +260,7 @@ describe("refresh subscriptions lambda", () => {
       languages: [],
       availableMarkets: [],
       mediaType: null,
+      isSubscribed: false,
     });
 
     dynamoMock.on(UpdateCommand).rejects(new Error("Write failure"));
