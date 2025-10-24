@@ -361,11 +361,11 @@ function ProfileAppContent(): JSX.Element {
             <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#14072f]/85 p-8 backdrop-blur-2xl">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(128,94,255,0.18),_transparent_75%)]" />
               <div className="relative space-y-6">
-                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                  <h2 className="text-2xl font-semibold text-white">
+                <div className="flex flex-col gap-3 text-center md:flex-row md:items-end md:justify-between md:text-left">
+                  <h2 className="text-2xl font-semibold text-white md:text-left">
                     Your Entire Library
                   </h2>
-                  <p className="text-sm text-white/60 md:max-w-md md:text-right">
+                  <p className="text-sm text-white/70 md:max-w-md md:text-right md:text-white/60">
                     Browse everything you&apos;ve saved—mark progress, celebrate
                     completions, or jump back into a show you love.
                   </p>
@@ -567,49 +567,62 @@ function LibraryCard({
   const celebrateLoading = disabled && hasUnlistened;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/12 bg-white/[0.04] p-6 shadow-[0_35px_90px_rgba(24,14,78,0.45)] backdrop-blur-2xl">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-        <div className="flex flex-1 items-center gap-4 sm:gap-5">
-          <div className="flex-none overflow-hidden rounded-2xl border border-white/15 bg-[#1a113a]/70">
+    <div className="relative overflow-hidden rounded-[28px] border border-white/12 bg-[#120727]/90 p-5 shadow-[0_32px_80px_rgba(24,14,78,0.45)] backdrop-blur-2xl sm:p-6">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(142,108,255,0.22),_transparent_80%)] opacity-90" />
+      <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between md:gap-8">
+        <div className="flex flex-col gap-4 md:flex-row md:flex-1 md:items-center md:gap-6">
+          <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-[#1a113a]/70 shadow-[0_20px_50px_rgba(43,24,108,0.5)] h-44 w-full sm:h-40 sm:w-48 md:h-28 md:w-28">
             {hasImage ? (
               <img
                 src={show.image}
                 alt={`${show.title} cover art`}
-                className="h-20 w-20 object-cover"
+                className="h-full w-full object-cover"
                 loading="lazy"
               />
             ) : (
-              <div className="h-20 w-20 bg-gradient-to-br from-[#4a2c91] to-[#221044]" />
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#4a2c91] via-[#2b1769] to-[#140a38] text-[10px] font-semibold uppercase tracking-[0.4em] text-white/60">
+                No artwork
+              </div>
             )}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-black/35 via-transparent to-black/25" />
           </div>
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-white">{show.title}</h3>
-            <p className="text-xs uppercase tracking-[0.35em] text-white/45">
-              {show.publisher}
-            </p>
-            <p className="text-sm font-medium text-white/85">
+          <div className="space-y-3 text-left">
+            <div className="space-y-1">
+              <h3 className="text-xl font-semibold text-white sm:text-2xl">
+                {show.title}
+              </h3>
+              <p className="text-xs uppercase tracking-[0.35em] text-white/45">
+                {show.publisher}
+              </p>
+            </div>
+            <p className="text-sm font-medium text-white/85 sm:text-base">
               Listened {formatNumber(show.completedEpisodes)} /{" "}
               {formatNumber(show.totalEpisodes)}
             </p>
-            <p className="text-xs text-white/55">
+            <p className="text-xs text-white/55 sm:text-sm">
               Remaining {formatNumber(show.unlistenedEpisodes)} episodes
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col items-start gap-3 text-xs text-white/55 sm:items-end sm:text-right">
-          <p>
+        <div className="flex flex-col items-start gap-3 text-xs text-white/55 sm:text-sm md:items-end md:text-right">
+          <p className="text-white/60">
             Subscribed since{" "}
             {addedAtValue ? formatDate(addedAtValue) : "Unknown"}
           </p>
-          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
             <InteractiveButton
               variant="ghost"
               onClick={() => {
                 void onCelebrate(show);
               }}
               disabled={celebrateDisabled}
-              className="mt-1 sm:mt-0"
+              className={cn(
+                "w-full rounded-full bg-white/10 px-6 py-3 text-sm font-semibold text-white/90 shadow-[0_20px_48px_rgba(92,63,186,0.35)] transition duration-300 sm:w-auto",
+                celebrateDisabled
+                  ? "opacity-60"
+                  : "hover:-translate-y-0.5 hover:bg-white/16 hover:text-white hover:shadow-[0_26px_60px_rgba(104,78,212,0.4)] focus-visible:ring-[#c6b5ff]"
+              )}
               isLoading={celebrateLoading}
               loadingLabel="Logging…"
             >
@@ -623,7 +636,12 @@ function LibraryCard({
               disabled={unsubscribing}
               isLoading={unsubscribing}
               loadingLabel="Removing…"
-              className="border-red-400/45 text-red-100 hover:border-red-300/65 hover:text-red-50"
+              className={cn(
+                "w-full rounded-full border-red-400/45 px-6 py-3 text-sm font-semibold text-red-100 transition duration-300 sm:w-auto",
+                unsubscribing
+                  ? "opacity-70"
+                  : "hover:-translate-y-0.5 hover:border-red-300/70 hover:text-red-50 focus-visible:ring-red-200/40"
+              )}
             >
               Remove show
             </InteractiveButton>
