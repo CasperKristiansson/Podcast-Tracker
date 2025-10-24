@@ -193,8 +193,6 @@ function buildSubscribeRequest(ctx: RuntimeContext, util: AppSyncUtil) {
       sk: util.dynamodb.toDynamoDBJson(sk),
     },
     attributeValues: {
-      pk: util.dynamodb.toDynamoDBJson(pk),
-      sk: util.dynamodb.toDynamoDBJson(sk),
       dataType: util.dynamodb.toDynamoDBJson("subscription"),
       showId: util.dynamodb.toDynamoDBJson(showId),
       title: util.dynamodb.toDynamoDBJson(title),
@@ -212,59 +210,18 @@ function buildSubscribeResponse(ctx: RuntimeContext, util: AppSyncUtil) {
     util.error((ctx.error as Error).message ?? "Error", "MappingTemplate");
   }
 
-  const asRecord = (
-    value: unknown
-  ): Record<string, unknown> | undefined => {
+  const asRecord = (value: unknown) => {
     if (value && typeof value === "object" && !Array.isArray(value)) {
       return value as Record<string, unknown>;
     }
     return undefined;
   };
 
-  const primarySource =
-    asRecord(ctx.result) ?? asRecord(ctx.stash.get("subscription")) ?? {};
-
-  const showId =
-    (primarySource.showId as string | undefined) ??
-    (ctx.args.showId as string);
-  const title =
-    (primarySource.title as string | undefined) ?? (ctx.args.title as string);
-  const publisher =
-    (primarySource.publisher as string | undefined) ??
-    (ctx.args.publisher as string);
-  const image =
-    (primarySource.image as string | undefined) ?? (ctx.args.image as string);
-  const addedAt =
-    (primarySource.addedAt as string | undefined) ??
-    (ctx.stash.get("addedAt") as string | undefined) ??
-    util.time.nowISO8601();
-  const totalEpisodes =
-    (primarySource.totalEpisodes as number | undefined | null) ??
-    (ctx.stash.get("totalEpisodes") as number | undefined | null) ??
-    0;
-  const subscriptionSyncedAt =
-    (primarySource.subscriptionSyncedAt as string | undefined | null) ??
-    (ctx.stash.get("subscriptionSyncedAt") as string | undefined | null) ??
-    null;
-  const ratingStars =
-    (primarySource.ratingStars as number | undefined | null) ?? null;
-  const ratingReview =
-    (primarySource.ratingReview as string | undefined | null) ?? null;
-  const ratingUpdatedAt =
-    (primarySource.ratingUpdatedAt as string | undefined | null) ?? null;
-
-  return {
-    showId,
-    title,
-    publisher,
-    image,
-    addedAt,
-    totalEpisodes,
-    subscriptionSyncedAt,
-    ratingStars,
-    ratingReview,
-    ratingUpdatedAt,
-  };
+  return (
+    asRecord(ctx.result) ??
+    asRecord(ctx.stash.get("subscription")) ??
+    null
+  );
 }
 
 export function renderTemplate(

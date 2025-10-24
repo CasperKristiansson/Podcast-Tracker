@@ -6,8 +6,6 @@
     "sk": { "S": "sub#show-1" }
   },
   "attributeValues": {
-    "pk": { "S": "user#user-1" },
-    "sk": { "S": "sub#show-1" },
     "dataType": { "S": "subscription" },
     "showId": { "S": "show-1" },
     "title": { "S": "Example Show" },
