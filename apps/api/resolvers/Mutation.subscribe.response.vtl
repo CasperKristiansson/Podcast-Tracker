@@ -1,8 +1,15 @@
 #if($ctx.error)
   $util.error($ctx.error.message, $ctx.error.type)
 #end
-#set($item = $util.dynamodb.toMapValues($ctx.result))
-$util.qr($item.remove("pk"))
-$util.qr($item.remove("sk"))
-$util.qr($item.remove("dataType"))
-$util.toJson($item)
+#set($result = {
+  "showId" : $ctx.args.showId,
+  "title" : $ctx.args.title,
+  "publisher" : $ctx.args.publisher,
+  "image" : $ctx.args.image,
+  "addedAt" : $ctx.stash.get("addedAt"),
+  "totalEpisodes" : $ctx.stash.get("totalEpisodes"),
+  "ratingStars" : null,
+  "ratingReview" : null,
+  "ratingUpdatedAt" : null
+})
+$util.toJson($result)
