@@ -16,6 +16,7 @@ interface AppSyncUtil {
     nowISO8601: () => string;
   };
   defaultIfNull: <T>(value: T | null | undefined, defaultValue: T) => T;
+  nullValue: () => null;
   map: () => Record<string, unknown>;
   qr: <T>(value: T) => T;
   error: (message: string, type?: string) => never;
@@ -64,6 +65,7 @@ export function createRuntime({
       nowISO8601: () => now,
     },
     defaultIfNull: (value, defaultValue) => value ?? defaultValue,
+    nullValue: () => null,
     map: () => ({}),
     qr: (value) => value,
     error: (message: string, type?: string) => {
@@ -202,7 +204,6 @@ function buildSubscribeRequest(ctx: RuntimeContext, util: AppSyncUtil) {
       subscriptionSyncedAt: util.dynamodb.toDynamoDBJson(now),
       addedAt: util.dynamodb.toDynamoDBJson(now),
     },
-    returnValues: "NONE",
   };
 }
 
@@ -211,45 +212,54 @@ function buildSubscribeResponse(ctx: RuntimeContext, util: AppSyncUtil) {
     util.error((ctx.error as Error).message ?? "Error", "MappingTemplate");
   }
 
-  let source =
-    (ctx.stash.get("subscription") as Record<string, unknown> | undefined) ??
-    {};
+  const clone = (record: Record<string, unknown> | undefined | null) =>
+    record ? { ...record } : undefined;
 
-  if (ctx.result && typeof ctx.result === "object") {
-    const resultRecord = ctx.result as Record<string, unknown>;
-    if ("Attributes" in resultRecord && resultRecord.Attributes) {
-      source = util.dynamodb.toMapValues(
-        resultRecord.Attributes as Record<string, unknown>
-      );
-    } else if (Object.keys(resultRecord).length > 0) {
-      source = util.dynamodb.toMapValues(resultRecord);
-    }
+  let source = clone(ctx.result as Record<string, unknown> | undefined);
+  if (!source || Object.keys(source).length === 0) {
+    source = clone(
+      ctx.stash.get("subscription") as Record<string, unknown> | undefined
+    );
+  }
+  if (!source) {
+    source = {};
   }
 
-  delete (source as any).pk;
-  delete (source as any).sk;
-  delete (source as any).dataType;
+  for (const key of ["pk", "sk", "dataType"]) {
+    delete source[key];
+  }
 
-  const showId =
-    (source.showId as string | undefined) ?? (ctx.args.showId as string);
-  const title =
-    (source.title as string | undefined) ?? (ctx.args.title as string);
-  const publisher =
-    (source.publisher as string | undefined) ??
-    (ctx.args.publisher as string);
-  const image =
-    (source.image as string | undefined) ?? (ctx.args.image as string);
-  const addedAt =
+  const showId = util.defaultIfNull(
+    (source.showId as string | undefined) ?? null,
+    ctx.args.showId as string
+  );
+  const title = util.defaultIfNull(
+    (source.title as string | undefined) ?? null,
+    ctx.args.title as string
+  );
+  const publisher = util.defaultIfNull(
+    (source.publisher as string | undefined) ?? null,
+    ctx.args.publisher as string
+  );
+  const image = util.defaultIfNull(
+    (source.image as string | undefined) ?? null,
+    ctx.args.image as string
+  );
+  const addedAt = util.defaultIfNull(
     (source.addedAt as string | undefined) ??
-    (ctx.stash.get("addedAt") as string | undefined) ??
-    util.time.nowISO8601();
-  const totalEpisodes =
-    (source.totalEpisodes as number | undefined) ??
-    (ctx.stash.get("totalEpisodes") as number | undefined) ??
-    0;
+      (ctx.stash.get("addedAt") as string | undefined) ??
+      null,
+    util.time.nowISO8601()
+  );
+  const totalEpisodes = util.defaultIfNull(
+    (source.totalEpisodes as number | undefined | null) ??
+      (ctx.stash.get("totalEpisodes") as number | undefined | null) ??
+      null,
+    0
+  );
   const subscriptionSyncedAt =
-    (source.subscriptionSyncedAt as string | undefined) ??
-    (ctx.stash.get("subscriptionSyncedAt") as string | undefined) ??
+    (source.subscriptionSyncedAt as string | undefined | null) ??
+    (ctx.stash.get("subscriptionSyncedAt") as string | undefined | null) ??
     null;
   const ratingStars =
     (source.ratingStars as number | undefined | null) ?? null;

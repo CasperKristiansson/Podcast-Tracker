@@ -1,11 +1,9 @@
 #if($ctx.error)
   $util.error($ctx.error.message, $ctx.error.type)
 #end
-#set($source = $ctx.stash.get("subscription"))
-#if(!$util.isNull($ctx.result) && !$util.isNull($ctx.result.Attributes))
-  #set($source = $util.dynamodb.toMapValues($ctx.result.Attributes))
-#elseif(!$util.isNull($ctx.result))
-  #set($source = $util.dynamodb.toMapValues($ctx.result))
+#set($source = $ctx.result)
+#if($util.isNull($source))
+  #set($source = $ctx.stash.get("subscription"))
 #end
 #if($util.isNull($source))
   #set($source = $util.map())
@@ -51,15 +49,15 @@
 #end
 #set($ratingStars = $source.ratingStars)
 #if($util.isNull($ratingStars))
-  #set($ratingStars = null)
+  #set($ratingStars = $util.nullValue())
 #end
 #set($ratingReview = $source.ratingReview)
 #if($util.isNull($ratingReview))
-  #set($ratingReview = null)
+  #set($ratingReview = $util.nullValue())
 #end
 #set($ratingUpdatedAt = $source.ratingUpdatedAt)
 #if($util.isNull($ratingUpdatedAt))
-  #set($ratingUpdatedAt = null)
+  #set($ratingUpdatedAt = $util.nullValue())
 #end
 #set($response = $util.map())
 $util.qr($response.put("showId", $showId))

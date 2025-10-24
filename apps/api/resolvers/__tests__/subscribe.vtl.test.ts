@@ -25,14 +25,19 @@ describe("Mutation.subscribe mapping templates", () => {
     expect(request).toEqual(requestSnapshot);
 
     (runtime.ctx as any).result = {
-      Attributes: {
-        showId: { S: "show-1" },
-        title: { S: "Example Show" },
-        publisher: { S: "Publisher" },
-        image: { S: "https://example.com/image.png" },
-        totalEpisodes: { N: "97" },
-        addedAt: { S: "2025-04-01T12:00:00.000Z" },
-      },
+      pk: "user#user-1",
+      sk: "sub#show-1",
+      dataType: "subscription",
+      showId: "show-1",
+      title: "Example Show",
+      publisher: "Publisher",
+      image: "https://example.com/image.png",
+      totalEpisodes: 97,
+      subscriptionSyncedAt: "2025-04-01T12:00:00.000Z",
+      addedAt: "2025-04-01T12:00:00.000Z",
+      ratingStars: null,
+      ratingReview: null,
+      ratingUpdatedAt: null,
     };
 
     const responseRendered = renderTemplate(responseTemplate, runtime);
@@ -70,14 +75,16 @@ describe("Mutation.subscribe mapping templates", () => {
     expect(request.attributeValues.totalEpisodes.N).toBe("0");
 
     (runtime.ctx as any).result = {
-      Attributes: {
-        showId: { S: "show-2" },
-        title: { S: "Unknown" },
-        publisher: { S: "Publisher" },
-        image: { S: "https://example.com/cover.png" },
-        totalEpisodes: { N: "0" },
-        addedAt: { S: "2025-04-02T08:30:00.000Z" },
-      },
+      pk: "user#user-2",
+      sk: "sub#show-2",
+      dataType: "subscription",
+      showId: "show-2",
+      title: "Unknown",
+      publisher: "Publisher",
+      image: "https://example.com/cover.png",
+      totalEpisodes: 0,
+      subscriptionSyncedAt: "2025-04-02T08:30:00.000Z",
+      addedAt: "2025-04-02T08:30:00.000Z",
     };
 
     const responseRendered = renderTemplate(responseTemplate, runtime);

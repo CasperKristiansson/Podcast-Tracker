@@ -32,6 +32,5 @@ $util.qr($ctx.stash.put("subscriptionSyncedAt", $now))
     "totalEpisodes": $util.dynamodb.toDynamoDBJson($totalEpisodes),
     "subscriptionSyncedAt": $util.dynamodb.toDynamoDBJson($now),
     "addedAt": $util.dynamodb.toDynamoDBJson($now)
-  },
-  "returnValues": "NONE"
+  }
 }
