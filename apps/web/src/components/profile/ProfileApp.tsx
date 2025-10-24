@@ -250,7 +250,7 @@ function ProfileAppContent(): JSX.Element {
         <div className="absolute -bottom-56 left-[-18%] h-[36rem] w-[36rem] rounded-full bg-[#5830d9]/22 blur-[210px]" />
         <div className="absolute -right-48 top-24 h-[34rem] w-[34rem] rounded-full bg-[#271052]/20 blur-[210px]" />
       </div>
-      <AuroraBackground className="opacity-45 saturate-200 mix-blend-screen" />
+      <AuroraBackground className="min-h-screen opacity-45 saturate-200 mix-blend-screen" />
       <div className="relative z-10">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-6 pb-24 pt-28 md:px-12 md:pb-32 md:pt-36">
           <header className="space-y-6 text-center md:text-left">
@@ -331,35 +331,63 @@ function ProfileAppContent(): JSX.Element {
             </section>
           ) : null}
 
-          <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#14072f]/85 p-8 backdrop-blur-2xl">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(128,94,255,0.18),_transparent_75%)]" />
-            <div className="relative space-y-6">
-              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          {shows.length > 0 ? (
+            <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#14072f]/85 p-8 backdrop-blur-2xl">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(128,94,255,0.18),_transparent_75%)]" />
+              <div className="relative space-y-6">
+                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                  <h2 className="text-2xl font-semibold text-white">
+                    Your Entire Library
+                  </h2>
+                  <p className="text-sm text-white/60 md:max-w-md md:text-right">
+                    Browse everything you&apos;ve saved—mark progress, celebrate
+                    completions, or jump back into a show you love.
+                  </p>
+                </div>
+                <div className="grid gap-6 md:grid-cols-2">
+                  {shows.map((show) => (
+                    <LibraryCard
+                      key={show.showId}
+                      show={show}
+                      onCelebrate={handleCelebrateClick}
+                      celebrating={
+                        celebration?.showId === show.showId
+                          ? celebration.seed
+                          : null
+                      }
+                      disabled={
+                        pendingShowId === show.showId || progressMutating
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+            </section>
+          ) : (
+            <section className="flex flex-col items-center gap-6 rounded-[32px] border border-white/10 bg-[#14072f]/85 p-10 text-center backdrop-blur-2xl">
+              <div className="space-y-3">
                 <h2 className="text-2xl font-semibold text-white">
-                  Your Entire Library
+                  Build your listening library
                 </h2>
-                <p className="text-sm text-white/60 md:max-w-md md:text-right">
-                  Browse everything you&apos;ve saved—mark progress, celebrate
-                  completions, or jump back into a show you love.
+                <p className="text-sm text-white/60">
+                  You haven&apos;t added any podcasts yet. Start by searching
+                  for a show you love.
                 </p>
               </div>
-              <div className="grid gap-6 md:grid-cols-2">
-                {shows.map((show) => (
-                  <LibraryCard
-                    key={show.showId}
-                    show={show}
-                    onCelebrate={handleCelebrateClick}
-                    celebrating={
-                      celebration?.showId === show.showId
-                        ? celebration.seed
-                        : null
-                    }
-                    disabled={pendingShowId === show.showId || progressMutating}
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
+              <InteractiveButton
+                variant="primary"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(
+                      new CustomEvent("open-podcast-search")
+                    );
+                  }
+                }}
+              >
+                Add your first show
+              </InteractiveButton>
+            </section>
+          )}
         </div>
 
         {toast ? (

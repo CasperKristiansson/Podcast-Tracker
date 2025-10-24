@@ -159,6 +159,35 @@ export default function PodcastSearchBar({
     setIsOpen(true);
   }, []);
 
+  useEffect(() => {
+    const handleGlobalShortcut = (event: KeyboardEvent) => {
+      const isMac = navigator.platform.includes("Mac");
+      const metaPressed = isMac ? event.metaKey : event.ctrlKey;
+      if (metaPressed && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        openPalette();
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalShortcut);
+    return () => window.removeEventListener("keydown", handleGlobalShortcut);
+  }, [openPalette]);
+
+  useEffect(() => {
+    const handleExternalOpen = () => {
+      openPalette();
+    };
+    window.addEventListener(
+      "open-podcast-search",
+      handleExternalOpen as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        "open-podcast-search",
+        handleExternalOpen as EventListener
+      );
+  }, [openPalette]);
+
   const closePalette = useCallback(() => {
     setIsOpen(false);
     setQuery("");
@@ -390,7 +419,7 @@ export default function PodcastSearchBar({
                         : undefined
                     }
                     aria-label="Search podcasts"
-                    className="w-full"
+                    className="w-full max-w-none"
                   />
 
                   <div
