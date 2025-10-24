@@ -218,9 +218,7 @@ function buildSubscribeResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   };
 
   return (
-    asRecord(ctx.result) ??
-    asRecord(ctx.stash.get("subscription")) ??
-    null
+    asRecord(ctx.result) ?? asRecord(ctx.stash.get("subscription")) ?? null
   );
 }
 

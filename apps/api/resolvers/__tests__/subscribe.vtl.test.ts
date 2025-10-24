@@ -101,5 +101,5 @@ describe("Mutation.subscribe mapping templates", () => {
     const response = JSON.parse(responseRendered);
 
     expect(response).toEqual(runtime.ctx.stash.get("subscription"));
-});
+  });
 });

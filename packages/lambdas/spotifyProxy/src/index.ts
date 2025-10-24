@@ -41,7 +41,9 @@ const SPOTIFY_BASE = "https://api.spotify.com/v1";
 const TOKEN_URL = "https://accounts.spotify.com/api/token";
 const MAX_RETRIES = 3;
 
-export const handler = async (event: AppSyncEvent & { identity?: { sub?: string } }) => {
+export const handler = async (
+  event: AppSyncEvent & { identity?: { sub?: string } }
+) => {
   const field = event.info.fieldName;
 
   switch (field) {

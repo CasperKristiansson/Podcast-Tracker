@@ -91,9 +91,10 @@ export default function PodcastSearchBar({
 
   const shows = useMemo(() => data?.search ?? [], [data]);
 
-  const [pendingState, setPendingState] = useState<
-    { showId: string; action: "add" | "remove" } | null
-  >(null);
+  const [pendingState, setPendingState] = useState<{
+    showId: string;
+    action: "add" | "remove";
+  } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -584,9 +585,9 @@ export default function PodcastSearchBar({
                           onSelect={navigateToShow}
                           onHover={setActiveIndex}
                           onSubscribe={handleSubscribe}
-                        onUnsubscribe={handleUnsubscribe}
-                        pendingState={pendingState}
-                      />
+                          onUnsubscribe={handleUnsubscribe}
+                          pendingState={pendingState}
+                        />
                       )}
                     </div>
                   ) : !hasQuery ? (
@@ -648,9 +649,7 @@ interface ResultListProps {
   onSelect: (showId: string) => void;
   onHover: (index: number) => void;
   onSubscribe: (show: SearchShowsQuery["search"][number]) => Promise<void>;
-  onUnsubscribe: (
-    show: SearchShowsQuery["search"][number]
-  ) => Promise<void>;
+  onUnsubscribe: (show: SearchShowsQuery["search"][number]) => Promise<void>;
   pendingState: { showId: string; action: "add" | "remove" } | null;
 }
 
