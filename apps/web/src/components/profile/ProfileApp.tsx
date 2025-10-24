@@ -550,8 +550,54 @@ function SpotlightCard({
       />
       <div className="absolute inset-0 bg-[#07041c]/82" aria-hidden />
 
+      <div
+        className="absolute right-6 top-6 flex items-center"
+        onPointerLeave={() => {
+          if (!unsubscribing) {
+            setActionsVisible(false);
+          }
+        }}
+      >
+        <button
+          type="button"
+          aria-label="Show spotlight actions"
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-[#10052c]/70 text-white/60 transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c6b5ff]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07041c]",
+            showActions
+              ? "border-white/35 text-white"
+              : "group-hover:border-white/30 group-hover:text-white"
+          )}
+          onPointerDown={handleGearPointerDown}
+          onFocus={() => {
+            setActionsVisible(true);
+          }}
+        >
+          <SettingsIcon className="h-4 w-4" />
+        </button>
+        <InteractiveButton
+          variant="outline"
+          onClick={() => {
+            void onUnsubscribe(show);
+          }}
+          disabled={unsubscribing}
+          isLoading={unsubscribing}
+          loadingLabel="Removing…"
+          className={cn(
+            "absolute right-0 top-full z-20 mt-3 whitespace-nowrap rounded-full border-red-400/45 bg-[#2b113d]/90 px-4 py-2 text-xs font-semibold text-red-100 shadow-[0_12px_30px_rgba(168,60,90,0.35)] transition duration-200 ease-out",
+            showActions
+              ? "pointer-events-auto opacity-100"
+              : "pointer-events-none -translate-y-1 opacity-0",
+            unsubscribing
+              ? "border-red-300/70 text-red-50"
+              : "hover:border-red-300/70 hover:text-red-50 focus-visible:ring-red-200/40"
+          )}
+        >
+          Remove show
+        </InteractiveButton>
+      </div>
+
       <div className="relative z-10 flex flex-col gap-5">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-white/50">
               {show.publisher}
@@ -559,44 +605,6 @@ function SpotlightCard({
             <h3 className="mt-1 text-2xl font-semibold text-white">
               {show.title}
             </h3>
-          </div>
-          <div className="relative flex items-center">
-            <button
-              type="button"
-              aria-label="Show spotlight actions"
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-[#10052c]/70 text-white/60 transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c6b5ff]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07041c]",
-                showActions
-                  ? "border-white/35 text-white"
-                  : "group-hover:border-white/30 group-hover:text-white"
-              )}
-              onPointerDown={handleGearPointerDown}
-              onFocus={() => {
-                setActionsVisible(true);
-              }}
-            >
-              <SettingsIcon className="h-4 w-4" />
-            </button>
-            <InteractiveButton
-              variant="outline"
-              onClick={() => {
-                void onUnsubscribe(show);
-              }}
-              disabled={unsubscribing}
-              isLoading={unsubscribing}
-              loadingLabel="Removing…"
-              className={cn(
-                "absolute right-0 top-full z-20 mt-3 whitespace-nowrap rounded-full border-red-400/45 bg-[#2b113d]/90 px-4 py-2 text-xs font-semibold text-red-100 shadow-[0_12px_30px_rgba(168,60,90,0.35)] transition duration-200 ease-out",
-                showActions
-                  ? "pointer-events-auto opacity-100"
-                  : "pointer-events-none -translate-y-1 opacity-0",
-                unsubscribing
-                  ? "border-red-300/70 text-red-50"
-                  : "hover:border-red-300/70 hover:text-red-50 focus-visible:ring-red-200/40"
-              )}
-            >
-              Remove show
-            </InteractiveButton>
           </div>
         </div>
 

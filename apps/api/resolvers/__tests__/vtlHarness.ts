@@ -17,6 +17,7 @@ interface AppSyncUtil {
   };
   defaultIfNull: <T>(value: T | null | undefined, defaultValue: T) => T;
   nullValue: () => null;
+  isNull: (value: unknown) => boolean;
   map: () => Record<string, unknown>;
   qr: <T>(value: T) => T;
   error: (message: string, type?: string) => never;
@@ -66,6 +67,7 @@ export function createRuntime({
     },
     defaultIfNull: (value, defaultValue) => value ?? defaultValue,
     nullValue: () => null,
+    isNull: (value) => value === null || value === undefined,
     map: () => ({}),
     qr: (value) => value,
     error: (message: string, type?: string) => {
@@ -156,6 +158,20 @@ export function createRuntime({
   return { ctx, util };
 }
 
+function ensureNoError(ctx: RuntimeContext, util: AppSyncUtil) {
+  if (ctx.error) {
+    const error = ctx.error as Error;
+    util.error(error.message ?? "Error", "MappingTemplate");
+  }
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return undefined;
+}
+
 function buildSubscribeRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   const now = util.time.nowISO8601();
   const totalEpisodes = util.defaultIfNull(
@@ -206,36 +222,253 @@ function buildSubscribeRequest(ctx: RuntimeContext, util: AppSyncUtil) {
 }
 
 function buildSubscribeResponse(ctx: RuntimeContext, util: AppSyncUtil) {
-  if (ctx.error) {
-    util.error((ctx.error as Error).message ?? "Error", "MappingTemplate");
-  }
-
-  const asRecord = (value: unknown) => {
-    if (value && typeof value === "object" && !Array.isArray(value)) {
-      return value as Record<string, unknown>;
-    }
-    return undefined;
-  };
-
+  ensureNoError(ctx, util);
   return (
     asRecord(ctx.result) ?? asRecord(ctx.stash.get("subscription")) ?? null
   );
 }
 
+function buildMarkProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
+  const now = util.time.nowISO8601();
+  const pk = `user#${String(ctx.identity.sub)}`;
+  const sk = `ep#${String(ctx.args.episodeId)}`;
+
+  const attributeValues: Record<string, unknown> = {
+    pk: util.dynamodb.toDynamoDBJson(pk),
+    sk: util.dynamodb.toDynamoDBJson(sk),
+    dataType: util.dynamodb.toDynamoDBJson("progress"),
+    episodeId: util.dynamodb.toDynamoDBJson(String(ctx.args.episodeId)),
+    positionSec: util.dynamodb.toDynamoDBJson(ctx.args.positionSec),
+    completed: util.dynamodb.toDynamoDBJson(ctx.args.completed),
+    updatedAt: util.dynamodb.toDynamoDBJson(now),
+  };
+
+  if (Object.prototype.hasOwnProperty.call(ctx.args, "showId")) {
+    const showId = ctx.args.showId;
+    if (!util.isNull(showId)) {
+      attributeValues.showId = util.dynamodb.toDynamoDBJson(String(showId));
+    }
+  }
+
+  return {
+    version: "2018-05-29",
+    operation: "PutItem",
+    key: {
+      pk: util.dynamodb.toDynamoDBJson(pk),
+      sk: util.dynamodb.toDynamoDBJson(sk),
+    },
+    attributeValues,
+    returnValues: "ALL_NEW",
+  };
+}
+
+function buildMarkProgressResponse(ctx: RuntimeContext, util: AppSyncUtil) {
+  ensureNoError(ctx, util);
+  const record = asRecord(ctx.result) ?? {};
+  return util.dynamodb.toMapValues(record);
+}
+
+function buildRateShowRequest(ctx: RuntimeContext, util: AppSyncUtil) {
+  const now = util.time.nowISO8601();
+  const pk = `user#${String(ctx.identity.sub)}`;
+  const sk = `sub#${String(ctx.args.showId)}`;
+
+  let expression = "SET ratingStars = :stars, ratingUpdatedAt = :updated";
+  const expressionValues: Record<string, unknown> = {
+    ":stars": util.dynamodb.toDynamoDBJson(ctx.args.stars),
+    ":updated": util.dynamodb.toDynamoDBJson(now),
+  };
+
+  expression += ", ratingReview = :review";
+  if (
+    Object.prototype.hasOwnProperty.call(ctx.args, "review") &&
+    !util.isNull(ctx.args.review)
+  ) {
+    expressionValues[":review"] = util.dynamodb.toDynamoDBJson(
+      String(ctx.args.review)
+    );
+  } else {
+    expressionValues[":review"] = { NULL: true };
+  }
+
+  return {
+    version: "2018-05-29",
+    operation: "UpdateItem",
+    key: {
+      pk: util.dynamodb.toDynamoDBJson(pk),
+      sk: util.dynamodb.toDynamoDBJson(sk),
+    },
+    update: {
+      expression,
+      expressionValues,
+    },
+    condition: {
+      expression: "attribute_exists(pk) AND attribute_exists(sk)",
+    },
+    returnValues: "ALL_NEW",
+  };
+}
+
+function buildRateShowResponse(ctx: RuntimeContext, util: AppSyncUtil) {
+  ensureNoError(ctx, util);
+  const record = asRecord(ctx.result) ?? {};
+  return util.dynamodb.toMapValues(record);
+}
+
+function buildPublishProgressRequest(
+  ctx: RuntimeContext,
+  util: AppSyncUtil
+) {
+  return {
+    version: "2018-05-29",
+    payload: {
+      userId: String(ctx.identity.sub),
+      episodeId: ctx.args.episodeId,
+      positionSec: ctx.args.positionSec,
+      completed: ctx.args.completed,
+      updatedAt: util.time.nowISO8601(),
+    },
+  };
+}
+
+function buildPublishProgressResponse(ctx: RuntimeContext) {
+  const payload = { ...(asRecord(ctx.result) ?? {}) } as Record<string, unknown>;
+  delete payload.userId;
+  return payload;
+}
+
+function buildUnsubscribeRequest(ctx: RuntimeContext, util: AppSyncUtil) {
+  return {
+    version: "2018-05-29",
+    operation: "DeleteItem",
+    key: {
+      pk: util.dynamodb.toDynamoDBJson(`user#${String(ctx.identity.sub)}`),
+      sk: util.dynamodb.toDynamoDBJson(`sub#${String(ctx.args.showId)}`),
+    },
+  };
+}
+
+function buildUnsubscribeResponse(ctx: RuntimeContext, util: AppSyncUtil) {
+  ensureNoError(ctx, util);
+  return !util.isNull(ctx.result);
+}
+
+function buildMySubscriptionRequest(ctx: RuntimeContext, util: AppSyncUtil) {
+  return {
+    version: "2018-05-29",
+    operation: "GetItem",
+    key: {
+      pk: util.dynamodb.toDynamoDBJson(`user#${String(ctx.identity.sub)}`),
+      sk: util.dynamodb.toDynamoDBJson(`sub#${String(ctx.args.showId)}`),
+    },
+  };
+}
+
+function buildMySubscriptionResponse(ctx: RuntimeContext, util: AppSyncUtil) {
+  if (!ctx.result) {
+    return null;
+  }
+  const item = util.dynamodb.toMapValues(asRecord(ctx.result) ?? {});
+  delete item.pk;
+  delete item.sk;
+  delete item.dataType;
+  return item;
+}
+
+function buildMySubscriptionsRequest(ctx: RuntimeContext, util: AppSyncUtil) {
+  return {
+    version: "2018-05-29",
+    operation: "Query",
+    query: {
+      expression: "pk = :pk",
+      expressionValues: {
+        ":pk": util.dynamodb.toDynamoDBJson(`user#${String(ctx.identity.sub)}`),
+      },
+    },
+    nextToken: ctx.args.nextToken ?? null,
+    limit: util.defaultIfNull(ctx.args.limit as number | null | undefined, 20),
+  };
+}
+
+function buildMySubscriptionsResponse(
+  ctx: RuntimeContext,
+  util: AppSyncUtil
+) {
+  const result = asRecord(ctx.result) ?? {};
+  const items = Array.isArray(result.items)
+    ? (result.items as unknown[])
+    : [];
+
+  const parsed = items.map((item) => {
+    const map = util.dynamodb.toMapValues(
+      asRecord(item) ?? (item as Record<string, unknown>)
+    );
+    delete map.pk;
+    delete map.sk;
+    delete map.dataType;
+    return map;
+  });
+
+  return {
+    items: parsed,
+    nextToken: result.nextToken ?? null,
+  };
+}
+
+function buildHealthRequest() {
+  return {
+    version: "2018-05-29",
+    payload: {},
+  };
+}
+
+function buildHealthResponse() {
+  return {
+    status: "ok",
+  };
+}
+
+const templateBuilders: Record<string, (ctx: RuntimeContext, util: AppSyncUtil) => unknown> = {
+  "Mutation.subscribe.request.vtl": (ctx, util) =>
+    buildSubscribeRequest(ctx, util),
+  "Mutation.subscribe.response.vtl": (ctx, util) =>
+    buildSubscribeResponse(ctx, util),
+  "Mutation.markProgress.request.vtl": (ctx, util) =>
+    buildMarkProgressRequest(ctx, util),
+  "Mutation.markProgress.response.vtl": (ctx, util) =>
+    buildMarkProgressResponse(ctx, util),
+  "Mutation.rateShow.request.vtl": (ctx, util) =>
+    buildRateShowRequest(ctx, util),
+  "Mutation.rateShow.response.vtl": (ctx, util) =>
+    buildRateShowResponse(ctx, util),
+  "Mutation.publishProgress.request.vtl": (ctx, util) =>
+    buildPublishProgressRequest(ctx, util),
+  "Mutation.publishProgress.response.vtl": (ctx, _util) =>
+    buildPublishProgressResponse(ctx),
+  "Mutation.unsubscribe.request.vtl": (ctx, util) =>
+    buildUnsubscribeRequest(ctx, util),
+  "Mutation.unsubscribe.response.vtl": (ctx, util) =>
+    buildUnsubscribeResponse(ctx, util),
+  "Query.mySubscription.request.vtl": (ctx, util) =>
+    buildMySubscriptionRequest(ctx, util),
+  "Query.mySubscription.response.vtl": (ctx, util) =>
+    buildMySubscriptionResponse(ctx, util),
+  "Query.mySubscriptions.request.vtl": (ctx, util) =>
+    buildMySubscriptionsRequest(ctx, util),
+  "Query.mySubscriptions.response.vtl": (ctx, util) =>
+    buildMySubscriptionsResponse(ctx, util),
+  "Query.health.request.vtl": (_ctx, _util) => buildHealthRequest(),
+  "Query.health.response.vtl": (_ctx, _util) => buildHealthResponse(),
+};
+
 export function renderTemplate(
   templateRelativePath: string,
   runtime: VelocityRuntime
 ): string {
-  switch (templateRelativePath) {
-    case "Mutation.subscribe.request.vtl":
-      return runtime.util.toJson(
-        buildSubscribeRequest(runtime.ctx, runtime.util)
-      );
-    case "Mutation.subscribe.response.vtl":
-      return runtime.util.toJson(
-        buildSubscribeResponse(runtime.ctx, runtime.util)
-      );
-    default:
-      throw new Error(`Unsupported template: ${templateRelativePath}`);
+  const builder = templateBuilders[templateRelativePath];
+  if (!builder) {
+    throw new Error(`Unsupported template: ${templateRelativePath}`);
   }
+  const output = builder(runtime.ctx, runtime.util);
+  return runtime.util.toJson(output);
 }
