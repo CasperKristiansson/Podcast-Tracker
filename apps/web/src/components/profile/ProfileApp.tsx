@@ -453,10 +453,21 @@ function SpotlightCard({
   disabled,
 }: SpotlightCardProps): JSX.Element {
   const syncedAtValue = normalizeDateInput(show.subscriptionSyncedAt);
+  const hasImage = typeof show.image === "string" && show.image.length > 0;
 
   return (
-    <TiltCard className="group bg-[linear-gradient(140deg,rgba(162,122,255,0.22),rgba(66,40,162,0.36))]">
-      <div className="flex flex-col gap-5">
+    <div className="relative overflow-hidden rounded-3xl border border-white/12 p-8 shadow-[0_45px_110px_rgba(24,14,78,0.5)] backdrop-blur-2xl">
+      <div
+        className={cn(
+          "absolute inset-0 bg-[linear-gradient(140deg,rgba(162,122,255,0.22),rgba(66,40,162,0.36))]",
+          hasImage ? "bg-cover bg-center" : null
+        )}
+        style={hasImage ? { backgroundImage: `url(${show.image})` } : undefined}
+        aria-hidden
+      />
+      <div className="absolute inset-0 bg-[#07041c]/70" aria-hidden />
+
+      <div className="relative z-10 flex flex-col gap-5">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-white/50">
@@ -466,14 +477,10 @@ function SpotlightCard({
               {show.title}
             </h3>
           </div>
-          <span className="rounded-full border border-[#d8c8ff]/50 bg-[#7d59ff]/30 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.35em] text-white">
-            {show.unlistenedEpisodes} waiting
-          </span>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <MetricBadge label="Completed" value={show.completedEpisodes} />
-          <MetricBadge label="In Progress" value={show.inProgressEpisodes} />
           <MetricBadge
             label="Unlistened"
             value={show.unlistenedEpisodes}
@@ -504,7 +511,7 @@ function SpotlightCard({
       </div>
 
       <CelebrationOverlay active={Boolean(celebrating)} seed={celebrating} />
-    </TiltCard>
+    </div>
   );
 }
 

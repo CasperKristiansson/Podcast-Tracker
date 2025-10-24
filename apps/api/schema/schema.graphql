@@ -63,6 +63,7 @@ type Show {
   languages: [String!]
   availableMarkets: [String!]
   mediaType: String
+  isSubscribed: Boolean
 }
 
 type SubscriptionConnection implements PaginatedResult {

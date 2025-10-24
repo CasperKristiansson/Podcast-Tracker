@@ -3,6 +3,7 @@ import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 import {
   DynamoDBDocumentClient,
   GetCommand,
+  QueryCommand,
   PutCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { createHash } from "node:crypto";
@@ -40,7 +41,7 @@ const SPOTIFY_BASE = "https://api.spotify.com/v1";
 const TOKEN_URL = "https://accounts.spotify.com/api/token";
 const MAX_RETRIES = 3;
 
-export const handler = async (event: AppSyncEvent) => {
+export const handler = async (event: AppSyncEvent & { identity?: { sub?: string } }) => {
   const field = event.info.fieldName;
 
   switch (field) {
@@ -66,16 +67,22 @@ export const handler = async (event: AppSyncEvent) => {
           ? args.offset
           : undefined;
 
-      const cacheKeyArgs = {
-        term,
-        limit,
-        offset,
-      };
-      return getCachedValueOrFetch(
-        createCacheKey("search", cacheKeyArgs),
-        CACHE_TTLS.searchShows,
-        () => searchShows(term, limit, offset)
-      );
+      const userSub = event.identity?.sub ?? null;
+
+      if (!userSub) {
+        const cacheKeyArgs = {
+          term,
+          limit,
+          offset,
+        };
+        return getCachedValueOrFetch(
+          createCacheKey("search", cacheKeyArgs),
+          CACHE_TTLS.searchShows,
+          () => searchShows(term, limit, offset, null)
+        );
+      }
+
+      return searchShows(term, limit, offset, userSub);
     }
     case "show":
     case "getShow": {
@@ -130,7 +137,12 @@ export const handler = async (event: AppSyncEvent) => {
   }
 };
 
-async function searchShows(term: string, limit = 20, offset = 0) {
+async function searchShows(
+  term: string,
+  limit = 20,
+  offset = 0,
+  userSub: string | null
+) {
   const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : 20;
   const safeOffset = Number.isFinite(offset) && offset >= 0 ? offset : 0;
   const params = new URLSearchParams({
@@ -146,7 +158,15 @@ async function searchShows(term: string, limit = 20, offset = 0) {
   }>(`/search?${params}`);
   const shows = data.shows?.items ?? [];
 
-  return shows.map(mapShow);
+  if (!userSub) {
+    return shows.map((show) => mapShow(show));
+  }
+
+  const subscribedIds = await getSubscribedShowIds(userSub);
+
+  return shows.map((show) =>
+    mapShow(show, { isSubscribed: subscribedIds.has(show.id) })
+  );
 }
 
 async function getShow(showId: string) {
@@ -187,6 +207,39 @@ async function getEpisode(showId: string | null, episodeId: string) {
     episode.show = { id: showId };
   }
   return { mapped: mapEpisode(episode), raw: episode };
+}
+
+async function getSubscribedShowIds(userSub: string): Promise<Set<string>> {
+  const subscribed = new Set<string>();
+  let exclusiveStartKey: Record<string, unknown> | undefined;
+
+  do {
+    const response = await dynamo.send(
+      new QueryCommand({
+        TableName: tableName,
+        KeyConditionExpression: "pk = :pk AND begins_with(sk, :sk)",
+        ExpressionAttributeValues: {
+          ":pk": `user#${userSub}`,
+          ":sk": "sub#",
+        },
+        ProjectionExpression: "showId",
+        ExclusiveStartKey: exclusiveStartKey,
+      })
+    );
+
+    for (const item of response.Items ?? []) {
+      const showId = (item as { showId?: string }).showId;
+      if (typeof showId === "string" && showId.length > 0) {
+        subscribed.add(showId);
+      }
+    }
+
+    exclusiveStartKey = response.LastEvaluatedKey as
+      | Record<string, unknown>
+      | undefined;
+  } while (exclusiveStartKey);
+
+  return subscribed;
 }
 
 async function getCachedValueOrFetch<T>(
@@ -364,7 +417,7 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function mapShow(show: SpotifyShow) {
+function mapShow(show: SpotifyShow, overrides?: { isSubscribed?: boolean }) {
   return {
     id: show.id,
     title: show.name,
@@ -379,6 +432,7 @@ function mapShow(show: SpotifyShow) {
     languages: show.languages ?? [],
     availableMarkets: show.available_markets ?? [],
     mediaType: show.media_type ?? null,
+    isSubscribed: overrides?.isSubscribed ?? false,
   };
 }
 

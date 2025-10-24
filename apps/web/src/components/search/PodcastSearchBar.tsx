@@ -10,7 +10,7 @@ import React, {
   type ChangeEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { useLazyQuery, useMutation } from "@apollo/client/react";
+import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import {
   SearchShowsDocument,
   type SearchShowsQuery,
@@ -18,6 +18,11 @@ import {
   SubscribeToShowDocument,
   type SubscribeToShowMutation,
   type SubscribeToShowMutationVariables,
+  UnsubscribeFromShowDocument,
+  type UnsubscribeFromShowMutation,
+  type UnsubscribeFromShowMutationVariables,
+  MySubscriptionsDocument,
+  type MySubscriptionsQuery,
 } from "@shared";
 import { InteractiveButton, SearchInput } from "@ui";
 
@@ -48,8 +53,10 @@ const pickDescription = (
   return { value: "", isHtml: false };
 };
 
+const MY_SUBSCRIPTIONS_VARS = { limit: 200 } as const;
+
 export default function PodcastSearchBar({
-  limit = 6,
+  limit = 10,
   className,
 }: PodcastSearchBarProps): JSX.Element {
   const [query, setQuery] = useState("");
@@ -77,8 +84,29 @@ export default function PodcastSearchBar({
     SubscribeToShowMutationVariables
   >(SubscribeToShowDocument);
 
+  const [unsubscribeFromShow] = useMutation<
+    UnsubscribeFromShowMutation,
+    UnsubscribeFromShowMutationVariables
+  >(UnsubscribeFromShowDocument);
+
+  const { data: subscriptionsData } = useQuery<MySubscriptionsQuery>(
+    MySubscriptionsDocument,
+    {
+      variables: MY_SUBSCRIPTIONS_VARS,
+      skip: !isOpen,
+      fetchPolicy: "cache-first",
+    }
+  );
+
   const shows = useMemo(() => data?.search ?? [], [data]);
-  const [pendingShowId, setPendingShowId] = useState<string | null>(null);
+  const subscribedIds = useMemo(() => {
+    const items = subscriptionsData?.mySubscriptions.items ?? [];
+    return new Set(items.map((item) => item.showId));
+  }, [subscriptionsData]);
+
+  const [pendingState, setPendingState] = useState<
+    { showId: string; action: "add" | "remove" } | null
+  >(null);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -276,7 +304,7 @@ export default function PodcastSearchBar({
     show: SearchShowsQuery["search"][number]
   ): Promise<void> => {
     try {
-      setPendingShowId(show.id);
+      setPendingState({ showId: show.id, action: "add" });
       await subscribeToShow({
         variables: {
           showId: show.id,
@@ -286,6 +314,47 @@ export default function PodcastSearchBar({
           totalEpisodes:
             typeof show.totalEpisodes === "number" ? show.totalEpisodes : 0,
         },
+        update: (cache, { data: subscribeData }) => {
+          const newSubscription = subscribeData?.subscribe;
+          if (!newSubscription) {
+            return;
+          }
+
+          cache.updateQuery<MySubscriptionsQuery>(
+            {
+              query: MySubscriptionsDocument,
+              variables: MY_SUBSCRIPTIONS_VARS,
+            },
+            (existing) => {
+              if (!existing?.mySubscriptions) {
+                return {
+                  mySubscriptions: {
+                    __typename: "SubscriptionConnection",
+                    items: [newSubscription],
+                    nextToken: null,
+                  },
+                };
+              }
+
+              const items = existing.mySubscriptions.items ?? [];
+              if (
+                items.some(
+                  (subscription) =>
+                    subscription?.showId === newSubscription.showId
+                )
+              ) {
+                return existing;
+              }
+
+              return {
+                mySubscriptions: {
+                  ...existing.mySubscriptions,
+                  items: [newSubscription, ...items],
+                },
+              };
+            }
+          );
+        },
       });
       setToast(`Added "${show.title ?? "podcast"}" to your library.`);
       window.setTimeout(() => setToast(null), 2200);
@@ -294,7 +363,51 @@ export default function PodcastSearchBar({
       setToast("We couldn’t add that show. Try again in a moment.");
       window.setTimeout(() => setToast(null), 2500);
     } finally {
-      setPendingShowId(null);
+      setPendingState(null);
+    }
+  };
+
+  const handleUnsubscribe = async (
+    show: SearchShowsQuery["search"][number]
+  ): Promise<void> => {
+    try {
+      setPendingState({ showId: show.id, action: "remove" });
+      await unsubscribeFromShow({
+        variables: {
+          showId: show.id,
+        },
+        update: (cache) => {
+          cache.updateQuery<MySubscriptionsQuery>(
+            {
+              query: MySubscriptionsDocument,
+              variables: MY_SUBSCRIPTIONS_VARS,
+            },
+            (existing) => {
+              if (!existing?.mySubscriptions) {
+                return existing;
+              }
+
+              return {
+                mySubscriptions: {
+                  ...existing.mySubscriptions,
+                  items:
+                    existing.mySubscriptions.items?.filter(
+                      (subscription) => subscription?.showId !== show.id
+                    ) ?? [],
+                },
+              };
+            }
+          );
+        },
+      });
+      setToast(`Removed "${show.title ?? "podcast"}" from your library.`);
+      window.setTimeout(() => setToast(null), 2200);
+    } catch (unsubscribeError) {
+      console.error("Failed to unsubscribe", unsubscribeError);
+      setToast("We couldn’t remove that show. Try again in a moment.");
+      window.setTimeout(() => setToast(null), 2500);
+    } finally {
+      setPendingState(null);
     }
   };
 
@@ -317,9 +430,9 @@ export default function PodcastSearchBar({
       statusRef.current.textContent = "Type at least two characters to search.";
       return;
     }
-    statusRef.current.textContent = `Found ${shows.length} podcast${
-      shows.length === 1 ? "" : "s"
-    }.`;
+    statusRef.current.textContent = shows.length
+      ? "Search results ready."
+      : "No podcasts matched your search.";
   }, [loading, error, hasQuery, shows.length]);
 
   const trapFocus = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -373,12 +486,12 @@ export default function PodcastSearchBar({
             >
               <div
                 ref={dialogRef}
-                className="w-full max-w-3xl overflow-hidden rounded-3xl border border-white/12 bg-[#150a2f]/90 shadow-[0_50px_140px_rgba(18,7,60,0.55)] backdrop-blur-2xl"
+                className="w-full max-w-4xl overflow-hidden rounded-[32px] border border-white/20 bg-gradient-to-br from-[#1c0f3e]/95 via-[#150930]/95 to-[#0c041d]/95 shadow-[0_60px_180px_rgba(18,7,60,0.65)] backdrop-blur-3xl"
               >
                 <div className="flex items-center justify-between gap-4 px-6 pt-6">
                   <h2
                     id="podcast-search-title"
-                    className="text-sm font-semibold uppercase tracking-[0.35em] text-white/60"
+                    className="text-sm font-semibold uppercase tracking-[0.45em] text-white/70"
                   >
                     Search podcasts
                   </h2>
@@ -443,26 +556,30 @@ export default function PodcastSearchBar({
                     className="text-xs text-white/55"
                   />
 
-                  <div className="rounded-2xl border border-white/12 bg-[#1d0d3b]/75 p-2">
-                    {error ? (
-                      <ErrorState error={error} />
-                    ) : !hasQuery ? (
-                      <EmptyPrompt />
-                    ) : shows.length === 0 && !loading ? (
-                      <EmptyState />
-                    ) : (
-                      <ResultList
-                        ref={listRef}
-                        id={listboxId}
-                        shows={shows}
-                        activeIndex={activeIndex}
-                        onSelect={navigateToShow}
-                        onHover={setActiveIndex}
-                        onSubscribe={handleSubscribe}
-                        pendingShowId={pendingShowId}
-                      />
-                    )}
-                  </div>
+                  {hasQuery && (loading || error || shows.length > 0) ? (
+                    <div className="rounded-2xl border border-white/12 bg-[#1d0d3b]/85 p-2 shadow-[0_30px_90px_rgba(12,4,40,0.45)]">
+                      {error ? (
+                        <ErrorState error={error} />
+                      ) : shows.length === 0 && !loading ? (
+                        <EmptyState />
+                      ) : (
+                        <ResultList
+                          ref={listRef}
+                          id={listboxId}
+                          shows={shows}
+                          activeIndex={activeIndex}
+                          onSelect={navigateToShow}
+                          onHover={setActiveIndex}
+                          onSubscribe={handleSubscribe}
+                          onUnsubscribe={handleUnsubscribe}
+                          pendingState={pendingState}
+                          subscribedIds={subscribedIds}
+                        />
+                      )}
+                    </div>
+                  ) : !hasQuery ? (
+                    <EmptyPrompt />
+                  ) : null}
                 </form>
               </div>
             </div>
@@ -519,12 +636,26 @@ interface ResultListProps {
   onSelect: (showId: string) => void;
   onHover: (index: number) => void;
   onSubscribe: (show: SearchShowsQuery["search"][number]) => Promise<void>;
-  pendingShowId: string | null;
+  onUnsubscribe: (
+    show: SearchShowsQuery["search"][number]
+  ) => Promise<void>;
+  pendingState: { showId: string; action: "add" | "remove" } | null;
+  subscribedIds: Set<string>;
 }
 
 const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
   (
-    { id, shows, activeIndex, onSelect, onHover, onSubscribe, pendingShowId },
+    {
+      id,
+      shows,
+      activeIndex,
+      onSelect,
+      onHover,
+      onSubscribe,
+      onUnsubscribe,
+      pendingState,
+      subscribedIds,
+    },
     ref
   ) => (
     <ul
@@ -537,6 +668,17 @@ const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
         const optionId = `${id}-option-${index}`;
         const isActive = index === activeIndex;
         const description = pickDescription(show);
+        const isSubscribed = subscribedIds.has(show.id);
+        const isPending = pendingState?.showId === show.id;
+        const isRemoving = isPending && pendingState?.action === "remove";
+        const isAdding = isPending && pendingState?.action === "add";
+        const cardClassNames = [
+          "flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/25 hover:bg-white/10",
+          isActive ? "border-white/25 bg-white/10" : "",
+          isSubscribed ? "border-[#8f73ff]/70 bg-[#221048]/90" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
 
         return (
           <li
@@ -544,9 +686,7 @@ const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
             id={optionId}
             role="option"
             aria-selected={isActive}
-            className={`flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/25 hover:bg-white/10 ${
-              isActive ? "border-white/25 bg-white/10" : ""
-            }`}
+            className={cardClassNames}
             onMouseEnter={() => onHover(index)}
           >
             <button
@@ -590,17 +730,31 @@ const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
                 <MetadataRow show={show} />
               </div>
             </button>
-            <InteractiveButton
-              variant="secondary"
-              onClick={() => {
-                void onSubscribe(show);
-              }}
-              isLoading={pendingShowId === show.id}
-              loadingLabel="Adding…"
-              className="ml-auto flex-shrink-0 transition-transform duration-200 hover:scale-[1.04] focus-visible:scale-[1.04]"
-            >
-              Add
-            </InteractiveButton>
+            {isSubscribed ? (
+              <InteractiveButton
+                variant="outline"
+                onClick={() => {
+                  void onUnsubscribe(show);
+                }}
+                isLoading={isRemoving}
+                loadingLabel="Removing…"
+                className="ml-auto flex-shrink-0 transition-transform duration-200 hover:scale-[1.04] focus-visible:scale-[1.04]"
+              >
+                Remove
+              </InteractiveButton>
+            ) : (
+              <InteractiveButton
+                variant="secondary"
+                onClick={() => {
+                  void onSubscribe(show);
+                }}
+                isLoading={isAdding}
+                loadingLabel="Adding…"
+                className="ml-auto flex-shrink-0 transition-transform duration-200 hover:scale-[1.04] focus-visible:scale-[1.04]"
+              >
+                Add
+              </InteractiveButton>
+            )}
           </li>
         );
       })}
