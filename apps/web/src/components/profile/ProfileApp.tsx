@@ -406,7 +406,7 @@ function ProfileAppContent(): JSX.Element {
             <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#14072f]/85 p-2 backdrop-blur-2xl">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(128,94,255,0.18),_transparent_75%)]" />
               <div className="relative space-y-6">
-                <div className="flex flex-col gap-3 text-center md:flex-row md:items-end md:justify-between md:text-left">
+                <div className="flex flex-col gap-3 text-center md:flex-row md:items-end md:justify-between md:text-left px-4 pt-4">
                   <h2 className="text-2xl font-semibold text-white md:text-left">
                     Your Entire Library
                   </h2>
@@ -529,9 +529,7 @@ function SpotlightCard({
   const hasImage = typeof show.image === "string" && show.image.length > 0;
 
   return (
-    <div
-      className="group relative overflow-hidden rounded-3xl border border-white/12 p-8 shadow-[0_45px_110px_rgba(24,14,78,0.5)] backdrop-blur-2xl"
-    >
+    <div className="group relative overflow-hidden rounded-3xl border border-white/12 p-8 shadow-[0_45px_110px_rgba(24,14,78,0.5)] backdrop-blur-2xl">
       <div
         className={cn(
           "absolute inset-0 bg-[linear-gradient(140deg,rgba(162,122,255,0.22),rgba(66,40,162,0.36))]",
