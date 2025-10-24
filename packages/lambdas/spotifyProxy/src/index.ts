@@ -48,19 +48,33 @@ export const handler = async (event: AppSyncEvent) => {
     case "searchShows":
     case "searchSpotify": {
       const args = event.arguments as {
-        term?: string;
-        limit?: number;
-        offset?: number;
+        term?: string | null;
+        limit?: number | null;
+        offset?: number | null;
       };
       const term = args.term?.trim();
       if (!term) {
         throw new Error("term is required");
       }
 
+      const limit =
+        typeof args.limit === "number" && Number.isFinite(args.limit)
+          ? args.limit
+          : undefined;
+      const offset =
+        typeof args.offset === "number" && Number.isFinite(args.offset)
+          ? args.offset
+          : undefined;
+
+      const cacheKeyArgs = {
+        term,
+        limit,
+        offset,
+      };
       return getCachedValueOrFetch(
-        createCacheKey("search", args),
+        createCacheKey("search", cacheKeyArgs),
         CACHE_TTLS.searchShows,
-        () => searchShows(term, args.limit, args.offset)
+        () => searchShows(term, limit, offset)
       );
     }
     case "show":
@@ -117,12 +131,14 @@ export const handler = async (event: AppSyncEvent) => {
 };
 
 async function searchShows(term: string, limit = 20, offset = 0) {
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : 20;
+  const safeOffset = Number.isFinite(offset) && offset >= 0 ? offset : 0;
   const params = new URLSearchParams({
     q: term,
     type: "show",
     market: defaultMarket,
-    limit: limit.toString(),
-    offset: offset.toString(),
+    limit: safeLimit.toString(),
+    offset: safeOffset.toString(),
   }).toString();
 
   const data = await spotifyFetch<{
@@ -130,9 +146,7 @@ async function searchShows(term: string, limit = 20, offset = 0) {
   }>(`/search?${params}`);
   const shows = data.shows?.items ?? [];
 
-  return {
-    items: shows.map(mapShow),
-  };
+  return shows.map(mapShow);
 }
 
 async function getShow(showId: string) {

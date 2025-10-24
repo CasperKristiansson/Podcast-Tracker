@@ -119,6 +119,7 @@ export class ApiDataStack extends cdk.Stack {
       entry: resolveLambdaEntry("spotifyProxy", "src", "index.ts"),
       handler: "handler",
       environment: { ...spotifyEnv },
+      timeout: cdk.Duration.seconds(10),
     });
 
     grantTableReadWrite(this.spotifyProxyLambda, this.table);

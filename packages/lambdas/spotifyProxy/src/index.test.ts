@@ -297,9 +297,9 @@ describe("spotify proxy handler", () => {
     const result = (await handler({
       info: { fieldName: "searchShows" },
       arguments: { term: "tech", limit: 5, offset: 10 },
-    })) as ListResponse<ShowSummary>;
+    })) as ShowSummary[];
 
-    expect(result.items).toEqual([
+    expect(result).toEqual([
       {
         id: "show-1",
         title: "The Daily",
@@ -378,9 +378,9 @@ describe("spotify proxy handler", () => {
     const result = (await handler({
       info: { fieldName: "searchSpotify" },
       arguments: { term: "nothing" },
-    })) as ListResponse<ShowSummary>;
+    })) as ShowSummary[];
 
-    expect(result.items).toEqual([]);
+    expect(result).toEqual([]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
