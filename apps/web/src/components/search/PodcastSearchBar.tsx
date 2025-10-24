@@ -389,7 +389,7 @@ export default function PodcastSearchBar({
 
                 <form
                   role="search"
-                  className="flex flex-col gap-4 px-6 pb-6"
+                  className="flex flex-col gap-4 px-6 pb-6 pt-4"
                   onSubmit={(event) => {
                     event.preventDefault();
                     const show = shows[activeIndex];
