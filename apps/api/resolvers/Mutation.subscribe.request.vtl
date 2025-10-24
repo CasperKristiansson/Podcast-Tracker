@@ -13,15 +13,15 @@ $util.qr($item.put("image", $ctx.args.image))
 $util.qr($item.put("totalEpisodes", $totalEpisodes))
 $util.qr($item.put("subscriptionSyncedAt", $now))
 $util.qr($item.put("addedAt", $now))
+#set($key = $util.map())
+$util.qr($key.put("pk", $pk))
+$util.qr($key.put("sk", $sk))
 $util.qr($ctx.stash.put("subscriptionItem", $item))
 $util.qr($ctx.stash.put("addedAt", $now))
 $util.qr($ctx.stash.put("totalEpisodes", $totalEpisodes))
 {
   "version": "2018-05-29",
   "operation": "PutItem",
-  "key": $util.dynamodb.toMapValues({
-    "pk" : $pk,
-    "sk" : $sk
-  }),
+  "key": $util.dynamodb.toMapValues($key),
   "attributeValues": $util.dynamodb.toMapValues($item)
 }
