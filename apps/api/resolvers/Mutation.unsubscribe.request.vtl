@@ -1,9 +1,11 @@
+#set($pk = "user#${ctx.identity.sub}")
+#set($sk = "sub#${ctx.args.showId}")
 {
   "version": "2018-05-29",
   "operation": "DeleteItem",
   "key": {
-    "pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub),
-    "sk": $util.dynamodb.toDynamoDBJson("sub#" + $ctx.args.showId)
+    "pk": $util.dynamodb.toDynamoDBJson($pk),
+    "sk": $util.dynamodb.toDynamoDBJson($sk)
   },
   "returnValues": "ALL_OLD"
 }

@@ -14,6 +14,9 @@ import {
   type MyProfileQuery,
   type MyProfileQueryVariables,
   type ProfileShow,
+  UnsubscribeFromShowDocument,
+  type UnsubscribeFromShowMutation,
+  type UnsubscribeFromShowMutationVariables,
 } from "@shared";
 import { AuroraBackground, InteractiveButton } from "@ui";
 import { cn } from "@ui/lib/cn";
@@ -77,10 +80,15 @@ function ProfileAppContent(): JSX.Element {
     MarkEpisodeProgressMutation,
     MarkEpisodeProgressMutationVariables
   >(MarkEpisodeProgressDocument);
+  const [unsubscribeFromShow] = useMutation<
+    UnsubscribeFromShowMutation,
+    UnsubscribeFromShowMutationVariables
+  >(UnsubscribeFromShowDocument);
 
   const [celebration, setCelebration] = useState<CelebrationState | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [pendingShowId, setPendingShowId] = useState<string | null>(null);
+  const [unsubscribingId, setUnsubscribingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!toast) return;
@@ -180,6 +188,32 @@ function ProfileAppContent(): JSX.Element {
       void handleCelebrate(show);
     },
     [handleCelebrate]
+  );
+
+  const handleUnsubscribe = useCallback(
+    async (show: ProfileShow) => {
+      try {
+        setUnsubscribingId(show.showId);
+        await unsubscribeFromShow({
+          variables: { showId: show.showId },
+        });
+        await refetchProfile();
+        setToast(`Removed ${show.title} from your library.`);
+      } catch (err) {
+        console.error("Failed to unsubscribe", err);
+        setToast("We couldn’t unsubscribe from that show. Please try again.");
+      } finally {
+        setUnsubscribingId(null);
+      }
+    },
+    [refetchProfile, unsubscribeFromShow]
+  );
+
+  const handleUnsubscribeClick = useCallback(
+    (show: ProfileShow) => {
+      void handleUnsubscribe(show);
+    },
+    [handleUnsubscribe]
   );
 
   if (loading) {
@@ -342,6 +376,7 @@ function ProfileAppContent(): JSX.Element {
                       key={show.showId}
                       show={show}
                       onCelebrate={handleCelebrateClick}
+                      onUnsubscribe={handleUnsubscribeClick}
                       celebrating={
                         celebration?.showId === show.showId
                           ? celebration.seed
@@ -350,6 +385,7 @@ function ProfileAppContent(): JSX.Element {
                       disabled={
                         pendingShowId === show.showId || progressMutating
                       }
+                      unsubscribing={unsubscribingId === show.showId}
                     />
                   ))}
                 </div>
@@ -510,19 +546,25 @@ function SpotlightCard({
 interface LibraryCardProps {
   show: ProfileShow;
   onCelebrate: (show: ProfileShow) => void;
+  onUnsubscribe: (show: ProfileShow) => void;
   celebrating: number | null;
   disabled: boolean;
+  unsubscribing: boolean;
 }
 
 function LibraryCard({
   show,
   onCelebrate,
+  onUnsubscribe,
   celebrating,
   disabled,
+  unsubscribing,
 }: LibraryCardProps): JSX.Element {
   const hasUnlistened = show.unlistenedEpisodes > 0;
   const addedAtValue = normalizeDateInput(show.addedAt);
   const hasImage = typeof show.image === "string" && show.image.length > 0;
+  const celebrateDisabled = !hasUnlistened || disabled || unsubscribing;
+  const celebrateLoading = disabled && hasUnlistened;
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-white/12 bg-white/[0.04] p-6 shadow-[0_35px_90px_rgba(24,14,78,0.45)] backdrop-blur-2xl">
@@ -555,23 +597,37 @@ function LibraryCard({
           </div>
         </div>
 
-        <div className="flex flex-col items-start gap-2 text-xs text-white/55 sm:items-end sm:text-right">
+        <div className="flex flex-col items-start gap-3 text-xs text-white/55 sm:items-end sm:text-right">
           <p>
             Subscribed since{" "}
             {addedAtValue ? formatDate(addedAtValue) : "Unknown"}
           </p>
-          <InteractiveButton
-            variant="ghost"
-            onClick={() => {
-              void onCelebrate(show);
-            }}
-            disabled={!hasUnlistened}
-            className="mt-1 sm:mt-0"
-            isLoading={disabled && hasUnlistened}
-            loadingLabel="Logging…"
-          >
-            {hasUnlistened ? "Mark next episode complete" : "Listen again"}
-          </InteractiveButton>
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            <InteractiveButton
+              variant="ghost"
+              onClick={() => {
+                void onCelebrate(show);
+              }}
+              disabled={celebrateDisabled}
+              className="mt-1 sm:mt-0"
+              isLoading={celebrateLoading}
+              loadingLabel="Logging…"
+            >
+              {hasUnlistened ? "Mark next episode complete" : "Listen again"}
+            </InteractiveButton>
+            <InteractiveButton
+              variant="outline"
+              onClick={() => {
+                void onUnsubscribe(show);
+              }}
+              disabled={unsubscribing}
+              isLoading={unsubscribing}
+              loadingLabel="Removing…"
+              className="border-red-400/45 text-red-100 hover:border-red-300/65 hover:text-red-50"
+            >
+              Remove show
+            </InteractiveButton>
+          </div>
         </div>
       </div>
 
