@@ -20,7 +20,7 @@ const createApolloResources = (idToken: string): ApolloResources => {
   const formatDebugPayload = (payload: unknown) => {
     try {
       return JSON.stringify(payload, null, 2);
-    } catch (_err) {
+    } catch {
       return String(payload);
     }
   };
@@ -56,7 +56,7 @@ const createApolloResources = (idToken: string): ApolloResources => {
           }
           observer.next(result);
         },
-        error: (networkError) => {
+        error: (networkError: unknown) => {
           if (process.env.NODE_ENV !== "production") {
             console.debug(
               "[GraphQL] Error",

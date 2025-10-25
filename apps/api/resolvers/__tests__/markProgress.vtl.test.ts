@@ -95,9 +95,7 @@ describe("Mutation.markProgress mapping templates", () => {
     });
 
     renderTemplate(requestTemplate, runtime);
-    expect(
-      runtime.ctx.stash.get("progress")
-    ).toEqual({
+    expect(runtime.ctx.stash.get("progress")).toEqual({
       episodeId: "episode-4",
       positionSec: 200,
       completed: true,

@@ -138,18 +138,20 @@ function ProfileAppContent(): JSX.Element {
                         0,
                         entry.inProgressEpisodes ?? 0
                       );
+                      const addedAt =
+                        normalizeDateInput(entry.addedAt) ??
+                        new Date().toISOString();
+                      const subscriptionSyncedAt = normalizeDateInput(
+                        entry.subscriptionSyncedAt
+                      );
                       return {
+                        ...entry,
                         __typename: entry.__typename ?? "ProfileShow",
-                        showId: entry.showId,
-                        title: entry.title,
-                        publisher: entry.publisher,
-                        image: entry.image,
-                        addedAt: entry.addedAt,
-                        totalEpisodes: entry.totalEpisodes,
                         completedEpisodes,
                         inProgressEpisodes,
                         unlistenedEpisodes,
-                        subscriptionSyncedAt: entry.subscriptionSyncedAt ?? null,
+                        addedAt,
+                        subscriptionSyncedAt: subscriptionSyncedAt ?? null,
                       } satisfies ProfileShow;
                     })
                     .filter((entry): entry is ProfileShow =>

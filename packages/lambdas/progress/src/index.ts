@@ -182,7 +182,7 @@ async function fetchEpisodes(
   let parsed: unknown;
   try {
     parsed = JSON.parse(decoded);
-  } catch (error) {
+  } catch {
     throw new Error("Unable to parse episodes payload.");
   }
 

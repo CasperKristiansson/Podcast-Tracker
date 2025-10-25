@@ -465,6 +465,8 @@ function mapEpisode(episode: SpotifyEpisode) {
   };
 }
 
+const RELEASE_DATE_REGEX = /^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/;
+
 function normalizeReleaseDate(
   value: string,
   precision: string | undefined
@@ -481,7 +483,7 @@ function normalizeReleaseDate(
     return null;
   }
 
-  const dateMatch = value.match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/);
+  const dateMatch = RELEASE_DATE_REGEX.exec(value);
   if (!dateMatch) {
     return null;
   }

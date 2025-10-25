@@ -38,6 +38,16 @@ const DEBOUNCE_MS = 300;
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
 
+const normalizeDateInput = (value: unknown): string | null => {
+  if (typeof value === "string" && value.length > 0) {
+    return value;
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  return null;
+};
+
 const pickDescription = (
   show: SearchShowsQuery["search"][number]
 ): {
@@ -368,19 +378,22 @@ export default function PodcastSearchBar({
                 return existingProfile;
               }
 
+              const addedAt =
+                normalizeDateInput(newSubscription.addedAt) ??
+                new Date().toISOString();
               const profileShow = {
                 __typename: "ProfileShow" as const,
                 showId: newSubscription.showId,
                 title: newSubscription.title,
                 publisher: newSubscription.publisher,
                 image: newSubscription.image ?? "",
-                addedAt: newSubscription.addedAt,
+                addedAt,
                 totalEpisodes: newSubscription.totalEpisodes ?? 0,
                 completedEpisodes: 0,
                 inProgressEpisodes: 0,
                 unlistenedEpisodes: newSubscription.totalEpisodes ?? 0,
                 subscriptionSyncedAt: null,
-              };
+              } satisfies MyProfileQuery["myProfile"]["shows"][number];
 
               const currentStats =
                 profile.stats ??

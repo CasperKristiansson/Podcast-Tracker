@@ -351,10 +351,7 @@ function buildRateShowResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   return util.dynamodb.toMapValues(record);
 }
 
-function buildPublishProgressRequest(
-  ctx: RuntimeContext,
-  util: AppSyncUtil
-) {
+function buildPublishProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   return {
     version: "2018-05-29",
     payload: {
@@ -426,14 +423,9 @@ function buildMySubscriptionsRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   };
 }
 
-function buildMySubscriptionsResponse(
-  ctx: RuntimeContext,
-  util: AppSyncUtil
-) {
+function buildMySubscriptionsResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   const result = asRecord(ctx.result) ?? {};
-  const items = Array.isArray(result.items)
-    ? (result.items as unknown[])
-    : [];
+  const items = Array.isArray(result.items) ? (result.items as unknown[]) : [];
 
   const parsed = items.map((item) => {
     const map = util.dynamodb.toMapValues(
@@ -464,7 +456,10 @@ function buildHealthResponse() {
   };
 }
 
-const templateBuilders: Record<string, (ctx: RuntimeContext, util: AppSyncUtil) => unknown> = {
+const templateBuilders: Record<
+  string,
+  (ctx: RuntimeContext, util: AppSyncUtil) => unknown
+> = {
   "Mutation.subscribe.request.vtl": (ctx, util) =>
     buildSubscribeRequest(ctx, util),
   "Mutation.subscribe.response.vtl": (ctx, util) =>
@@ -479,7 +474,7 @@ const templateBuilders: Record<string, (ctx: RuntimeContext, util: AppSyncUtil) 
     buildRateShowResponse(ctx, util),
   "Mutation.publishProgress.request.vtl": (ctx, util) =>
     buildPublishProgressRequest(ctx, util),
-  "Mutation.publishProgress.response.vtl": (ctx, _util) =>
+  "Mutation.publishProgress.response.vtl": (ctx) =>
     buildPublishProgressResponse(ctx),
   "Mutation.unsubscribe.request.vtl": (ctx, util) =>
     buildUnsubscribeRequest(ctx, util),
@@ -493,8 +488,8 @@ const templateBuilders: Record<string, (ctx: RuntimeContext, util: AppSyncUtil) 
     buildMySubscriptionsRequest(ctx, util),
   "Query.mySubscriptions.response.vtl": (ctx, util) =>
     buildMySubscriptionsResponse(ctx, util),
-  "Query.health.request.vtl": (_ctx, _util) => buildHealthRequest(),
-  "Query.health.response.vtl": (_ctx, _util) => buildHealthResponse(),
+  "Query.health.request.vtl": () => buildHealthRequest(),
+  "Query.health.response.vtl": () => buildHealthResponse(),
 };
 
 export function renderTemplate(
