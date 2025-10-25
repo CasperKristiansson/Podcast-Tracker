@@ -1,6 +1,8 @@
+#set($userPk = "user#${ctx.identity.sub}")
+#set($episodeSk = "ep#${ctx.args.episodeId}")
 #set($attributes = {
-  "pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub),
-  "sk": $util.dynamodb.toDynamoDBJson("ep#" + $ctx.args.episodeId),
+  "pk": $util.dynamodb.toDynamoDBJson($userPk),
+  "sk": $util.dynamodb.toDynamoDBJson($episodeSk),
   "dataType": $util.dynamodb.toDynamoDBJson("progress"),
   "episodeId": $util.dynamodb.toDynamoDBJson($ctx.args.episodeId),
   "positionSec": $util.dynamodb.toDynamoDBJson($ctx.args.positionSec),
@@ -16,8 +18,8 @@
   "version": "2018-05-29",
   "operation": "PutItem",
   "key": {
-    "pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub),
-    "sk": $util.dynamodb.toDynamoDBJson("ep#" + $ctx.args.episodeId)
+    "pk": $util.dynamodb.toDynamoDBJson($userPk),
+    "sk": $util.dynamodb.toDynamoDBJson($episodeSk)
   },
   "attributeValues": $util.toJson($attributes),
   "returnValues": "ALL_NEW"

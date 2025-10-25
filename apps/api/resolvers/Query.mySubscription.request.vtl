@@ -1,8 +1,10 @@
+#set($userPk = "user#${ctx.identity.sub}")
+#set($subscriptionSk = "sub#${ctx.args.showId}")
 {
   "version": "2018-05-29",
   "operation": "GetItem",
   "key": {
-    "pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub),
-    "sk": $util.dynamodb.toDynamoDBJson("sub#" + $ctx.args.showId)
+    "pk": $util.dynamodb.toDynamoDBJson($userPk),
+    "sk": $util.dynamodb.toDynamoDBJson($subscriptionSk)
   }
 }

@@ -1,10 +1,11 @@
+#set($userPk = "user#${ctx.identity.sub}")
 {
   "version": "2018-05-29",
   "operation": "Query",
   "query": {
     "expression": "pk = :pk",
     "expressionValues": {
-      ":pk": $util.dynamodb.toDynamoDBJson("user#" + $ctx.identity.sub)
+      ":pk": $util.dynamodb.toDynamoDBJson($userPk)
     }
   },
   "nextToken": $util.toJson($ctx.args.nextToken),
