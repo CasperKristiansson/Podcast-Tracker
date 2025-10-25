@@ -44,11 +44,18 @@ export type EpisodeConnection = PaginatedResult & {
 
 export type Mutation = {
   __typename: 'Mutation';
+  markNextEpisodeComplete: Progress;
   markProgress: Progress;
   publishProgress: Progress;
   rateShow: UserSubscription;
   subscribe: UserSubscription;
   unsubscribe: Scalars['Boolean']['output'];
+};
+
+
+export type MutationMarkNextEpisodeCompleteArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  showId: Scalars['ID']['input'];
 };
 
 
@@ -327,6 +334,14 @@ export type MarkEpisodeProgressMutationVariables = Exact<{
 
 export type MarkEpisodeProgressMutation = { __typename: 'Mutation', markProgress: { __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any, showId?: string | null | undefined } };
 
+export type MarkNextEpisodeCompleteMutationVariables = Exact<{
+  showId: Scalars['ID']['input'];
+  limit?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type MarkNextEpisodeCompleteMutation = { __typename: 'Mutation', markNextEpisodeComplete: { __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any, showId?: string | null | undefined } };
+
 export type PublishProgressUpdateMutationVariables = Exact<{
   episodeId: Scalars['ID']['input'];
   positionSec: Scalars['Int']['input'];
@@ -552,6 +567,18 @@ export const MarkEpisodeProgressDocument = gql`
 }
     `;
 export type MarkEpisodeProgressMutationResult = ApolloReactCommon.MutationResult<MarkEpisodeProgressMutation>;
+export const MarkNextEpisodeCompleteDocument = gql`
+    mutation MarkNextEpisodeComplete($showId: ID!, $limit: Int) {
+  markNextEpisodeComplete(showId: $showId, limit: $limit) {
+    episodeId
+    positionSec
+    completed
+    updatedAt
+    showId
+  }
+}
+    `;
+export type MarkNextEpisodeCompleteMutationResult = ApolloReactCommon.MutationResult<MarkNextEpisodeCompleteMutation>;
 export const PublishProgressUpdateDocument = gql`
     mutation PublishProgressUpdate($episodeId: ID!, $positionSec: Int!, $completed: Boolean!) {
   publishProgress(

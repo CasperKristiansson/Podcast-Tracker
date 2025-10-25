@@ -1,5 +1,5 @@
 #set($episodeIds = $ctx.args.episodeIds)
-#if(!$episodeIds || $episodeIds.size() == 0)
+#if($util.isNull($episodeIds))
 {
   "version": "2018-05-29",
   "operation": "Query",
@@ -22,15 +22,16 @@
 $util.qr($filterValues.put(":progress", $util.dynamodb.toDynamoDB("progress")))
 #set($tokens = [])
 #set($index = 0)
+#set($tokenCount = 0)
 #foreach($episodeId in $episodeIds)
   #if($episodeId)
     #set($token = ":e${index}")
     #set($index = $index + 1)
     $util.qr($tokens.add($token))
     $util.qr($filterValues.put($token, $util.dynamodb.toDynamoDB($episodeId)))
+    #set($tokenCount = $tokenCount + 1)
   #end
 #end
-#set($tokenCount = $tokens.size())
 #if($tokenCount == 0)
 {
   "version": "2018-05-29",
@@ -50,7 +51,12 @@ $util.qr($filterValues.put(":progress", $util.dynamodb.toDynamoDB("progress")))
   }
 }
 #else
-#set($joinedTokens = $util.list.copyAndRemoveAllItems($tokens).join(", "))
+#set($episodeConditions = "")
+#set($separator = "")
+#foreach($token in $tokens)
+  #set($episodeConditions = "${episodeConditions}${separator}episodeId = ${token}")
+  #set($separator = " OR ")
+#end
 {
   "version": "2018-05-29",
   "operation": "Query",
@@ -61,7 +67,7 @@ $util.qr($filterValues.put(":progress", $util.dynamodb.toDynamoDB("progress")))
     }
   },
   "filter": {
-    "expression": "(dataType = :progress) AND episodeId IN ($joinedTokens)",
+    "expression": "(dataType = :progress) AND (${episodeConditions})",
     "expressionValues": $util.toJson($filterValues)
   }
 }

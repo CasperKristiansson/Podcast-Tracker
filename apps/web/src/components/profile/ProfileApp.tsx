@@ -1,15 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
+import { useMutation, useQuery } from "@apollo/client/react";
 import {
-  EpisodesByShowDocument,
-  type EpisodesByShowQuery,
-  type EpisodesByShowQueryVariables,
-  EpisodeProgressByIdsDocument,
-  type EpisodeProgressByIdsQuery,
-  type EpisodeProgressByIdsQueryVariables,
-  MarkEpisodeProgressDocument,
-  type MarkEpisodeProgressMutation,
-  type MarkEpisodeProgressMutationVariables,
+  MarkNextEpisodeCompleteDocument,
+  type MarkNextEpisodeCompleteMutation,
+  type MarkNextEpisodeCompleteMutationVariables,
   MyProfileDocument,
   type MyProfileQuery,
   type MyProfileQueryVariables,
@@ -63,23 +57,10 @@ function ProfileAppContent(): JSX.Element {
     fetchPolicy: "network-only",
   });
 
-  const [fetchEpisodes] = useLazyQuery<
-    EpisodesByShowQuery,
-    EpisodesByShowQueryVariables
-  >(EpisodesByShowDocument, {
-    fetchPolicy: "network-only",
-  });
-  const [fetchProgress] = useLazyQuery<
-    EpisodeProgressByIdsQuery,
-    EpisodeProgressByIdsQueryVariables
-  >(EpisodeProgressByIdsDocument, {
-    fetchPolicy: "network-only",
-  });
-
-  const [markProgress, { loading: progressMutating }] = useMutation<
-    MarkEpisodeProgressMutation,
-    MarkEpisodeProgressMutationVariables
-  >(MarkEpisodeProgressDocument);
+  const [markNextEpisodeComplete, { loading: progressMutating }] = useMutation<
+    MarkNextEpisodeCompleteMutation,
+    MarkNextEpisodeCompleteMutationVariables
+  >(MarkNextEpisodeCompleteDocument);
   const [unsubscribeFromShow] = useMutation<
     UnsubscribeFromShowMutation,
     UnsubscribeFromShowMutationVariables
@@ -122,51 +103,14 @@ function ProfileAppContent(): JSX.Element {
     async (show: ProfileShow) => {
       try {
         setPendingShowId(show.showId);
-        const { data: episodesData } = await fetchEpisodes({
+        const { data: progressData } = await markNextEpisodeComplete({
           variables: { showId: show.showId, limit: 25 },
         });
-        const episodes =
-          episodesData?.episodes.items
-            ?.filter(Boolean)
-            ?.map((episode) => ({
-              episodeId: episode?.episodeId ?? "",
-              durationSec: episode?.durationSec ?? 0,
-            }))
-            ?.filter((episode) => episode.episodeId.length > 0) ?? [];
 
-        if (episodes.length === 0) {
-          setToast("No episodes available yet for this show.");
+        if (!progressData?.markNextEpisodeComplete) {
+          setToast("We couldn’t log that episode. Please try again.");
           return;
         }
-
-        const episodeIds = episodes.map((episode) => episode.episodeId);
-        const { data: progressData } = await fetchProgress({
-          variables: { episodeIds },
-        });
-        const completedSet = new Set(
-          progressData?.episodeProgress
-            ?.filter((progress) => progress?.completed)
-            ?.map((progress) => progress?.episodeId ?? "")
-            ?.filter((id) => id.length > 0) ?? []
-        );
-
-        const nextEpisode = episodes.find(
-          (episode) => !completedSet.has(episode.episodeId)
-        );
-
-        if (!nextEpisode) {
-          setToast("You’re already caught up on the latest 25 episodes!");
-          return;
-        }
-
-        await markProgress({
-          variables: {
-            episodeId: nextEpisode.episodeId,
-            positionSec: Math.max(0, Math.round(nextEpisode.durationSec ?? 0)),
-            completed: true,
-            showId: show.showId,
-          },
-        });
 
         await refetchProfile();
         setCelebration({
@@ -180,7 +124,7 @@ function ProfileAppContent(): JSX.Element {
         setPendingShowId(null);
       }
     },
-    [fetchEpisodes, fetchProgress, markProgress, refetchProfile]
+    [markNextEpisodeComplete, refetchProfile]
   );
 
   const handleCelebrateClick = useCallback(

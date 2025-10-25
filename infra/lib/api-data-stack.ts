@@ -27,6 +27,7 @@ export class ApiDataStack extends cdk.Stack {
   public readonly spotifyProxyLambda: lambda.IFunction;
   public readonly refreshSubscriptionsLambda: lambda.IFunction;
   public readonly profileLambda: lambda.IFunction;
+  public readonly progressLambda: lambda.IFunction;
 
   constructor(scope: Construct, id: string, props: ApiDataStackProps) {
     super(scope, id, props);
@@ -156,6 +157,19 @@ export class ApiDataStack extends cdk.Stack {
 
     this.table.grantReadData(this.profileLambda);
 
+    this.progressLambda = new NodeLambda(this, "ProgressLambda", {
+      entry: resolveLambdaEntry("progress", "src", "index.ts"),
+      handler: "handler",
+      environment: {
+        TABLE_NAME: this.table.tableName,
+        SPOTIFY_PROXY_FUNCTION_NAME: this.spotifyProxyLambda.functionName,
+      },
+      timeout: cdk.Duration.seconds(10),
+    });
+
+    grantTableReadWrite(this.progressLambda, this.table);
+    this.spotifyProxyLambda.grantInvoke(this.progressLambda);
+
     new events.Rule(this, "RefreshSubscriptionsSchedule", {
       schedule: events.Schedule.cron({ minute: "0", hour: "3" }),
       description:
@@ -237,6 +251,18 @@ export class ApiDataStack extends cdk.Stack {
     profileDataSource.createResolver("MyProfileResolver", {
       typeName: "Query",
       fieldName: "myProfile",
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
+    const progressDataSource = this.api.addLambdaDataSource(
+      "ProgressDataSource",
+      this.progressLambda
+    );
+
+    progressDataSource.createResolver("MarkNextEpisodeCompleteResolver", {
+      typeName: "Mutation",
+      fieldName: "markNextEpisodeComplete",
       requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });

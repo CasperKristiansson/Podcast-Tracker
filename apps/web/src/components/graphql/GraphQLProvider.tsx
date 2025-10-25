@@ -26,11 +26,12 @@ const createApolloResources = (idToken: string): ApolloResources => {
   };
 
   const debugLink = new ApolloLink((operation, forward) => {
-    if (!forward) {
-      return null;
-    }
-
     return new Observable((observer) => {
+      if (!forward) {
+        observer.complete();
+        return () => undefined;
+      }
+
       if (process.env.NODE_ENV !== "production") {
         console.debug(
           "[GraphQL] Request",

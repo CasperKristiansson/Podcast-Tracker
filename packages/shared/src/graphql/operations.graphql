@@ -188,6 +188,16 @@ mutation MarkEpisodeProgress(
   }
 }
 
+mutation MarkNextEpisodeComplete($showId: ID!, $limit: Int) {
+  markNextEpisodeComplete(showId: $showId, limit: $limit) {
+    episodeId
+    positionSec
+    completed
+    updatedAt
+    showId
+  }
+}
+
 mutation PublishProgressUpdate(
   $episodeId: ID!
   $positionSec: Int!
