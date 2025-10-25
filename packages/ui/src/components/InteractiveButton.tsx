@@ -14,6 +14,7 @@ export interface InteractiveButtonProps
   isLoading?: boolean;
   icon?: ReactNode;
   loadingLabel?: string;
+  compact?: boolean;
   className?: ClassValue;
 }
 
@@ -38,6 +39,7 @@ export const InteractiveButton = forwardRef<
       isLoading = false,
       loadingLabel = "Working…",
       icon,
+      compact = false,
       className,
       children,
       disabled,
@@ -51,7 +53,8 @@ export const InteractiveButton = forwardRef<
       {...props}
       disabled={isLoading || disabled}
       className={cn(
-        "group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full px-6 py-3 text-sm font-semibold transition duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05020f]",
+        "group relative inline-flex items-center justify-center overflow-hidden rounded-full px-6 py-3 text-sm font-semibold transition duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05020f]",
+        compact ? "gap-0" : "gap-2",
         "cursor-pointer disabled:cursor-not-allowed disabled:opacity-60",
         variantClasses[variant],
         "before:absolute before:inset-0 before:-translate-y-full before:bg-white/30 before:opacity-0 before:transition duration-300 group-hover:before:translate-y-0 group-hover:before:opacity-100",
@@ -59,7 +62,12 @@ export const InteractiveButton = forwardRef<
         className
       )}
     >
-      <span className="relative inline-flex items-center gap-2">
+      <span
+        className={cn(
+          "relative inline-flex items-center",
+          compact ? "gap-0" : "gap-2"
+        )}
+      >
         {icon ? (
           <span className="flex h-4 w-4 items-center justify-center">
             {icon}

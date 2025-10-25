@@ -627,6 +627,27 @@ function SpotlightCard({
   );
 }
 
+function TrashIcon({ className }: { className?: string }): JSX.Element {
+  return (
+    <svg
+      className={cn("h-4 w-4", className)}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v2" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </svg>
+  );
+}
+
 interface LibraryCardProps {
   show: ProfileShow;
   onCelebrate: (show: ProfileShow) => void;
@@ -723,14 +744,16 @@ function LibraryCard({
               disabled={unsubscribing}
               isLoading={unsubscribing}
               loadingLabel="Removing…"
+              compact
               className={cn(
-                "w-full rounded-full border-red-400/45 px-6 py-3 text-sm font-semibold text-red-100 transition duration-300 sm:w-auto",
+                "h-10 w-10 rounded-full border border-white/10 bg-white/[0.05] p-0 text-white/60 transition duration-300",
                 unsubscribing
-                  ? "opacity-70"
-                  : "hover:-translate-y-0.5 hover:border-red-300/70 hover:text-red-50 focus-visible:ring-red-200/40"
+                  ? "opacity-60"
+                  : "hover:-translate-y-0.5 hover:bg-red-500/10 hover:text-red-200 focus-visible:ring-red-200/40"
               )}
+              icon={<TrashIcon className="text-current" />}
             >
-              Remove show
+              <span className="sr-only">Remove show</span>
             </InteractiveButton>
           </div>
         </div>
