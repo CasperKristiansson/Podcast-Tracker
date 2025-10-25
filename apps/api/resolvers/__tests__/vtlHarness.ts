@@ -248,8 +248,6 @@ function buildMarkProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   const sk = `ep#${String(ctx.args.episodeId)}`;
 
   const attributes: Record<string, unknown> = {
-    pk,
-    sk,
     dataType: "progress",
     episodeId: String(ctx.args.episodeId),
     positionSec: ctx.args.positionSec,
@@ -265,7 +263,6 @@ function buildMarkProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   }
 
   const attributeValues = util.dynamodb.toMapValues(attributes);
-  const keyValues = util.dynamodb.toMapValues({ pk, sk });
 
   util.qr(
     ctx.stash.put("progress", {
@@ -280,7 +277,10 @@ function buildMarkProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   return {
     version: "2018-05-29",
     operation: "PutItem",
-    key: keyValues,
+    key: {
+      pk: util.dynamodb.toDynamoDBJson(pk),
+      sk: util.dynamodb.toDynamoDBJson(sk),
+    },
     attributeValues,
   };
 }

@@ -25,7 +25,7 @@ describe("Mutation.markProgress mapping templates", () => {
       pk: { S: "user#user-5" },
       sk: { S: "ep#episode-1" },
     });
-    expect(request.attributeValues).toMatchObject({
+    expect(request.attributeValues).toEqual({
       dataType: { S: "progress" },
       episodeId: { S: "episode-1" },
       positionSec: { N: "123" },
@@ -50,7 +50,13 @@ describe("Mutation.markProgress mapping templates", () => {
     const request = JSON.parse(rendered);
 
     expect(request.attributeValues.showId).toBeUndefined();
-    expect(request.attributeValues.completed).toEqual({ BOOL: true });
+    expect(request.attributeValues).toEqual({
+      dataType: { S: "progress" },
+      episodeId: { S: "episode-2" },
+      positionSec: { N: "45" },
+      completed: { BOOL: true },
+      updatedAt: { S: "2025-04-11T12:00:00.000Z" },
+    });
   });
 
   it("converts DynamoDB map results into native values", () => {

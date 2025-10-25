@@ -3,8 +3,6 @@
 #set($now = $util.time.nowISO8601())
 
 #set($attributes = {
-  "pk": $userPk,
-  "sk": $episodeSk,
   "dataType": "progress",
   "episodeId": $ctx.args.episodeId,
   "positionSec": $ctx.args.positionSec,
@@ -26,11 +24,13 @@ $util.qr($progress.put("updatedAt", $now))
 $util.qr($ctx.stash.put("progress", $progress))
 
 #set($attributeValues = $util.dynamodb.toMapValues($attributes))
-#set($keyValues = $util.dynamodb.toMapValues({"pk": $userPk, "sk": $episodeSk}))
 
 {
   "version": "2018-05-29",
   "operation": "PutItem",
-  "key": $util.toJson($keyValues),
+  "key": {
+    "pk": $util.dynamodb.toDynamoDBJson($userPk),
+    "sk": $util.dynamodb.toDynamoDBJson($episodeSk)
+  },
   "attributeValues": $util.toJson($attributeValues)
 }
