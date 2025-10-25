@@ -68,7 +68,7 @@ export const InteractiveButton = forwardRef<
           compact ? "gap-0" : "gap-2"
         )}
       >
-        {icon ? (
+        {icon && !isLoading ? (
           <span className="flex h-4 w-4 items-center justify-center">
             {icon}
           </span>
