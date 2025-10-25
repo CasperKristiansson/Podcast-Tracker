@@ -1,4 +1,11 @@
-import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client";
+import {
+  ApolloClient,
+  HttpLink,
+  InMemoryCache,
+  ApolloLink,
+  from,
+} from "@apollo/client";
+import { Observable } from "@apollo/client/utilities";
 import { ApolloProvider } from "@apollo/client/react";
 import type { ComponentProps, ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -10,6 +17,67 @@ interface ApolloResources {
 }
 
 const createApolloResources = (idToken: string): ApolloResources => {
+  const formatDebugPayload = (payload: unknown) => {
+    try {
+      return JSON.stringify(payload, null, 2);
+    } catch (_err) {
+      return String(payload);
+    }
+  };
+
+  const debugLink = new ApolloLink((operation, forward) => {
+    if (!forward) {
+      return null;
+    }
+
+    return new Observable((observer) => {
+      if (process.env.NODE_ENV !== "production") {
+        console.debug(
+          "[GraphQL] Request",
+          formatDebugPayload({
+            operationName: operation.operationName,
+            variables: operation.variables,
+          })
+        );
+      }
+
+      const subscription = forward(operation).subscribe({
+        next: (result) => {
+          if (process.env.NODE_ENV !== "production") {
+            console.debug(
+              "[GraphQL] Response",
+              formatDebugPayload({
+                operationName: operation.operationName,
+                data: result.data,
+                errors: result.errors,
+              })
+            );
+          }
+          observer.next(result);
+        },
+        error: (networkError) => {
+          if (process.env.NODE_ENV !== "production") {
+            console.debug(
+              "[GraphQL] Error",
+              formatDebugPayload({
+                operationName: operation.operationName,
+                error: networkError,
+              })
+            );
+          }
+          observer.error(networkError);
+        },
+        complete: () => {
+          observer.complete();
+        },
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    });
+  });
+
   const httpLink = new HttpLink({
     uri: appsyncUrl,
     headers: {
@@ -18,7 +86,7 @@ const createApolloResources = (idToken: string): ApolloResources => {
   });
 
   const client = new ApolloClient({
-    link: httpLink,
+    link: from([debugLink, httpLink]),
     cache: new InMemoryCache(),
   });
 

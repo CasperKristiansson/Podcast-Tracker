@@ -248,7 +248,7 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
           episodeId: episode.episodeId,
           positionSec: Math.round(bounded),
           completed,
-          showId: episode.showId ?? showId,
+          showId,
         },
       });
       setEditingEpisode(null);
