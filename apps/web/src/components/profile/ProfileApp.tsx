@@ -105,6 +105,95 @@ function ProfileAppContent(): JSX.Element {
         setPendingShowId(show.showId);
         const { data: progressData } = await markNextEpisodeComplete({
           variables: { showId: show.showId, limit: 25 },
+          update: (cache, { data: progressMutation }) => {
+            const progress = progressMutation?.markNextEpisodeComplete;
+            if (!progress) {
+              return;
+            }
+
+            cache.updateQuery<MyProfileQuery>(
+              { query: MyProfileDocument, variables: {} },
+              (existingProfile) => {
+                const profile = existingProfile?.myProfile;
+                if (!profile) {
+                  return existingProfile;
+                }
+
+                const updateShowList = (
+                  list: (ProfileShow | null | undefined)[] | null | undefined,
+                  removeZeroUnlistened = false
+                ): ProfileShow[] =>
+                  (list ?? [])
+                    .map((entry) => {
+                      if (!entry || entry.showId !== show.showId) {
+                        return entry ?? null;
+                      }
+                      const completedEpisodes =
+                        (entry.completedEpisodes ?? 0) + 1;
+                      const unlistenedEpisodes = Math.max(
+                        0,
+                        (entry.unlistenedEpisodes ?? 0) - 1
+                      );
+                      const inProgressEpisodes = Math.max(
+                        0,
+                        entry.inProgressEpisodes ?? 0
+                      );
+                      return {
+                        __typename: entry.__typename ?? "ProfileShow",
+                        showId: entry.showId,
+                        title: entry.title,
+                        publisher: entry.publisher,
+                        image: entry.image,
+                        addedAt: entry.addedAt,
+                        totalEpisodes: entry.totalEpisodes,
+                        completedEpisodes,
+                        inProgressEpisodes,
+                        unlistenedEpisodes,
+                        subscriptionSyncedAt: entry.subscriptionSyncedAt ?? null,
+                      } satisfies ProfileShow;
+                    })
+                    .filter((entry): entry is ProfileShow =>
+                      Boolean(
+                        entry &&
+                          (!removeZeroUnlistened ||
+                            entry.unlistenedEpisodes > 0)
+                      )
+                    );
+
+                const updatedShows = updateShowList(profile.shows);
+                const updatedSpotlight = updateShowList(
+                  profile.spotlight,
+                  true
+                );
+
+                const currentStats =
+                  profile.stats ??
+                  ({
+                    __typename: "ProfileStats",
+                    totalShows: 0,
+                    episodesCompleted: 0,
+                    episodesInProgress: 0,
+                  } satisfies MyProfileQuery["myProfile"]["stats"]);
+
+                const updatedStats = {
+                  __typename: currentStats.__typename ?? "ProfileStats",
+                  totalShows: currentStats.totalShows ?? 0,
+                  episodesCompleted: (currentStats.episodesCompleted ?? 0) + 1,
+                  episodesInProgress: currentStats.episodesInProgress ?? 0,
+                } satisfies MyProfileQuery["myProfile"]["stats"];
+
+                return {
+                  __typename: existingProfile?.__typename ?? "Query",
+                  myProfile: {
+                    __typename: profile.__typename ?? "UserProfile",
+                    stats: updatedStats,
+                    spotlight: updatedSpotlight,
+                    shows: updatedShows,
+                  },
+                } satisfies MyProfileQuery;
+              }
+            );
+          },
         });
 
         if (!progressData?.markNextEpisodeComplete) {
@@ -112,7 +201,6 @@ function ProfileAppContent(): JSX.Element {
           return;
         }
 
-        await refetchProfile();
         setCelebration({
           showId: show.showId,
           seed: Date.now(),
@@ -128,7 +216,7 @@ function ProfileAppContent(): JSX.Element {
         setPendingShowId(null);
       }
     },
-    [markNextEpisodeComplete, refetchProfile]
+    [markNextEpisodeComplete]
   );
 
   const handleCelebrateClick = useCallback(
@@ -342,9 +430,8 @@ function ProfileAppContent(): JSX.Element {
                           ? celebration.seed
                           : null
                       }
-                      disabled={
-                        pendingShowId === show.showId || progressMutating
-                      }
+                      pending={pendingShowId === show.showId}
+                      globalMutating={progressMutating}
                     />
                   ))}
                 </div>
@@ -377,9 +464,8 @@ function ProfileAppContent(): JSX.Element {
                           ? celebration.seed
                           : null
                       }
-                      disabled={
-                        pendingShowId === show.showId || progressMutating
-                      }
+                      pending={pendingShowId === show.showId}
+                      globalMutating={progressMutating}
                       unsubscribing={unsubscribingId === show.showId}
                     />
                   ))}
@@ -466,14 +552,16 @@ interface SpotlightCardProps {
   show: ProfileShow;
   onCelebrate: (show: ProfileShow) => void;
   celebrating: number | null;
-  disabled: boolean;
+  pending: boolean;
+  globalMutating: boolean;
 }
 
 function SpotlightCard({
   show,
   onCelebrate,
   celebrating,
-  disabled,
+  pending,
+  globalMutating,
 }: SpotlightCardProps): JSX.Element {
   const syncedAtValue = normalizeDateInput(show.subscriptionSyncedAt);
   const hasImage = typeof show.image === "string" && show.image.length > 0;
@@ -524,7 +612,8 @@ function SpotlightCard({
             onClick={() => {
               void onCelebrate(show);
             }}
-            isLoading={disabled}
+            disabled={pending || (globalMutating && !pending)}
+            isLoading={pending}
             loadingLabel="Logging…"
             className="overflow-hidden"
           >
@@ -543,7 +632,8 @@ interface LibraryCardProps {
   onCelebrate: (show: ProfileShow) => void;
   onUnsubscribe: (show: ProfileShow) => void;
   celebrating: number | null;
-  disabled: boolean;
+  pending: boolean;
+  globalMutating: boolean;
   unsubscribing: boolean;
 }
 
@@ -552,14 +642,16 @@ function LibraryCard({
   onCelebrate,
   onUnsubscribe,
   celebrating,
-  disabled,
+  pending,
+  globalMutating,
   unsubscribing,
 }: LibraryCardProps): JSX.Element {
   const hasUnlistened = show.unlistenedEpisodes > 0;
   const addedAtValue = normalizeDateInput(show.addedAt);
   const hasImage = typeof show.image === "string" && show.image.length > 0;
-  const celebrateDisabled = !hasUnlistened || disabled || unsubscribing;
-  const celebrateLoading = disabled && hasUnlistened;
+  const celebrateDisabled =
+    !hasUnlistened || unsubscribing || pending || (globalMutating && !pending);
+  const celebrateLoading = pending && hasUnlistened;
 
   return (
     <div className="relative overflow-hidden rounded-[28px] border border-white/12 bg-[#120727]/90 p-5 shadow-[0_32px_80px_rgba(24,14,78,0.45)] backdrop-blur-2xl sm:p-6">

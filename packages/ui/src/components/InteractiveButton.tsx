@@ -52,7 +52,7 @@ export const InteractiveButton = forwardRef<
       disabled={isLoading || disabled}
       className={cn(
         "group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full px-6 py-3 text-sm font-semibold transition duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05020f]",
-        "disabled:cursor-not-allowed disabled:opacity-60",
+        "cursor-pointer disabled:cursor-not-allowed disabled:opacity-60",
         variantClasses[variant],
         "before:absolute before:inset-0 before:-translate-y-full before:bg-white/30 before:opacity-0 before:transition duration-300 group-hover:before:translate-y-0 group-hover:before:opacity-100",
         "active:scale-[0.98]",
