@@ -1,12 +1,31 @@
 #if($ctx.error)
   $util.error($ctx.error.message, $ctx.error.type)
 #end
-#if($ctx.result)
-  #set($result = $util.dynamodb.toMapValues($ctx.result))
-  $util.qr($result.remove("pk"))
-  $util.qr($result.remove("sk"))
-  $util.qr($result.remove("dataType"))
-  $util.toJson($result)
-#else
-  $util.toJson($ctx.stash.progress)
+
+#if($ctx.stash)
+  $util.qr($util.log.debug("markProgress stash {}", $ctx.stash.get("progress")))
 #end
+$util.qr($util.log.debug("markProgress result {}", $ctx.result))
+
+#set($source = $ctx.result)
+#if(!$util.isNull($source))
+  #set($source = $util.dynamodb.fromMapValues($source))
+  $util.qr($source.remove("pk"))
+  $util.qr($source.remove("sk"))
+  $util.qr($source.remove("dataType"))
+#else
+  #set($source = $ctx.stash.get("progress"))
+#end
+
+#set($response = $util.map())
+$util.qr($response.put("episodeId", $util.defaultIfNull($source.episodeId, $ctx.args.episodeId)))
+$util.qr($response.put("positionSec", $util.defaultIfNull($source.positionSec, $ctx.args.positionSec)))
+$util.qr($response.put("completed", $util.defaultIfNull($source.completed, $ctx.args.completed)))
+$util.qr($response.put("updatedAt", $util.defaultIfNull($source.updatedAt, $util.time.nowISO8601())))
+
+#set($showId = $util.defaultIfNull($source.showId, $ctx.args.showId))
+#if(!$util.isNull($showId))
+  $util.qr($response.put("showId", $showId))
+#end
+
+$util.toJson($response)

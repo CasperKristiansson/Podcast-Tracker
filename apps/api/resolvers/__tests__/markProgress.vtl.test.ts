@@ -33,7 +33,6 @@ describe("Mutation.markProgress mapping templates", () => {
       updatedAt: { S: "2025-04-10T09:15:00.000Z" },
       showId: { S: "show-99" },
     });
-    expect(request.returnValues).toBe("ALL_NEW");
   });
 
   it("omits showId when it is not provided", () => {
@@ -70,12 +69,46 @@ describe("Mutation.markProgress mapping templates", () => {
     const response = JSON.parse(rendered);
 
     expect(response).toMatchObject({
-      pk: "user#user-1",
-      sk: "ep#episode-3",
       episodeId: "episode-3",
       positionSec: 360,
       completed: true,
       updatedAt: "2025-04-12T08:00:00.000Z",
+    });
+  });
+
+  it("falls back to stashed progress when DynamoDB does not return attributes", () => {
+    const runtime = createRuntime({
+      args: {
+        episodeId: "episode-4",
+        positionSec: 200,
+        completed: true,
+        showId: "show-123",
+      },
+      identitySub: "user-9",
+      now: "2025-04-13T10:00:00.000Z",
+    });
+
+    renderTemplate(requestTemplate, runtime);
+    expect(
+      runtime.ctx.stash.get("progress")
+    ).toEqual({
+      episodeId: "episode-4",
+      positionSec: 200,
+      completed: true,
+      updatedAt: "2025-04-13T10:00:00.000Z",
+      showId: "show-123",
+    });
+    runtime.ctx.result = null;
+
+    const rendered = renderTemplate(responseTemplate, runtime);
+    const response = JSON.parse(rendered);
+
+    expect(response).toEqual({
+      episodeId: "episode-4",
+      positionSec: 200,
+      completed: true,
+      updatedAt: "2025-04-13T10:00:00.000Z",
+      showId: "show-123",
     });
   });
 });

@@ -1,5 +1,7 @@
 #set($userPk = "user#" + $ctx.identity.sub)
 #set($episodeSk = "ep#" + $ctx.args.episodeId)
+#set($now = $util.time.nowISO8601())
+
 #set($attributes = {
   "pk": $userPk,
   "sk": $episodeSk,
@@ -7,22 +9,22 @@
   "episodeId": $ctx.args.episodeId,
   "positionSec": $ctx.args.positionSec,
   "completed": $ctx.args.completed,
-  "updatedAt": $util.time.nowISO8601()
+  "updatedAt": $now
 })
-
 #if($ctx.args.containsKey("showId") && !$util.isNull($ctx.args.showId))
   $util.qr($attributes.put("showId", $ctx.args.showId))
 #end
-#set($progress = {
-  "episodeId": $ctx.args.episodeId,
-  "positionSec": $ctx.args.positionSec,
-  "completed": $ctx.args.completed,
-  "updatedAt": $attributes.get("updatedAt")
-})
+
+#set($progress = $util.map())
+$util.qr($progress.put("episodeId", $ctx.args.episodeId))
+$util.qr($progress.put("positionSec", $ctx.args.positionSec))
+$util.qr($progress.put("completed", $ctx.args.completed))
+$util.qr($progress.put("updatedAt", $now))
 #if($ctx.args.containsKey("showId") && !$util.isNull($ctx.args.showId))
   $util.qr($progress.put("showId", $ctx.args.showId))
 #end
 $util.qr($ctx.stash.put("progress", $progress))
+
 #set($attributeValues = $util.dynamodb.toMapValues($attributes))
 #set($keyValues = $util.dynamodb.toMapValues({"pk": $userPk, "sk": $episodeSk}))
 

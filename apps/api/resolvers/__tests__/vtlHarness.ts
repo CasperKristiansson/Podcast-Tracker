@@ -22,9 +22,13 @@ interface AppSyncUtil {
   qr: <T>(value: T) => T;
   error: (message: string, type?: string) => never;
   toJson: (value: unknown) => string;
+  log: {
+    debug: (...args: unknown[]) => void;
+  };
   dynamodb: {
     toDynamoDBJson: (value: unknown) => unknown;
     toMapValues: (value: Record<string, unknown>) => Record<string, unknown>;
+    fromMapValues: (value: Record<string, unknown>) => Record<string, unknown>;
   };
 }
 
@@ -75,6 +79,9 @@ export function createRuntime({
       throw new Error(`${prefix}${message}`);
     },
     toJson: (value) => JSON.stringify(value),
+    log: {
+      debug: () => undefined,
+    },
     dynamodb: {
       toDynamoDBJson: (value: unknown): unknown => {
         if (value === null || value === undefined) {
@@ -108,6 +115,13 @@ export function createRuntime({
         );
       },
       toMapValues: (value: Record<string, unknown>) => {
+        const mapValues: Record<string, unknown> = {};
+        for (const [key, entry] of Object.entries(value ?? {})) {
+          mapValues[key] = util.dynamodb.toDynamoDBJson(entry);
+        }
+        return mapValues;
+      },
+      fromMapValues: (value: Record<string, unknown>) => {
         const parse = (entry: unknown): unknown => {
           if (entry === null || entry === undefined) {
             return null;
@@ -146,11 +160,11 @@ export function createRuntime({
           return attribute;
         };
 
-        const mapValues: Record<string, unknown> = {};
+        const result: Record<string, unknown> = {};
         for (const [key, entry] of Object.entries(value ?? {})) {
-          mapValues[key] = parse(entry);
+          result[key] = parse(entry);
         }
-        return mapValues;
+        return result;
       },
     },
   };
@@ -233,39 +247,61 @@ function buildMarkProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   const pk = `user#${String(ctx.identity.sub)}`;
   const sk = `ep#${String(ctx.args.episodeId)}`;
 
-  const attributeValues: Record<string, unknown> = {
-    pk: util.dynamodb.toDynamoDBJson(pk),
-    sk: util.dynamodb.toDynamoDBJson(sk),
-    dataType: util.dynamodb.toDynamoDBJson("progress"),
-    episodeId: util.dynamodb.toDynamoDBJson(String(ctx.args.episodeId)),
-    positionSec: util.dynamodb.toDynamoDBJson(ctx.args.positionSec),
-    completed: util.dynamodb.toDynamoDBJson(ctx.args.completed),
-    updatedAt: util.dynamodb.toDynamoDBJson(now),
+  const attributes: Record<string, unknown> = {
+    pk,
+    sk,
+    dataType: "progress",
+    episodeId: String(ctx.args.episodeId),
+    positionSec: ctx.args.positionSec,
+    completed: ctx.args.completed,
+    updatedAt: now,
   };
 
-  if (Object.prototype.hasOwnProperty.call(ctx.args, "showId")) {
-    const showId = ctx.args.showId;
-    if (!util.isNull(showId)) {
-      attributeValues.showId = util.dynamodb.toDynamoDBJson(String(showId));
-    }
+  if (
+    Object.prototype.hasOwnProperty.call(ctx.args, "showId") &&
+    !util.isNull(ctx.args.showId)
+  ) {
+    attributes.showId = String(ctx.args.showId);
   }
+
+  const attributeValues = util.dynamodb.toMapValues(attributes);
+  const keyValues = util.dynamodb.toMapValues({ pk, sk });
+
+  util.qr(
+    ctx.stash.put("progress", {
+      episodeId: attributes.episodeId,
+      positionSec: attributes.positionSec,
+      completed: attributes.completed,
+      updatedAt: attributes.updatedAt,
+      ...(attributes.showId ? { showId: attributes.showId } : {}),
+    })
+  );
 
   return {
     version: "2018-05-29",
     operation: "PutItem",
-    key: {
-      pk: util.dynamodb.toDynamoDBJson(pk),
-      sk: util.dynamodb.toDynamoDBJson(sk),
-    },
+    key: keyValues,
     attributeValues,
-    returnValues: "ALL_NEW",
   };
 }
 
 function buildMarkProgressResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   ensureNoError(ctx, util);
-  const record = asRecord(ctx.result) ?? {};
-  return util.dynamodb.toMapValues(record);
+  const result = asRecord(ctx.result);
+  if (result && Object.keys(result).length > 0) {
+    const converted = util.dynamodb.fromMapValues(result);
+    delete converted.pk;
+    delete converted.sk;
+    delete converted.dataType;
+    return converted;
+  }
+
+  const stashed = asRecord(ctx.stash.get("progress"));
+  if (stashed) {
+    return stashed;
+  }
+
+  return {};
 }
 
 function buildRateShowRequest(ctx: RuntimeContext, util: AppSyncUtil) {
