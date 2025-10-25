@@ -1,4 +1,4 @@
-#set($userPk = "user#${ctx.identity.sub}")
+#set($userPk = "user#" + $ctx.identity.sub)
 {
   "version": "2018-05-29",
   "operation": "Query",

@@ -11,8 +11,8 @@
   #set($expression = "${expression}, ratingReview = :review")
   $util.qr($values.put(":review", {"NULL": true}))
 #end
-#set($userPk = "user#${ctx.identity.sub}")
-#set($subscriptionSk = "sub#${ctx.args.showId}")
+#set($userPk = "user#" + $ctx.identity.sub)
+#set($subscriptionSk = "sub#" + $ctx.args.showId)
 {
   "version": "2018-05-29",
   "operation": "UpdateItem",

@@ -1,26 +1,25 @@
-#set($userPk = "user#${ctx.identity.sub}")
-#set($episodeSk = "ep#${ctx.args.episodeId}")
+#set($userPk = "user#" + $ctx.identity.sub)
+#set($episodeSk = "ep#" + $ctx.args.episodeId)
 #set($attributes = {
-  "pk": $util.dynamodb.toDynamoDBJson($userPk),
-  "sk": $util.dynamodb.toDynamoDBJson($episodeSk),
-  "dataType": $util.dynamodb.toDynamoDBJson("progress"),
-  "episodeId": $util.dynamodb.toDynamoDBJson($ctx.args.episodeId),
-  "positionSec": $util.dynamodb.toDynamoDBJson($ctx.args.positionSec),
-  "completed": $util.dynamodb.toDynamoDBJson($ctx.args.completed),
-  "updatedAt": $util.dynamodb.toDynamoDBJson($util.time.nowISO8601())
+  "pk": $userPk,
+  "sk": $episodeSk,
+  "dataType": "progress",
+  "episodeId": $ctx.args.episodeId,
+  "positionSec": $ctx.args.positionSec,
+  "completed": $ctx.args.completed,
+  "updatedAt": $util.time.nowISO8601()
 })
 
 #if($ctx.args.containsKey("showId") && !$util.isNull($ctx.args.showId))
-  $util.qr($attributes.put("showId", $util.dynamodb.toDynamoDBJson($ctx.args.showId)))
+  $util.qr($attributes.put("showId", $ctx.args.showId))
 #end
+#set($attributeValues = $util.dynamodb.toMapValues($attributes))
+#set($keyValues = $util.dynamodb.toMapValues({"pk": $userPk, "sk": $episodeSk}))
 
 {
   "version": "2018-05-29",
   "operation": "PutItem",
-  "key": {
-    "pk": $util.dynamodb.toDynamoDBJson($userPk),
-    "sk": $util.dynamodb.toDynamoDBJson($episodeSk)
-  },
-  "attributeValues": $util.toJson($attributes),
+  "key": $util.toJson($keyValues),
+  "attributeValues": $util.toJson($attributeValues),
   "returnValues": "ALL_NEW"
 }
