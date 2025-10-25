@@ -392,13 +392,16 @@ export default function PodcastSearchBar({
                 } satisfies MyProfileQuery["myProfile"]["stats"]);
 
               const updatedStats = {
-                ...currentStats,
+                __typename: currentStats.__typename ?? "ProfileStats",
                 totalShows: (currentStats.totalShows ?? 0) + 1,
-              };
+                episodesCompleted: currentStats.episodesCompleted ?? 0,
+                episodesInProgress: currentStats.episodesInProgress ?? 0,
+              } satisfies MyProfileQuery["myProfile"]["stats"];
 
               return {
+                __typename: existingProfile?.__typename ?? "Query",
                 myProfile: {
-                  __typename: profile.__typename,
+                  __typename: profile.__typename ?? "UserProfile",
                   stats: updatedStats,
                   spotlight: profile.spotlight ?? [],
                   shows: [profileShow, ...showsList],
@@ -496,13 +499,16 @@ export default function PodcastSearchBar({
                 } satisfies MyProfileQuery["myProfile"]["stats"]);
 
               const updatedStats = {
-                ...currentStats,
+                __typename: currentStats.__typename ?? "ProfileStats",
                 totalShows: Math.max(0, (currentStats.totalShows ?? 0) - 1),
-              };
+                episodesCompleted: currentStats.episodesCompleted ?? 0,
+                episodesInProgress: currentStats.episodesInProgress ?? 0,
+              } satisfies MyProfileQuery["myProfile"]["stats"];
 
               return {
+                __typename: existingProfile?.__typename ?? "Query",
                 myProfile: {
-                  __typename: profile.__typename,
+                  __typename: profile.__typename ?? "UserProfile",
                   stats: updatedStats,
                   spotlight: spotlightList.filter(
                     (profileShow) => profileShow?.showId !== show.id

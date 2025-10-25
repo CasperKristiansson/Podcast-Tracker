@@ -119,7 +119,11 @@ function ProfileAppContent(): JSX.Element {
         });
       } catch (err) {
         console.error("Failed to log progress", err);
-        setToast("We couldn’t log that episode. Please try again.");
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : "We couldn’t log that episode. Please try again.";
+        setToast(message);
       } finally {
         setPendingShowId(null);
       }
@@ -138,7 +142,7 @@ function ProfileAppContent(): JSX.Element {
     async (show: ProfileShow) => {
       try {
         setUnsubscribingId(show.showId);
-        await unsubscribeFromShow({
+       await unsubscribeFromShow({
           variables: { showId: show.showId },
           update: (cache) => {
             cache.updateQuery<MyProfileQuery>(
@@ -171,18 +175,21 @@ function ProfileAppContent(): JSX.Element {
 
                 const currentStats = currentProfile.stats;
                 const updatedStats = {
-                  ...currentStats,
+                  __typename: currentStats.__typename ?? "ProfileStats",
                   totalShows: Math.max(0, (currentStats.totalShows ?? 0) - 1),
-                };
+                  episodesCompleted: currentStats.episodesCompleted ?? 0,
+                  episodesInProgress: currentStats.episodesInProgress ?? 0,
+                } satisfies MyProfileQuery["myProfile"]["stats"];
 
                 return {
+                  __typename: existing?.__typename ?? "Query",
                   myProfile: {
-                    __typename: currentProfile.__typename,
+                    __typename: currentProfile.__typename ?? "UserProfile",
                     stats: updatedStats,
                     spotlight: filteredSpotlight,
                     shows: filteredShows,
                   },
-                };
+                } satisfies MyProfileQuery;
               }
             );
           },
@@ -197,7 +204,6 @@ function ProfileAppContent(): JSX.Element {
     },
     [unsubscribeFromShow]
   );
-
   const handleUnsubscribeClick = useCallback(
     (show: ProfileShow) => {
       void handleUnsubscribe(show);
