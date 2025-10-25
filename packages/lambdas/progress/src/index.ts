@@ -2,6 +2,8 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 import {
   DynamoDBDocumentClient,
+  BatchWriteCommand,
+  DeleteCommand,
   PutCommand,
   QueryCommand,
   type QueryCommandInput,
@@ -9,6 +11,7 @@ import {
 
 interface AppSyncEvent {
   identity?: { sub?: string | null } | null;
+  info?: { fieldName?: string | null } | null;
   arguments: {
     showId?: string | null;
     limit?: number | null;
@@ -44,7 +47,7 @@ const lambdaClient = new LambdaClient({});
 
 export const handler = async (
   event: AppSyncEvent
-): Promise<ProgressResponse> => {
+): Promise<ProgressResponse | boolean> => {
   const userSub = event.identity?.sub?.trim();
   if (!userSub) {
     throw new Error("Unauthorized");
@@ -53,6 +56,13 @@ export const handler = async (
   const showId = event.arguments.showId?.trim();
   if (!showId) {
     throw new Error("showId is required");
+  }
+
+  const fieldName = event.info?.fieldName ?? "markNextEpisodeComplete";
+
+  if (fieldName === "unsubscribe") {
+    await handleUnsubscribe(userSub, showId);
+    return true;
   }
 
   const limitArgument = event.arguments.limit;
@@ -105,7 +115,53 @@ export const handler = async (
   };
 };
 
-async function fetchEpisodes(showId: string, limit: number): Promise<Episode[]> {
+async function handleUnsubscribe(
+  userSub: string,
+  showId: string
+): Promise<void> {
+  const userPk = `user#${userSub}`;
+
+  await dynamo.send(
+    new DeleteCommand({
+      TableName: tableName,
+      Key: {
+        pk: userPk,
+        sk: `sub#${showId}`,
+      },
+    })
+  );
+
+  const progressKeys = await loadProgressKeys(userSub, showId);
+  if (progressKeys.length === 0) {
+    return;
+  }
+
+  let index = 0;
+  while (index < progressKeys.length) {
+    const batch = progressKeys.slice(index, index + 25);
+    index += 25;
+
+    await dynamo.send(
+      new BatchWriteCommand({
+        RequestItems: {
+          [tableName]: batch.map((sk) => ({
+            DeleteRequest: {
+              Key: {
+                pk: userPk,
+                sk,
+              },
+            },
+          })),
+        },
+      })
+    );
+  }
+}
+
+async function fetchEpisodes(
+  showId: string,
+  limit: number
+): Promise<Episode[]> {
   const payload = JSON.stringify({
     info: { fieldName: "episodes" },
     arguments: { showId, limit },
@@ -187,6 +243,48 @@ async function loadCompletedEpisodes(
         typeof item.episodeId === "string" ? item.episodeId : null;
       if (episodeId) {
         items.push({ episodeId, completed: true });
+      }
+    }
+
+    exclusiveStartKey = result.LastEvaluatedKey;
+  } while (exclusiveStartKey);
+
+  return items;
+}
+
+async function loadProgressKeys(
+  userSub: string,
+  showId: string
+): Promise<string[]> {
+  const items: string[] = [];
+  let exclusiveStartKey: QueryCommandInput["ExclusiveStartKey"];
+
+  do {
+    const result = await dynamo.send(
+      new QueryCommand({
+        TableName: tableName,
+        KeyConditionExpression:
+          "#pk = :pk AND begins_with(#sk, :progressPrefix)",
+        FilterExpression: "#showId = :showId",
+        ExpressionAttributeNames: {
+          "#pk": "pk",
+          "#sk": "sk",
+          "#showId": "showId",
+        },
+        ExpressionAttributeValues: {
+          ":pk": `user#${userSub}`,
+          ":progressPrefix": "ep#",
+          ":showId": showId,
+        },
+        ProjectionExpression: "#sk",
+        ExclusiveStartKey: exclusiveStartKey,
+      })
+    );
+
+    for (const item of result.Items ?? []) {
+      const sk = typeof item.sk === "string" ? item.sk : null;
+      if (sk) {
+        items.push(sk);
       }
     }
 

@@ -267,6 +267,13 @@ export class ApiDataStack extends cdk.Stack {
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
+    progressDataSource.createResolver("UnsubscribeResolver", {
+      typeName: "Mutation",
+      fieldName: "unsubscribe",
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
     tableDataSource.createResolver("EpisodeProgressResolver", {
       typeName: "Query",
       fieldName: "episodeProgress",
@@ -286,17 +293,6 @@ export class ApiDataStack extends cdk.Stack {
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromFile(
         path.join(resolverDir, "Mutation.subscribe.response.vtl")
-      ),
-    });
-
-    tableDataSource.createResolver("UnsubscribeResolver", {
-      typeName: "Mutation",
-      fieldName: "unsubscribe",
-      requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Mutation.unsubscribe.request.vtl")
-      ),
-      responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Mutation.unsubscribe.response.vtl")
       ),
     });
 

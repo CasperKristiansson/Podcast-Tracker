@@ -73,7 +73,16 @@ export const InteractiveButton = forwardRef<
             {icon}
           </span>
         ) : null}
-        <span>{isLoading ? loadingLabel : children}</span>
+        <span>
+          {isLoading ? (
+            <span className="flex h-4 w-4 items-center justify-center">
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              <span className="sr-only">{loadingLabel}</span>
+            </span>
+          ) : (
+            children
+          )}
+        </span>
       </span>
     </button>
   )
