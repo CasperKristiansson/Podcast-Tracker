@@ -13,6 +13,16 @@
 #if($ctx.args.containsKey("showId") && !$util.isNull($ctx.args.showId))
   $util.qr($attributes.put("showId", $ctx.args.showId))
 #end
+#set($progress = {
+  "episodeId": $ctx.args.episodeId,
+  "positionSec": $ctx.args.positionSec,
+  "completed": $ctx.args.completed,
+  "updatedAt": $attributes.get("updatedAt")
+})
+#if($ctx.args.containsKey("showId") && !$util.isNull($ctx.args.showId))
+  $util.qr($progress.put("showId", $ctx.args.showId))
+#end
+$util.qr($ctx.stash.put("progress", $progress))
 #set($attributeValues = $util.dynamodb.toMapValues($attributes))
 #set($keyValues = $util.dynamodb.toMapValues({"pk": $userPk, "sk": $episodeSk}))
 
@@ -20,6 +30,5 @@
   "version": "2018-05-29",
   "operation": "PutItem",
   "key": $util.toJson($keyValues),
-  "attributeValues": $util.toJson($attributeValues),
-  "returnValues": "ALL_NEW"
+  "attributeValues": $util.toJson($attributeValues)
 }

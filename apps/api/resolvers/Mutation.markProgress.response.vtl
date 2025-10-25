@@ -1,4 +1,12 @@
 #if($ctx.error)
   $util.error($ctx.error.message, $ctx.error.type)
 #end
-$util.toJson($util.dynamodb.toMapValues($ctx.result))
+#if($ctx.result)
+  #set($result = $util.dynamodb.toMapValues($ctx.result))
+  $util.qr($result.remove("pk"))
+  $util.qr($result.remove("sk"))
+  $util.qr($result.remove("dataType"))
+  $util.toJson($result)
+#else
+  $util.toJson($ctx.stash.progress)
+#end
