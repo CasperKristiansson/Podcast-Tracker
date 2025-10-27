@@ -50,17 +50,14 @@ export default function EpisodeDetailApp({
     loading: showDetailLoading,
     error: showDetailError,
     refetch: refetchShowDetail,
-  } = useQuery<ShowDetailQuery, ShowDetailQueryVariables>(
-    ShowDetailDocument,
-    {
-      variables: {
-        showId,
-        episodeLimit: 0,
-        episodeCursor: null,
-        progressEpisodeIds: [episodeId],
-      },
-    }
-  );
+  } = useQuery<ShowDetailQuery, ShowDetailQueryVariables>(ShowDetailDocument, {
+    variables: {
+      showId,
+      episodeLimit: 0,
+      episodeCursor: null,
+      progressEpisodeIds: [episodeId],
+    },
+  });
   const {
     data: episodeData,
     loading: episodeLoading,
@@ -79,9 +76,10 @@ export default function EpisodeDetailApp({
 
   const episode = episodeData?.episode ?? null;
   const show = showDetailData?.showDetail?.show ?? null;
-  const progress = showDetailData?.showDetail?.progress?.find(
-    (entry) => entry?.episodeId === episodeId
-  ) ?? null;
+  const progress =
+    showDetailData?.showDetail?.progress?.find(
+      (entry) => entry?.episodeId === episodeId
+    ) ?? null;
   const [draftProgress, setDraftProgress] = useState<number>(
     progress?.positionSec ?? 0
   );
@@ -125,7 +123,8 @@ export default function EpisodeDetailApp({
   if (episodeError || showDetailError) {
     return (
       <div className="rounded-3xl border border-red-500/40 bg-red-500/20 p-6 text-sm text-red-100">
-        Failed to load episode: {episodeError?.message ?? showDetailError?.message}
+        Failed to load episode:{" "}
+        {episodeError?.message ?? showDetailError?.message}
       </div>
     );
   }
@@ -171,7 +170,7 @@ export default function EpisodeDetailApp({
               <div className="flex-1 space-y-5">
                 <div className="space-y-2">
                   <p className="text-xs uppercase tracking-[0.35em] text-white/50">
-                  {show?.title}
+                    {show?.title}
                   </p>
                   <h1 className="text-3xl font-semibold text-white">
                     {episode.title}

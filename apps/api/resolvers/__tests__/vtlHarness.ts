@@ -365,7 +365,9 @@ function buildPublishProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
 }
 
 function buildPublishProgressResponse(ctx: RuntimeContext) {
-  const payload = { ...(asRecord(ctx.result) ?? {}) } as Record<string, unknown>;
+  const payload = {
+    ...(asRecord(ctx.result) ?? {}),
+  } as Record<string, unknown>;
   delete payload.userId;
   return payload;
 }

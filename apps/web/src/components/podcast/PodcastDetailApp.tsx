@@ -216,8 +216,7 @@ function PodcastDetailAppContent({
   }, [episodeFilter]);
 
   const heroLoading = showDetailLoading && !show;
-  const episodesInitialLoading =
-    showDetailLoading && episodes.length === 0;
+  const episodesInitialLoading = showDetailLoading && episodes.length === 0;
   const progressSyncing = showDetailLoading || markProgressLoading;
 
   const handleSubscribeToggle = async () => {

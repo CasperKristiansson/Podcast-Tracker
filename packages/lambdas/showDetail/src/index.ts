@@ -158,7 +158,7 @@ async function fetchShow(showId: string): Promise<ShowSummary> {
 
   const show = response as Record<string, unknown>;
   return {
-    id: String(show.id ?? showId),
+    id: nullableString(show.id) ?? showId,
     title: nullableString(show.title),
     publisher: nullableString(show.publisher),
     description: nullableString(show.description),
@@ -202,11 +202,7 @@ async function fetchEpisodes(
   };
 
   const response = await invokeSpotifyProxy(payload);
-  if (
-    !response ||
-    typeof response !== "object" ||
-    !("items" in response)
-  ) {
+  if (!response || typeof response !== "object" || !("items" in response)) {
     throw new Error("Invalid episodes response from Spotify proxy");
   }
 
@@ -216,9 +212,8 @@ async function fetchEpisodes(
   return {
     items: items
       .map((item) => mapEpisode(item))
-      .filter(
-        (episode): episode is EpisodeRecord =>
-          Boolean(episode?.episodeId?.length)
+      .filter((episode): episode is EpisodeRecord =>
+        Boolean(episode?.episodeId?.length)
       ),
     nextToken: nullableString(record.nextToken),
   };
@@ -253,8 +248,7 @@ async function loadSubscription(
     title: nullableString(item.title) ?? "",
     publisher: nullableString(item.publisher) ?? "",
     image: nullableString(item.image) ?? "",
-    addedAt:
-      nullableString(item.addedAt) ?? new Date().toISOString(),
+    addedAt: nullableString(item.addedAt) ?? new Date().toISOString(),
     totalEpisodes: Math.max(0, Math.trunc(Number(item.totalEpisodes ?? 0))),
     subscriptionSyncedAt: nullableString(item.subscriptionSyncedAt),
     ratingStars: nullableNumber(item.ratingStars),
@@ -361,12 +355,11 @@ function mapEpisode(item: unknown): EpisodeRecord | null {
     return null;
   }
 
-  const languages =
-    Array.isArray(record.languages)
-      ? record.languages
-          .map((value) => nullableString(value))
-          .filter(isNonEmptyString)
-      : [];
+  const languages = Array.isArray(record.languages)
+    ? record.languages
+        .map((value) => nullableString(value))
+        .filter(isNonEmptyString)
+    : [];
 
   return {
     episodeId,
@@ -404,11 +397,12 @@ function mapProgress(item: Record<string, unknown>): ProgressRecord | null {
   };
 }
 
-function dedupeKeys(
-  keys: Array<{ pk: string; sk: string }>
-): Array<{ pk: string; sk: string }> {
+function dedupeKeys(keys: { pk: string; sk: string }[]): {
+  pk: string;
+  sk: string;
+}[] {
   const seen = new Set<string>();
-  const result: Array<{ pk: string; sk: string }> = [];
+  const result: { pk: string; sk: string }[] = [];
   for (const key of keys) {
     const composite = `${key.pk}|${key.sk}`;
     if (seen.has(composite)) {

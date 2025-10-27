@@ -6,11 +6,15 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { Uint8ArrayBlobAdapter } from "@smithy/util-stream";
 
 process.env.TABLE_NAME = "test-table";
 process.env.SPOTIFY_PROXY_FUNCTION_NAME = "spotify-proxy";
 
 const { handler } = await import("./index.js");
+
+const encodePayload = (value: unknown) =>
+  Uint8ArrayBlobAdapter.fromString(JSON.stringify(value));
 
 const dynamoMock = mockClient(DynamoDBDocumentClient);
 const lambdaMock = mockClient(LambdaClient);
@@ -38,50 +42,46 @@ describe("show detail lambda", () => {
     lambdaMock
       .on(InvokeCommand)
       .resolvesOnce({
-        Payload: Buffer.from(
-          JSON.stringify({
-            id: "show-42",
-            title: "Test Show",
-            publisher: "Studio",
-            description: "Desc",
-            htmlDescription: "<p>Desc</p>",
-            image: "https://image",
-            totalEpisodes: 200,
-            externalUrl: "https://spotify/show-42",
-            categories: ["Fiction"],
-            explicit: false,
-            languages: ["en"],
-            availableMarkets: ["US"],
-            mediaType: "audio",
-            isSubscribed: false,
-          })
-        ),
+        Payload: encodePayload({
+          id: "show-42",
+          title: "Test Show",
+          publisher: "Studio",
+          description: "Desc",
+          htmlDescription: "<p>Desc</p>",
+          image: "https://image",
+          totalEpisodes: 200,
+          externalUrl: "https://spotify/show-42",
+          categories: ["Fiction"],
+          explicit: false,
+          languages: ["en"],
+          availableMarkets: ["US"],
+          mediaType: "audio",
+          isSubscribed: false,
+        }),
       })
       .resolvesOnce({
-        Payload: Buffer.from(
-          JSON.stringify({
-            items: [
-              {
-                episodeId: "ep-1",
-                showId: "show-42",
-                title: "Episode One",
-                audioUrl: "https://audio/1",
-                publishedAt: "2024-01-01T00:00:00.000Z",
-                durationSec: 900,
-                description: "Episode",
-                htmlDescription: "<p>Episode</p>",
-                image: "https://image/ep1",
-                linkUrl: "https://spotify/ep-1",
-                explicit: false,
-                isExternallyHosted: false,
-                isPlayable: true,
-                releaseDatePrecision: "day",
-                languages: ["en"],
-              },
-            ],
-            nextToken: null,
-          })
-        ),
+        Payload: encodePayload({
+          items: [
+            {
+              episodeId: "ep-1",
+              showId: "show-42",
+              title: "Episode One",
+              audioUrl: "https://audio/1",
+              publishedAt: "2024-01-01T00:00:00.000Z",
+              durationSec: 900,
+              description: "Episode",
+              htmlDescription: "<p>Episode</p>",
+              image: "https://image/ep1",
+              linkUrl: "https://spotify/ep-1",
+              explicit: false,
+              isExternallyHosted: false,
+              isPlayable: true,
+              releaseDatePrecision: "day",
+              languages: ["en"],
+            },
+          ],
+          nextToken: null,
+        }),
       });
 
     dynamoMock.on(GetCommand).resolves({
