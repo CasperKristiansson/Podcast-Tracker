@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+} from "react";
+import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "@apollo/client/react";
 import {
   EpisodesByShowDocument,
@@ -27,6 +34,14 @@ interface RatingDraft {
   stars: number;
   review: string;
 }
+
+type EpisodeFilterValue = "all" | "unplayed" | "played";
+
+const EPISODE_FILTERS: Array<{ value: EpisodeFilterValue; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "unplayed", label: "Unplayed" },
+  { value: "played", label: "Watched" },
+];
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
@@ -78,7 +93,9 @@ const formatRelative = (iso: string | null | undefined): string => {
   }
 };
 
-function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element {
+function PodcastDetailAppContent({
+  showId,
+}: PodcastDetailAppProps): JSX.Element {
   const {
     data: showData,
     loading: showLoading,
@@ -106,6 +123,8 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
       variables: { showId, limit: 25 },
     }
   );
+
+  const [episodeFilter, setEpisodeFilter] = useState<EpisodeFilterValue>("all");
 
   const episodes = useMemo(() => {
     const list = episodesData?.episodes.items ?? [];
@@ -145,21 +164,29 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
     stars: subscription?.ratingStars ?? 0,
     review: subscription?.ratingReview ?? "",
   });
-  const [isEditingRating, setIsEditingRating] = useState(false);
+  const [isRatingModalOpen, setRatingModalOpen] = useState(false);
   const [pendingEpisodeId, setPendingEpisodeId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!subscription) {
       setRatingDraft({ stars: 0, review: "" });
-      setIsEditingRating(false);
+      if (isRatingModalOpen) {
+        setRatingModalOpen(false);
+      }
       return;
     }
-    setRatingDraft({
-      stars: subscription.ratingStars ?? 0,
-      review: subscription.ratingReview ?? "",
-    });
-    setIsEditingRating(false);
-  }, [subscription?.ratingStars, subscription?.ratingReview, subscription]);
+    if (!isRatingModalOpen) {
+      setRatingDraft({
+        stars: subscription.ratingStars ?? 0,
+        review: subscription.ratingReview ?? "",
+      });
+    }
+  }, [
+    subscription?.ratingStars,
+    subscription?.ratingReview,
+    subscription,
+    isRatingModalOpen,
+  ]);
 
   const [markProgress, { loading: markProgressLoading }] = useMutation(
     MarkEpisodeProgressDocument
@@ -177,16 +204,13 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
   const showLanguages = show?.languages?.filter(isNonEmptyString) ?? [];
   const isSubscribed = Boolean(subscription);
   const isMutatingSubscription = subscribeLoading || unsubscribeLoading;
-  const ratingValue = isEditingRating
-    ? ratingDraft.stars
-    : (subscription?.ratingStars ?? 0);
-  const ratingChangeHandler = isEditingRating
-    ? (stars: number) =>
-        setRatingDraft((prev) => ({
-          ...prev,
-          stars,
-        }))
-    : undefined;
+  const ratingDisplayValue = subscription?.ratingStars ?? 0;
+  const handleDraftStarChange = (stars: number) => {
+    setRatingDraft((prev) => ({
+      ...prev,
+      stars,
+    }));
+  };
   const subscriptionAddedAt = toOptionalString(subscription?.addedAt);
   const ratingUpdatedAt = toOptionalString(subscription?.ratingUpdatedAt);
 
@@ -195,6 +219,21 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
       (entry) => entry?.completed
     ).length;
   }, [progressData]);
+
+  const filteredEpisodes = useMemo(() => {
+    if (episodeFilter === "all") {
+      return episodes;
+    }
+
+    return episodes.filter((episode) => {
+      const progress = progressMap.get(episode.episodeId);
+      const isWatched = Boolean(progress?.completed);
+      if (episodeFilter === "played") {
+        return isWatched;
+      }
+      return !isWatched;
+    });
+  }, [episodeFilter, episodes, progressMap]);
 
   const heroLoading = (showLoading || subscriptionLoading) && !show;
   const episodesInitialLoading = episodesLoading && episodes.length === 0;
@@ -221,6 +260,39 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
       console.error("Subscription mutation failed", err);
     }
   };
+
+  const handleOpenRatingModal = useCallback(() => {
+    setRatingDraft({
+      stars: subscription?.ratingStars ?? 0,
+      review: subscription?.ratingReview ?? "",
+    });
+    setRatingModalOpen(true);
+  }, [subscription?.ratingStars, subscription?.ratingReview]);
+
+  const handleCloseRatingModal = useCallback(() => {
+    setRatingDraft({
+      stars: subscription?.ratingStars ?? 0,
+      review: subscription?.ratingReview ?? "",
+    });
+    setRatingModalOpen(false);
+  }, [subscription?.ratingStars, subscription?.ratingReview]);
+
+  useEffect(() => {
+    if (!isRatingModalOpen) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        handleCloseRatingModal();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isRatingModalOpen, handleCloseRatingModal]);
 
   const handleEpisodeCompletion = async (
     episode: Episode,
@@ -259,7 +331,7 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
         },
       });
       await refetchSubscription();
-      setIsEditingRating(false);
+      handleCloseRatingModal();
     } catch (err) {
       console.error("Failed to save rating", err);
     }
@@ -275,7 +347,7 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
         },
       });
       await refetchSubscription();
-      setIsEditingRating(false);
+      handleCloseRatingModal();
     } catch (err) {
       console.error("Failed to clear rating", err);
     }
@@ -290,8 +362,104 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
     });
   };
 
+  const ratingModal =
+    isRatingModalOpen && typeof document !== "undefined"
+      ? createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={handleCloseRatingModal}
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="rating-dialog-title"
+              className="relative z-10 w-full max-w-lg rounded-[32px] border border-white/12 bg-[#14072f]/95 p-6 shadow-[0_40px_140px_rgba(10,4,32,0.6)]"
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <h2
+                  id="rating-dialog-title"
+                  className="text-lg font-semibold text-white"
+                >
+                  Rate this podcast
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleCloseRatingModal}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white/70 transition hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  aria-label="Close rating modal"
+                >
+                  &times;
+                </button>
+              </div>
+              <div className="mt-6 space-y-5">
+                <div className="flex flex-col items-center gap-4 text-center text-white/80">
+                  <StarRating
+                    value={ratingDraft.stars}
+                    onChange={handleDraftStarChange}
+                    size="lg"
+                    className="justify-center"
+                  />
+                  <p className="text-xs uppercase tracking-[0.35em] text-white/50">
+                    {show?.title ?? "This show"}
+                  </p>
+                </div>
+                <textarea
+                  value={ratingDraft.review}
+                  onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+                    setRatingDraft((prev) => ({
+                      ...prev,
+                      review: event.target.value,
+                    }))
+                  }
+                  rows={4}
+                  placeholder="Optional note about the show"
+                  className="w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[#8f73ff]"
+                />
+                <div className="flex flex-wrap gap-3">
+                  <InteractiveButton
+                    onClick={() => {
+                      void handleRatingSave();
+                    }}
+                    isLoading={rateLoading}
+                    loadingLabel="Saving…"
+                  >
+                    Save rating
+                  </InteractiveButton>
+                  {(subscription?.ratingStars ?? 0) > 0 ||
+                  subscription?.ratingReview ? (
+                    <InteractiveButton
+                      variant="outline"
+                      onClick={() => {
+                        void handleRatingClear();
+                      }}
+                      isLoading={rateLoading}
+                      loadingLabel="Clearing…"
+                    >
+                      Clear rating
+                    </InteractiveButton>
+                  ) : null}
+                  <InteractiveButton
+                    variant="ghost"
+                    onClick={handleCloseRatingModal}
+                    disabled={rateLoading}
+                  >
+                    Cancel
+                  </InteractiveButton>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
     <div className="relative isolate w-full">
+      {ratingModal}
       <AuroraBackground className="opacity-80" />
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-14 px-6 py-16">
         {heroLoading ? (
@@ -427,13 +595,19 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
                       variant={isSubscribed ? "outline" : "primary"}
                       isLoading={isMutatingSubscription}
                       loadingLabel={isSubscribed ? "Removing…" : "Adding…"}
-                      className="w-full sm:w-auto"
+                      className={`w-full rounded-full sm:w-auto transition-colors duration-200 ${
+                        isSubscribed
+                          ? "hover:bg-white/15"
+                          : "hover:bg-[#7f4bff]/20 hover:text-white"
+                      }`}
                     >
-                      {isSubscribed ? "Remove from my shows" : "Add to my shows"}
+                      {isSubscribed
+                        ? "Remove from my shows"
+                        : "Add to my shows"}
                     </InteractiveButton>
                     {show.externalUrl ? (
                       <a
-                        className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-white/20"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white px-4 py-2 text-sm font-semibold text-[#5f43b2] transition hover:-translate-y-0.5 hover:bg-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] visited:text-[#4a2fa3] no-underline hover:no-underline focus-visible:no-underline"
                         href={show.externalUrl}
                         target="_blank"
                         rel="noreferrer"
@@ -482,100 +656,35 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
                       &nbsp;markets
                     </span>
                   ) : null}
-                  {ratingUpdatedAt && !isEditingRating ? (
-                    <span className="text-xs uppercase tracking-[0.35em] text-white/50">
-                      Rating updated {formatRelative(ratingUpdatedAt)}
-                    </span>
-                  ) : null}
                 </div>
 
-                <div className="space-y-4 rounded-[32px] border border-white/12 bg-white/[0.07] p-5 shadow-[0_32px_80px_rgba(18,9,56,0.45)] backdrop-blur">
-                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div className="space-y-2">
-                      <p className="text-xs uppercase tracking-[0.4em] text-white/60">
-                        Your rating
-                      </p>
-                      <p className="text-sm text-white/70">
-                        Capture how this show lands for you—stars plus an optional note.
-                      </p>
-                      {!isEditingRating && subscription?.ratingReview ? (
-                        <p className="rounded-2xl border border-white/12 bg-white/10 px-4 py-3 text-sm text-white/80">
-                          “{subscription.ratingReview}”
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
+                <div className="space-y-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
                       <StarRating
-                        value={ratingValue}
-                        onChange={ratingChangeHandler}
-                        readOnly={!isEditingRating}
+                        value={ratingDisplayValue}
+                        readOnly
                         size="lg"
-                        className="justify-start sm:justify-end"
+                        className="justify-start"
                       />
-                      {!isEditingRating ? (
-                        <InteractiveButton
-                          variant="secondary"
-                          onClick={() => setIsEditingRating(true)}
-                        >
-                          {(subscription?.ratingStars ?? 0) > 0
-                            ? "Update rating"
-                            : "Add rating"}
-                        </InteractiveButton>
-                      ) : null}
+                      <InteractiveButton
+                        variant="secondary"
+                        compact
+                        onClick={handleOpenRatingModal}
+                      >
+                        {ratingDisplayValue > 0 ? "Edit rating" : "Add rating"}
+                      </InteractiveButton>
                     </div>
+                    {ratingUpdatedAt && ratingDisplayValue > 0 ? (
+                      <span className="text-xs uppercase tracking-[0.35em] text-white/50">
+                        Updated {formatRelative(ratingUpdatedAt)}
+                      </span>
+                    ) : null}
                   </div>
-
-                  {isEditingRating ? (
-                    <div className="space-y-4">
-                      <textarea
-                        value={ratingDraft.review}
-                        onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                          setRatingDraft((prev) => ({
-                            ...prev,
-                            review: event.target.value,
-                          }))
-                        }
-                        rows={3}
-                        placeholder="Optional note about the show"
-                        className="w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[#8f73ff]"
-                      />
-                      <div className="flex flex-wrap gap-3">
-                        <InteractiveButton
-                          onClick={() => {
-                            void handleRatingSave();
-                          }}
-                          isLoading={rateLoading}
-                          loadingLabel="Saving…"
-                        >
-                          Save rating
-                        </InteractiveButton>
-                        {(subscription?.ratingStars ?? 0) > 0 ||
-                        subscription?.ratingReview ? (
-                          <InteractiveButton
-                            variant="outline"
-                            onClick={() => {
-                              void handleRatingClear();
-                            }}
-                            isLoading={rateLoading}
-                            loadingLabel="Clearing…"
-                          >
-                            Clear rating
-                          </InteractiveButton>
-                        ) : null}
-                        <InteractiveButton
-                          variant="ghost"
-                          onClick={() => {
-                            setIsEditingRating(false);
-                            setRatingDraft({
-                              stars: subscription?.ratingStars ?? 0,
-                              review: subscription?.ratingReview ?? "",
-                            });
-                          }}
-                        >
-                          Cancel
-                        </InteractiveButton>
-                      </div>
-                    </div>
+                  {subscription?.ratingReview ? (
+                    <p className="rounded-2xl border border-white/12 bg-white/[0.05] px-4 py-3 text-sm text-white/80">
+                      “{subscription.ratingReview}”
+                    </p>
                   ) : null}
                 </div>
               </div>
@@ -590,17 +699,39 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
         ) : null}
 
         <div className="space-y-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-3xl font-semibold text-white">Episodes</h2>
               <p className="text-sm text-white/60">
                 Modern queue of everything you haven&apos;t listened to yet.
               </p>
             </div>
-            <div className="flex items-center gap-3 text-xs text-white/50">
-              {progressLoading || markProgressLoading
-                ? "Syncing progress…"
-                : null}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
+              <div className="flex items-center gap-3 text-xs text-white/50">
+                {progressLoading || markProgressLoading
+                  ? "Syncing progress…"
+                  : null}
+              </div>
+              <div className="flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] p-1 text-[11px] uppercase tracking-[0.35em] text-white/65">
+                {EPISODE_FILTERS.map(({ value, label }) => {
+                  const isActive = episodeFilter === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setEpisodeFilter(value)}
+                      aria-pressed={isActive}
+                      className={`rounded-full px-3 py-1 font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] ${
+                        isActive
+                          ? "bg-white text-[#1a0f33] shadow-[0_12px_30px_rgba(255,255,255,0.2)]"
+                          : "text-white/70 hover:bg-white/10"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -628,8 +759,14 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
             </div>
           ) : null}
 
+          {filteredEpisodes.length === 0 && !episodesInitialLoading ? (
+            <div className="rounded-3xl border border-white/12 bg-white/[0.04] p-10 text-center text-sm text-white/70">
+              No episodes match this filter yet.
+            </div>
+          ) : null}
+
           <ul className="space-y-5">
-            {episodes.map((episode, index) => {
+            {filteredEpisodes.map((episode, index) => {
               const progress = progressMap.get(episode.episodeId);
               const isWatched = Boolean(progress?.completed);
               const publishedAt = toOptionalString(episode.publishedAt);

@@ -602,6 +602,7 @@ function SpotlightCard({
         aria-hidden
       />
       <div className="absolute inset-0 bg-[#07041c]/82" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-white/10 opacity-0 transition duration-200 ease-out group-hover:opacity-20 group-focus-visible:opacity-20" aria-hidden />
       <div className="pointer-events-none absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-white/80 opacity-0 translate-y-1 transition duration-200 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
         View show
         <span aria-hidden>↗</span>
@@ -722,6 +723,7 @@ function LibraryCard({
       }}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(142,108,255,0.22),_transparent_80%)] opacity-90" />
+      <div className="pointer-events-none absolute inset-0 bg-white/10 opacity-0 transition duration-200 ease-out group-hover:opacity-20 group-focus-visible:opacity-20" aria-hidden />
       <div className="pointer-events-none absolute right-5 top-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-white/80 opacity-0 translate-y-1 transition duration-200 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
         View show
         <span aria-hidden>↗</span>
