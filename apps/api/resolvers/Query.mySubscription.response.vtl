@@ -1,7 +1,7 @@
 #if(!$ctx.result)
   $util.toJson(null)
 #else
-  #set($item = $util.dynamodb.toMapValues($ctx.result))
+  #set($item = $util.dynamodb.fromMapValues($ctx.result))
   $util.qr($item.remove("pk"))
   $util.qr($item.remove("sk"))
   $util.qr($item.remove("dataType"))

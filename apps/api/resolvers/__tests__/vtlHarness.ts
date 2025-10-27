@@ -348,7 +348,22 @@ function buildRateShowRequest(ctx: RuntimeContext, util: AppSyncUtil) {
 function buildRateShowResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   ensureNoError(ctx, util);
   const record = asRecord(ctx.result) ?? {};
-  return util.dynamodb.toMapValues(record);
+  return util.dynamodb.fromMapValues(record);
+}
+
+function buildEpisodeProgressResponse(ctx: RuntimeContext, util: AppSyncUtil) {
+  const result = asRecord(ctx.result) ?? {};
+  const items = Array.isArray(result.items) ? (result.items as unknown[]) : [];
+
+  return items.map((item) => {
+    const map = util.dynamodb.fromMapValues(
+      asRecord(item) ?? (item as Record<string, unknown>)
+    );
+    delete map.pk;
+    delete map.sk;
+    delete map.dataType;
+    return map;
+  });
 }
 
 function buildPublishProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
@@ -401,7 +416,7 @@ function buildMySubscriptionResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   if (!ctx.result) {
     return null;
   }
-  const item = util.dynamodb.toMapValues(asRecord(ctx.result) ?? {});
+  const item = util.dynamodb.fromMapValues(asRecord(ctx.result) ?? {});
   delete item.pk;
   delete item.sk;
   delete item.dataType;
@@ -428,7 +443,7 @@ function buildMySubscriptionsResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   const items = Array.isArray(result.items) ? (result.items as unknown[]) : [];
 
   const parsed = items.map((item) => {
-    const map = util.dynamodb.toMapValues(
+    const map = util.dynamodb.fromMapValues(
       asRecord(item) ?? (item as Record<string, unknown>)
     );
     delete map.pk;
@@ -488,6 +503,8 @@ const templateBuilders: Record<
     buildMySubscriptionsRequest(ctx, util),
   "Query.mySubscriptions.response.vtl": (ctx, util) =>
     buildMySubscriptionsResponse(ctx, util),
+  "Query.episodeProgress.response.vtl": (ctx, util) =>
+    buildEpisodeProgressResponse(ctx, util),
   "Query.health.request.vtl": () => buildHealthRequest(),
   "Query.health.response.vtl": () => buildHealthResponse(),
 };

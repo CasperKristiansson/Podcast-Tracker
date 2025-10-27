@@ -1,6 +1,6 @@
 #set($items = [])
 #foreach($item in $ctx.result.items)
-  #set($map = $util.dynamodb.toMapValues($item))
+  #set($map = $util.dynamodb.fromMapValues($item))
   $util.qr($map.remove("pk"))
   $util.qr($map.remove("sk"))
   $util.qr($map.remove("dataType"))
