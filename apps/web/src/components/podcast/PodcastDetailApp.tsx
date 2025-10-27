@@ -33,6 +33,11 @@ const isNonEmptyString = (value: unknown): value is string =>
 const toOptionalString = (value: unknown): string | null =>
   typeof value === "string" ? value : null;
 
+const formatNumber = (value: number): string =>
+  new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(
+    Number.isFinite(value) ? value : 0
+  );
+
 const formatDuration = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds <= 0) {
     return "0s";
@@ -134,34 +139,6 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
     return map;
   }, [progressData]);
 
-  const [sliderDrafts, setSliderDrafts] = useState<Record<string, number>>({});
-  const [editingEpisode, setEditingEpisode] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!progressData) return;
-    setSliderDrafts((current) => {
-      const next = { ...current };
-      for (const item of progressData.episodeProgress ?? []) {
-        if (!item?.episodeId || editingEpisode === item.episodeId) {
-          continue;
-        }
-        next[item.episodeId] = item.positionSec ?? 0;
-      }
-      return next;
-    });
-  }, [progressData, editingEpisode]);
-
-  useEffect(() => {
-    if (editingEpisode) return;
-    setSliderDrafts((current) => {
-      const next = { ...current };
-      for (const episode of episodes) {
-        next[episode.episodeId] ??= 0;
-      }
-      return next;
-    });
-  }, [episodes, editingEpisode]);
-
   const subscription = subscriptionData?.mySubscription ?? null;
 
   const [ratingDraft, setRatingDraft] = useState<RatingDraft>({
@@ -169,6 +146,7 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
     review: subscription?.ratingReview ?? "",
   });
   const [isEditingRating, setIsEditingRating] = useState(false);
+  const [pendingEpisodeId, setPendingEpisodeId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!subscription) {
@@ -212,6 +190,15 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
   const subscriptionAddedAt = toOptionalString(subscription?.addedAt);
   const ratingUpdatedAt = toOptionalString(subscription?.ratingUpdatedAt);
 
+  const watchedCount = useMemo(() => {
+    return (progressData?.episodeProgress ?? []).filter(
+      (entry) => entry?.completed
+    ).length;
+  }, [progressData]);
+
+  const heroLoading = (showLoading || subscriptionLoading) && !show;
+  const episodesInitialLoading = episodesLoading && episodes.length === 0;
+
   const handleSubscribeToggle = async () => {
     if (!show) return;
     try {
@@ -235,27 +222,29 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
     }
   };
 
-  const handleProgressCommit = async (
+  const handleEpisodeCompletion = async (
     episode: Episode,
-    positionSec: number
+    completed: boolean
   ) => {
+    setPendingEpisodeId(episode.episodeId);
     try {
       const totalDuration = Number(episode.durationSec ?? 0);
-      const bounded = Math.max(0, Math.min(positionSec, totalDuration));
-      const completed =
-        totalDuration > 0 ? bounded >= totalDuration - 5 : false;
+      const positionSec = completed
+        ? Math.max(1, Math.round(totalDuration))
+        : 0;
       await markProgress({
         variables: {
           episodeId: episode.episodeId,
-          positionSec: Math.round(bounded),
+          positionSec,
           completed,
           showId,
         },
       });
-      setEditingEpisode(null);
       await refetchProgress();
     } catch (err) {
-      console.error("Failed to update progress", err);
+      console.error("Failed to update episode completion", err);
+    } finally {
+      setPendingEpisodeId(null);
     }
   };
 
@@ -305,9 +294,41 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
     <div className="relative isolate w-full">
       <AuroraBackground className="opacity-80" />
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-14 px-6 py-16">
-        {showLoading || subscriptionLoading ? (
-          <div className="mx-auto flex h-32 w-full max-w-xl items-center justify-center rounded-3xl border border-white/10 bg-white/[0.03] text-sm text-white/70">
-            Loading podcast details…
+        {heroLoading ? (
+          <div className="relative overflow-hidden rounded-[40px] border border-white/10 bg-white/[0.05] px-6 py-10 sm:px-10 sm:py-12">
+            <div
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(164,132,255,0.18),_transparent_75%)]"
+              aria-hidden
+            />
+            <div className="relative z-10 flex flex-col gap-10 lg:flex-row">
+              <div className="mx-auto w-44 sm:w-56 lg:mx-0 lg:w-64">
+                <div className="aspect-square animate-pulse rounded-[32px] bg-white/10" />
+              </div>
+              <div className="flex-1 space-y-6">
+                <div className="space-y-3">
+                  <div className="h-3 w-36 animate-pulse rounded-full bg-white/10" />
+                  <div className="h-12 w-3/4 animate-pulse rounded-full bg-white/10" />
+                  <div className="h-4 w-32 animate-pulse rounded-full bg-white/10" />
+                </div>
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, idx) => (
+                    <div
+                      key={`hero-line-${idx}`}
+                      className="h-4 w-full animate-pulse rounded-full bg-white/10"
+                    />
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {Array.from({ length: 4 }).map((_, idx) => (
+                    <div
+                      key={`hero-pill-${idx}`}
+                      className="h-6 w-24 animate-pulse rounded-full bg-white/10"
+                    />
+                  ))}
+                </div>
+                <div className="h-28 w-full animate-pulse rounded-[28px] bg-white/10" />
+              </div>
+            </div>
           </div>
         ) : null}
 
@@ -318,211 +339,249 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
         ) : null}
 
         {show ? (
-          <GlowCard className="w-full max-w-none px-10 py-12">
-            <div className="flex flex-col gap-10 md:flex-row md:items-start">
-              <div className="relative mx-auto aspect-square w-40 overflow-hidden rounded-3xl border border-white/10 shadow-[0_30px_80px_rgba(41,23,90,0.45)] md:mx-0">
+          <GlowCard className="relative overflow-hidden w-full max-w-none px-6 py-10 sm:px-10 sm:py-12">
+            <div
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(138,94,255,0.23),_transparent_70%)]"
+              aria-hidden
+            />
+            {show.image ? (
+              <div
+                className="pointer-events-none absolute -right-36 -top-40 hidden h-[22rem] w-[22rem] rotate-12 transform-gpu rounded-full bg-cover bg-center opacity-35 blur-[120px] sm:block"
+                style={{
+                  backgroundImage: `url(${show.image})`,
+                }}
+                aria-hidden
+              />
+            ) : null}
+            <div className="relative z-10 flex flex-col gap-10 lg:flex-row lg:items-start">
+              <div className="relative mx-auto w-44 shrink-0 sm:w-56 lg:mx-0 lg:w-64">
+                <div
+                  className="pointer-events-none absolute -inset-6 rounded-[36px] bg-gradient-to-br from-white/40 via-transparent to-white/10 opacity-80 blur-3xl"
+                  aria-hidden
+                />
                 {show.image ? (
-                  <img
-                    src={show.image}
-                    alt={show.title ?? "Podcast artwork"}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-white/5 text-sm text-white/40">
-                    No artwork
+                  <div
+                    className="pointer-events-none absolute -top-10 -right-16 hidden h-32 w-32 rotate-12 overflow-hidden rounded-[28px] border border-white/10 opacity-50 sm:block"
+                    aria-hidden
+                  >
+                    <img
+                      src={show.image}
+                      alt=""
+                      className="h-full w-full object-cover opacity-75"
+                      loading="lazy"
+                    />
                   </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                ) : null}
+                <div className="relative overflow-hidden rounded-[32px] border border-white/15 bg-[#12072d]/80 shadow-[0_45px_120px_rgba(31,16,78,0.55)]">
+                  {show.image ? (
+                    <img
+                      src={show.image}
+                      alt={show.title ?? "Podcast artwork"}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex aspect-square items-center justify-center bg-white/5 text-sm text-white/40">
+                      No artwork
+                    </div>
+                  )}
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-black/50 via-transparent to-black/30" />
+                </div>
               </div>
 
-              <div className="flex-1 space-y-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-2">
-                    <div className="text-xs uppercase tracking-[0.35em] text-white/50">
+              <div className="flex-1 space-y-8">
+                <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="space-y-3">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1 text-[11px] uppercase tracking-[0.4em] text-white/65">
                       {show.publisher}
-                    </div>
-                    <h1 className="text-4xl font-semibold text-white">
+                      <span className="hidden h-1 w-1 rounded-full bg-white/50 sm:inline" />
+                      <span className="text-white/45">
+                        {show.mediaType ?? "Podcast"}
+                      </span>
+                    </span>
+                    <h1 className="text-4xl font-semibold text-white sm:text-5xl">
                       {show.title}
                     </h1>
-                    <p className="text-sm text-white/60">
-                      {show.totalEpisodes} episodes tracked
-                    </p>
+                    <div className="flex flex-wrap gap-3 text-sm text-white/70">
+                      <span className="rounded-2xl border border-white/12 bg-white/[0.05] px-3 py-1">
+                        {formatNumber(show.totalEpisodes ?? 0)} episodes
+                      </span>
+                      <span className="rounded-2xl border border-emerald-400/40 bg-emerald-400/15 px-3 py-1 text-emerald-100">
+                        {progressLoading
+                          ? "Tracking progress…"
+                          : `${formatNumber(watchedCount)} watched`}
+                      </span>
+                      {subscriptionAddedAt ? (
+                        <span className="rounded-2xl border border-white/12 bg-white/[0.04] px-3 py-1 text-white/60">
+                          In rotation {formatRelative(subscriptionAddedAt)}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
 
-                  <InteractiveButton
-                    onClick={() => {
-                      void handleSubscribeToggle();
-                    }}
-                    variant={isSubscribed ? "outline" : "primary"}
-                    isLoading={isMutatingSubscription}
-                    loadingLabel={isSubscribed ? "Removing…" : "Adding…"}
-                    className="self-start"
-                  >
-                    {isSubscribed ? "Remove from my shows" : "Add to my shows"}
-                  </InteractiveButton>
+                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
+                    <InteractiveButton
+                      onClick={() => {
+                        void handleSubscribeToggle();
+                      }}
+                      variant={isSubscribed ? "outline" : "primary"}
+                      isLoading={isMutatingSubscription}
+                      loadingLabel={isSubscribed ? "Removing…" : "Adding…"}
+                      className="w-full sm:w-auto"
+                    >
+                      {isSubscribed ? "Remove from my shows" : "Add to my shows"}
+                    </InteractiveButton>
+                    {show.externalUrl ? (
+                      <a
+                        className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-white/20"
+                        href={show.externalUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Listen on Spotify ↗
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
 
                 {descriptionHtml ? (
                   <div
-                    className="prose prose-invert max-w-3xl text-base leading-relaxed text-white/70 prose-p:my-3 prose-strong:text-white"
+                    className="prose prose-invert max-w-3xl text-base leading-relaxed text-white/75 prose-a:text-white prose-strong:text-white"
                     dangerouslySetInnerHTML={{ __html: descriptionHtml }}
                   />
                 ) : null}
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap gap-3">
                   {show.categories?.map((category) => (
                     <span
                       key={category}
-                      className="rounded-full border border-white/15 bg-white/[0.08] px-4 py-1 text-xs font-medium uppercase tracking-widest text-white/70"
+                      className="rounded-full border border-white/15 bg-white/[0.08] px-4 py-1 text-xs font-medium uppercase tracking-[0.4em] text-white/70"
                     >
                       {category}
                     </span>
                   ))}
                   {show.explicit ? (
-                    <span className="rounded-full border border-red-400/40 bg-red-500/15 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-red-100">
+                    <span className="rounded-full border border-red-400/50 bg-red-500/20 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-red-100">
                       Explicit
                     </span>
                   ) : null}
                   {showLanguages.map((lang) => (
                     <span
                       key={lang}
-                      className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] uppercase tracking-[0.35em] text-white/60"
+                      className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] uppercase tracking-[0.35em] text-white/65"
                     >
                       {lang}
                     </span>
                   ))}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 text-sm text-white/60">
-                  {subscriptionAddedAt ? (
-                    <span>
-                      In your rotation {formatRelative(subscriptionAddedAt)}
-                    </span>
-                  ) : null}
-                  {show.externalUrl ? (
-                    <a
-                      className="inline-flex items-center gap-2 text-white/80 transition hover:text-white"
-                      href={show.externalUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Open on Spotify ↗
-                    </a>
-                  ) : null}
-                  {show.mediaType ? (
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs uppercase tracking-[0.3em] text-white/50">
-                      {show.mediaType}
-                    </span>
-                  ) : null}
+                <div className="flex flex-wrap items-center gap-4 text-sm text-white/70">
                   {show.availableMarkets?.length ? (
-                    <span className="text-xs uppercase tracking-widest text-white/40">
-                      Available in {show.availableMarkets.length} markets
+                    <span>
+                      Available in {formatNumber(show.availableMarkets.length)}
+                      &nbsp;markets
                     </span>
+                  ) : null}
+                  {ratingUpdatedAt && !isEditingRating ? (
+                    <span className="text-xs uppercase tracking-[0.35em] text-white/50">
+                      Rating updated {formatRelative(ratingUpdatedAt)}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="space-y-4 rounded-[32px] border border-white/12 bg-white/[0.07] p-5 shadow-[0_32px_80px_rgba(18,9,56,0.45)] backdrop-blur">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="space-y-2">
+                      <p className="text-xs uppercase tracking-[0.4em] text-white/60">
+                        Your rating
+                      </p>
+                      <p className="text-sm text-white/70">
+                        Capture how this show lands for you—stars plus an optional note.
+                      </p>
+                      {!isEditingRating && subscription?.ratingReview ? (
+                        <p className="rounded-2xl border border-white/12 bg-white/10 px-4 py-3 text-sm text-white/80">
+                          “{subscription.ratingReview}”
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
+                      <StarRating
+                        value={ratingValue}
+                        onChange={ratingChangeHandler}
+                        readOnly={!isEditingRating}
+                        size="lg"
+                        className="justify-start sm:justify-end"
+                      />
+                      {!isEditingRating ? (
+                        <InteractiveButton
+                          variant="secondary"
+                          onClick={() => setIsEditingRating(true)}
+                        >
+                          {(subscription?.ratingStars ?? 0) > 0
+                            ? "Update rating"
+                            : "Add rating"}
+                        </InteractiveButton>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {isEditingRating ? (
+                    <div className="space-y-4">
+                      <textarea
+                        value={ratingDraft.review}
+                        onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+                          setRatingDraft((prev) => ({
+                            ...prev,
+                            review: event.target.value,
+                          }))
+                        }
+                        rows={3}
+                        placeholder="Optional note about the show"
+                        className="w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[#8f73ff]"
+                      />
+                      <div className="flex flex-wrap gap-3">
+                        <InteractiveButton
+                          onClick={() => {
+                            void handleRatingSave();
+                          }}
+                          isLoading={rateLoading}
+                          loadingLabel="Saving…"
+                        >
+                          Save rating
+                        </InteractiveButton>
+                        {(subscription?.ratingStars ?? 0) > 0 ||
+                        subscription?.ratingReview ? (
+                          <InteractiveButton
+                            variant="outline"
+                            onClick={() => {
+                              void handleRatingClear();
+                            }}
+                            isLoading={rateLoading}
+                            loadingLabel="Clearing…"
+                          >
+                            Clear rating
+                          </InteractiveButton>
+                        ) : null}
+                        <InteractiveButton
+                          variant="ghost"
+                          onClick={() => {
+                            setIsEditingRating(false);
+                            setRatingDraft({
+                              stars: subscription?.ratingStars ?? 0,
+                              review: subscription?.ratingReview ?? "",
+                            });
+                          }}
+                        >
+                          Cancel
+                        </InteractiveButton>
+                      </div>
+                    </div>
                   ) : null}
                 </div>
               </div>
             </div>
           </GlowCard>
         ) : null}
-
-        <GlowCard className="w-full max-w-none px-10 py-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-semibold text-white">
-                Rate this podcast
-              </h2>
-              <p className="text-sm text-white/60">
-                Let future you know how this show feels. Just a quick rating and
-                optional note.
-              </p>
-              {!isEditingRating && subscription?.ratingReview ? (
-                <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/70">
-                  “{subscription.ratingReview}”
-                </p>
-              ) : null}
-            </div>
-
-            <div className="flex w-full max-w-md flex-col gap-4">
-              <StarRating
-                value={ratingValue}
-                onChange={ratingChangeHandler}
-                readOnly={!isEditingRating}
-                size="lg"
-                className="justify-end"
-              />
-
-              {isEditingRating ? (
-                <div className="space-y-4">
-                  <textarea
-                    value={ratingDraft.review}
-                    onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                      setRatingDraft((prev) => ({
-                        ...prev,
-                        review: event.target.value,
-                      }))
-                    }
-                    rows={3}
-                    placeholder="Optional note about the show"
-                    className="w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[#8f73ff]"
-                  />
-                  <div className="flex flex-wrap gap-3">
-                    <InteractiveButton
-                      onClick={() => {
-                        void handleRatingSave();
-                      }}
-                      isLoading={rateLoading}
-                      loadingLabel="Saving…"
-                    >
-                      Save rating
-                    </InteractiveButton>
-                    {(subscription?.ratingStars ?? 0) > 0 ||
-                    subscription?.ratingReview ? (
-                      <InteractiveButton
-                        variant="outline"
-                        onClick={() => {
-                          void handleRatingClear();
-                        }}
-                        isLoading={rateLoading}
-                        loadingLabel="Clearing…"
-                      >
-                        Clear rating
-                      </InteractiveButton>
-                    ) : null}
-                    <InteractiveButton
-                      variant="ghost"
-                      onClick={() => {
-                        setIsEditingRating(false);
-                        setRatingDraft({
-                          stars: subscription?.ratingStars ?? 0,
-                          review: subscription?.ratingReview ?? "",
-                        });
-                      }}
-                    >
-                      Cancel
-                    </InteractiveButton>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center gap-4">
-                  <InteractiveButton
-                    variant="secondary"
-                    onClick={() => setIsEditingRating(true)}
-                  >
-                    {(subscription?.ratingStars ?? 0) > 0
-                      ? "Update rating"
-                      : "Add rating"}
-                  </InteractiveButton>
-                  {ratingUpdatedAt ? (
-                    <span className="text-xs uppercase tracking-widest text-white/50">
-                      Last updated {formatRelative(ratingUpdatedAt)}
-                    </span>
-                  ) : null}
-                </div>
-              )}
-            </div>
-          </div>
-        </GlowCard>
 
         {episodesError ? (
           <div className="rounded-3xl border border-red-500/40 bg-red-500/20 p-6 text-sm text-red-100">
@@ -545,47 +604,65 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
             </div>
           </div>
 
-          {episodesLoading && episodes.length === 0 ? (
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-sm text-white/70">
-              Fetching the freshest episodes…
+          {episodesInitialLoading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <div
+                  key={`episode-skeleton-${idx}`}
+                  className="animate-pulse rounded-3xl border border-white/10 bg-white/[0.05] p-6"
+                >
+                  <div className="h-3 w-1/3 rounded-full bg-white/10" />
+                  <div className="mt-4 h-6 w-2/3 rounded-full bg-white/10" />
+                  <div className="mt-3 h-4 w-full rounded-full bg-white/10" />
+                  <div className="mt-2 h-4 w-5/6 rounded-full bg-white/10" />
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {Array.from({ length: 3 }).map((_, pillIdx) => (
+                      <div
+                        key={`episode-pill-${idx}-${pillIdx}`}
+                        className="h-6 w-24 rounded-full bg-white/10"
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : null}
 
           <ul className="space-y-5">
             {episodes.map((episode, index) => {
               const progress = progressMap.get(episode.episodeId);
-              const sliderValue =
-                sliderDrafts[episode.episodeId] ?? progress?.positionSec ?? 0;
-              const totalDuration = Number(episode.durationSec ?? 0);
-              const percent = totalDuration
-                ? Math.round((sliderValue / totalDuration) * 100)
-                : 0;
+              const isWatched = Boolean(progress?.completed);
               const publishedAt = toOptionalString(episode.publishedAt);
               const episodeLanguages =
                 episode.languages?.filter(isNonEmptyString) ?? [];
+              const durationLabel = formatDuration(
+                Number(episode.durationSec ?? 0)
+              );
+              const isEpisodeUpdating =
+                pendingEpisodeId === episode.episodeId && markProgressLoading;
 
               return (
                 <li
                   key={episode.episodeId}
-                  className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_60px_rgba(29,16,65,0.35)] transition duration-300 hover:border-white/20 hover:bg-white/[0.08]"
+                  className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_24px_60px_rgba(29,16,65,0.35)] transition duration-300 hover:border-white/25 hover:bg-white/[0.09]"
                 >
-                  <div className="flex flex-col gap-6 md:flex-row md:items-start">
-                    <div className="flex-1 space-y-4">
-                      <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.35em] text-white/50">
-                        <span>Episode {index + 1}</span>
-                        <span className="h-1 w-1 rounded-full bg-white/30" />
-                        <span>{formatDate(publishedAt)}</span>
-                        <span className="h-1 w-1 rounded-full bg-white/30" />
-                        <span>
-                          {formatDuration(Number(episode.durationSec ?? 0))}
-                        </span>
-                      </div>
-                      <h3 className="text-xl font-semibold text-white">
+                  <div className="absolute -top-24 -right-20 h-48 w-48 rounded-full bg-[#8f73ff]/20 blur-[110px] opacity-40" />
+                  <div className="relative flex flex-col gap-6">
+                    <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.35em] text-white/45">
+                      <span>Episode {index + 1}</span>
+                      <span className="h-1 w-1 rounded-full bg-white/35" />
+                      <span>{formatDate(publishedAt)}</span>
+                      <span className="h-1 w-1 rounded-full bg-white/35" />
+                      <span>{durationLabel}</span>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold text-white md:text-2xl">
                         {episode.title}
                       </h3>
                       {episode.htmlDescription ? (
                         <div
-                          className="prose prose-invert prose-sm line-clamp-4 text-white/70 prose-p:my-1"
+                          className="prose prose-invert prose-sm line-clamp-4 text-white/75 prose-p:my-1"
                           dangerouslySetInnerHTML={{
                             __html: episode.htmlDescription,
                           }}
@@ -595,118 +672,71 @@ function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element
                           {episode.description}
                         </p>
                       ) : null}
-
-                      <div className="flex flex-wrap gap-3 text-xs text-white/60">
-                        {progress?.completed ? (
-                          <span className="rounded-full bg-emerald-400/20 px-3 py-1 text-emerald-200">
-                            Completed
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-white/10 px-3 py-1">
-                            {percent}% complete
-                          </span>
-                        )}
-                        {episode.explicit ? (
-                          <span className="rounded-full bg-red-500/20 px-3 py-1 text-red-200">
-                            Explicit
-                          </span>
-                        ) : null}
-                        {episodeLanguages.length ? (
-                          <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-white/50">
-                            {episodeLanguages.join(" · ")}
-                          </span>
-                        ) : null}
-                        <a
-                          href={`/app/show/${showId}/episode/${episode.episodeId}`}
-                          className="inline-flex items-center gap-2 text-white/75 transition hover:text-white"
-                        >
-                          Episode details ↗
-                        </a>
-                        {episode.linkUrl ? (
-                          <a
-                            href={episode.linkUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-2 text-white/75 transition hover:text-white"
-                          >
-                            Play on Spotify ↗
-                          </a>
-                        ) : null}
-                      </div>
                     </div>
 
-                    <div className="w-full rounded-2xl border border-white/10 bg-black/30 p-5 md:w-64">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between text-xs uppercase tracking-widest text-white/50">
-                          <span>Progress</span>
-                          <span>{formatDuration(sliderValue)}</span>
-                        </div>
-                        <input
-                          type="range"
-                          min={0}
-                          max={Math.max(1, Number(episode.durationSec ?? 0))}
-                          value={sliderValue}
-                          onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                            setEditingEpisode(episode.episodeId);
-                            setSliderDrafts((prev) => ({
-                              ...prev,
-                              [episode.episodeId]: Number(event.target.value),
-                            }));
-                          }}
-                          onPointerUp={(event) => {
-                            const value = Number(
-                              (event.target as HTMLInputElement).value
-                            );
-                            void handleProgressCommit(episode, value);
-                          }}
-                          onMouseUp={(event) => {
-                            const value = Number(
-                              (event.target as HTMLInputElement).value
-                            );
-                            void handleProgressCommit(episode, value);
-                          }}
-                          onKeyUp={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              const value = Number(
-                                (event.target as HTMLInputElement).value
-                              );
-                              void handleProgressCommit(episode, value);
-                            }
-                          }}
-                          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-[#8f73ff]"
-                        />
-                        <div className="flex flex-wrap items-center gap-3">
-                          <InteractiveButton
-                            variant="secondary"
-                            onClick={() => {
-                              setSliderDrafts((prev) => ({
-                                ...prev,
-                                [episode.episodeId]: Number(
-                                  episode.durationSec ?? 0
-                                ),
-                              }));
-                              void handleProgressCommit(
-                                episode,
-                                Number(episode.durationSec ?? 0)
-                              );
-                            }}
-                          >
-                            Mark done
-                          </InteractiveButton>
-                          <InteractiveButton
-                            variant="ghost"
-                            onClick={() => {
-                              setSliderDrafts((prev) => ({
-                                ...prev,
-                                [episode.episodeId]: 0,
-                              }));
-                              void handleProgressCommit(episode, 0);
-                            }}
-                          >
-                            Reset
-                          </InteractiveButton>
-                        </div>
-                      </div>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-white/65">
+                      <span
+                        className={
+                          isWatched
+                            ? "inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-400/20 px-3 py-1 text-emerald-100"
+                            : "inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-white/70"
+                        }
+                      >
+                        {isWatched ? "Watched" : "Not watched yet"}
+                      </span>
+                      {episode.explicit ? (
+                        <span className="rounded-full border border-red-400/40 bg-red-500/20 px-3 py-1 text-red-200">
+                          Explicit
+                        </span>
+                      ) : null}
+                      {episodeLanguages.length ? (
+                        <span className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-white/55">
+                          {episodeLanguages.join(" · ")}
+                        </span>
+                      ) : null}
+                      <a
+                        href={`/app/show/${showId}/episode/${episode.episodeId}`}
+                        className="inline-flex items-center gap-2 text-[#bcd9ff] transition hover:text-white"
+                      >
+                        Episode details ↗
+                      </a>
+                      {episode.linkUrl ? (
+                        <a
+                          href={episode.linkUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 text-[#bcd9ff] transition hover:text-white"
+                        >
+                          Play on Spotify ↗
+                        </a>
+                      ) : null}
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <InteractiveButton
+                        variant={isWatched ? "outline" : "primary"}
+                        onClick={() => {
+                          void handleEpisodeCompletion(episode, !isWatched);
+                        }}
+                        disabled={
+                          markProgressLoading &&
+                          pendingEpisodeId !== episode.episodeId
+                        }
+                        isLoading={isEpisodeUpdating}
+                        loadingLabel="Updating…"
+                      >
+                        {isWatched ? "Mark as unwatched" : "Mark as watched"}
+                      </InteractiveButton>
+                      {episode.linkUrl ? (
+                        <a
+                          href={episode.linkUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white transition hover:-translate-y-0.5 hover:bg-white/10"
+                        >
+                          Open external player ↗
+                        </a>
+                      ) : null}
                     </div>
                   </div>
                 </li>

@@ -17,7 +17,14 @@ if (!showId) {
   title="Podcast"
   description="Deep dive into a single podcast with progress, rating, and episode controls."
 >
-  <PodcastSearchBarWithProvider slot="search" client:only="react" />
+  <div slot="search">
+    <div class="mx-auto flex w-full max-w-6xl justify-center">
+      <PodcastSearchBarWithProvider
+        className="w-full max-w-[420px]"
+        client:only="react"
+      />
+    </div>
+  </div>
   <section class="min-h-screen">
     <PodcastDetailApp client:only="react" showId={showId} />
   </section>

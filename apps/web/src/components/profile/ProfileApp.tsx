@@ -602,6 +602,10 @@ function SpotlightCard({
         aria-hidden
       />
       <div className="absolute inset-0 bg-[#07041c]/82" aria-hidden />
+      <div className="pointer-events-none absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-white/80 opacity-0 translate-y-1 transition duration-200 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
+        View show
+        <span aria-hidden>↗</span>
+      </div>
 
       <div className="relative z-10 flex flex-col gap-5">
         <div className="flex items-start gap-4">
@@ -705,7 +709,7 @@ function LibraryCard({
 
   return (
     <div
-      className="relative cursor-pointer overflow-hidden rounded-[28px] border border-white/12 bg-[#120727]/90 p-5 shadow-[0_32px_80px_rgba(24,14,78,0.45)] backdrop-blur-2xl focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] sm:p-6"
+      className="group relative cursor-pointer overflow-hidden rounded-[28px] border border-white/12 bg-[#120727]/90 p-5 shadow-[0_32px_80px_rgba(24,14,78,0.45)] backdrop-blur-2xl focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] sm:p-6"
       role="link"
       tabIndex={0}
       aria-label={`View details for ${show.title ?? "podcast"}`}
@@ -718,6 +722,10 @@ function LibraryCard({
       }}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(142,108,255,0.22),_transparent_80%)] opacity-90" />
+      <div className="pointer-events-none absolute right-5 top-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-white/80 opacity-0 translate-y-1 transition duration-200 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
+        View show
+        <span aria-hidden>↗</span>
+      </div>
       <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between md:gap-8">
         <div className="flex flex-col gap-4 md:flex-row md:flex-1 md:items-center md:gap-6">
           <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-[#1a113a]/70 shadow-[0_20px_50px_rgba(43,24,108,0.5)] h-44 w-full sm:h-40 sm:w-48 md:h-28 md:w-28">
