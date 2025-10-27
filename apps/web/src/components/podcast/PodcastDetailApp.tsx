@@ -17,6 +17,7 @@ import {
   UnsubscribeFromShowDocument,
 } from "@shared";
 import { AuroraBackground, GlowCard, InteractiveButton, StarRating } from "@ui";
+import { GraphQLProvider } from "../graphql/GraphQLProvider";
 
 interface PodcastDetailAppProps {
   showId: string;
@@ -72,7 +73,7 @@ const formatRelative = (iso: string | null | undefined): string => {
   }
 };
 
-export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
+function PodcastDetailAppContent({ showId }: PodcastDetailAppProps): JSX.Element {
   const {
     data: showData,
     loading: showLoading,
@@ -730,5 +731,15 @@ export default function PodcastDetailApp({ showId }: PodcastDetailAppProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PodcastDetailApp(
+  props: PodcastDetailAppProps
+): JSX.Element {
+  return (
+    <GraphQLProvider>
+      <PodcastDetailAppContent {...props} />
+    </GraphQLProvider>
   );
 }

@@ -816,12 +816,15 @@ const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
         const isRemoving = isPending && pendingState?.action === "remove";
         const isAdding = isPending && pendingState?.action === "add";
         const cardClassNames = [
-          "flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/25 hover:bg-white/10",
+          "flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/25 hover:bg-white/10 cursor-pointer focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]",
           isActive ? "border-white/25 bg-white/10" : "",
           isSubscribed ? "border-[#8f73ff]/70 bg-[#221048]/90" : "",
         ]
           .filter(Boolean)
           .join(" ");
+        const handleSelect = () => {
+          onSelect(show.id);
+        };
 
         return (
           <li
@@ -831,12 +834,16 @@ const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
             aria-selected={isActive}
             className={cardClassNames}
             onMouseEnter={() => onHover(index)}
+            onClick={handleSelect}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                handleSelect();
+              }
+            }}
+            tabIndex={-1}
           >
-            <button
-              type="button"
-              className="flex flex-1 min-w-0 items-center gap-4 text-left"
-              onClick={() => onSelect(show.id)}
-            >
+            <div className="flex flex-1 min-w-0 items-center gap-4 text-left">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05] shadow-[0_18px_40px_rgba(41,23,90,0.35)]">
                 {show.image ? (
                   <img
@@ -872,11 +879,12 @@ const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
                 ) : null}
                 <MetadataRow show={show} />
               </div>
-            </button>
+            </div>
             {isSubscribed ? (
               <InteractiveButton
                 variant="outline"
-                onClick={() => {
+                onClick={(event) => {
+                  event.stopPropagation();
                   void onUnsubscribe(show);
                 }}
                 isLoading={isRemoving}
@@ -888,7 +896,8 @@ const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
             ) : (
               <InteractiveButton
                 variant="secondary"
-                onClick={() => {
+                onClick={(event) => {
+                  event.stopPropagation();
                   void onSubscribe(show);
                 }}
                 isLoading={isAdding}

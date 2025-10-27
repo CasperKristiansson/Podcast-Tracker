@@ -47,6 +47,13 @@ const normalizeDateInput = (value: unknown): string | null => {
   return null;
 };
 
+const navigateToShow = (showId: string): void => {
+  if (!showId) return;
+  if (typeof window === "undefined") return;
+  const encodedId = encodeURIComponent(showId);
+  window.location.href = `/app/show/${encodedId}`;
+};
+
 function ProfileAppContent(): JSX.Element {
   const {
     data,
@@ -568,8 +575,24 @@ function SpotlightCard({
   const syncedAtValue = normalizeDateInput(show.subscriptionSyncedAt);
   const hasImage = typeof show.image === "string" && show.image.length > 0;
 
+  const handleNavigate = () => {
+    navigateToShow(show.showId);
+  };
+
   return (
-    <div className="group relative overflow-hidden rounded-3xl border border-white/12 p-8 shadow-[0_45px_110px_rgba(24,14,78,0.5)] backdrop-blur-2xl">
+    <div
+      className="group relative cursor-pointer overflow-hidden rounded-3xl border border-white/12 p-8 shadow-[0_45px_110px_rgba(24,14,78,0.5)] backdrop-blur-2xl focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
+      role="link"
+      tabIndex={0}
+      aria-label={`View details for ${show.title ?? "podcast"}`}
+      onClick={handleNavigate}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleNavigate();
+        }
+      }}
+    >
       <div
         className={cn(
           "absolute inset-0 bg-[linear-gradient(140deg,rgba(162,122,255,0.22),rgba(66,40,162,0.36))]",
@@ -611,7 +634,8 @@ function SpotlightCard({
             </p>
           </div>
           <InteractiveButton
-            onClick={() => {
+            onClick={(event) => {
+              event.stopPropagation();
               void onCelebrate(show);
             }}
             disabled={pending || (globalMutating && !pending)}
@@ -675,9 +699,24 @@ function LibraryCard({
   const celebrateDisabled =
     !hasUnlistened || unsubscribing || pending || (globalMutating && !pending);
   const celebrateLoading = pending && hasUnlistened;
+  const handleNavigate = () => {
+    navigateToShow(show.showId);
+  };
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-white/12 bg-[#120727]/90 p-5 shadow-[0_32px_80px_rgba(24,14,78,0.45)] backdrop-blur-2xl sm:p-6">
+    <div
+      className="relative cursor-pointer overflow-hidden rounded-[28px] border border-white/12 bg-[#120727]/90 p-5 shadow-[0_32px_80px_rgba(24,14,78,0.45)] backdrop-blur-2xl focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] sm:p-6"
+      role="link"
+      tabIndex={0}
+      aria-label={`View details for ${show.title ?? "podcast"}`}
+      onClick={handleNavigate}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleNavigate();
+        }
+      }}
+    >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(142,108,255,0.22),_transparent_80%)] opacity-90" />
       <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between md:gap-8">
         <div className="flex flex-col gap-4 md:flex-row md:flex-1 md:items-center md:gap-6">
@@ -723,7 +762,8 @@ function LibraryCard({
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
             <InteractiveButton
               variant="ghost"
-              onClick={() => {
+              onClick={(event) => {
+                event.stopPropagation();
                 void onCelebrate(show);
               }}
               disabled={celebrateDisabled}
@@ -740,7 +780,8 @@ function LibraryCard({
             </InteractiveButton>
             <InteractiveButton
               variant="outline"
-              onClick={() => {
+              onClick={(event) => {
+                event.stopPropagation();
                 void onUnsubscribe(show);
               }}
               disabled={unsubscribing}
