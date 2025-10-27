@@ -16,6 +16,8 @@ import {
   type EpisodeProgressByIdsQuery,
   type Episode,
   MarkEpisodeProgressDocument,
+  MyProfileDocument,
+  type MyProfileQuery,
   MySubscriptionByShowDocument,
   type MySubscriptionByShowQuery,
   RateShowDocument,
@@ -38,7 +40,7 @@ interface RatingDraft {
 
 type EpisodeFilterValue = "all" | "unplayed" | "played";
 
-const EPISODE_FILTERS: Array<{ value: EpisodeFilterValue; label: string }> = [
+const EPISODE_FILTERS: { value: EpisodeFilterValue; label: string }[] = [
   { value: "all", label: "All" },
   { value: "unplayed", label: "Unplayed" },
   { value: "played", label: "Watched" },
@@ -97,6 +99,16 @@ const formatRelative = (iso: string | null | undefined): string => {
 function PodcastDetailAppContent({
   showId,
 }: PodcastDetailAppProps): JSX.Element {
+  const { data: profileData } = useQuery<MyProfileQuery>(MyProfileDocument, {
+    fetchPolicy: "cache-first",
+    nextFetchPolicy: "cache-first",
+  });
+
+  const showExistsInProfile = useMemo(() => {
+    const shows = profileData?.myProfile?.shows ?? [];
+    return shows.some((profileShow) => profileShow?.showId === showId);
+  }, [profileData, showId]);
+
   const {
     data: showData,
     loading: showLoading,
@@ -113,6 +125,8 @@ function PodcastDetailAppContent({
     variables: { showId },
     fetchPolicy: "network-only",
     nextFetchPolicy: "cache-first",
+    errorPolicy: "all",
+    skip: showExistsInProfile,
   });
 
   const {
@@ -211,7 +225,7 @@ function PodcastDetailAppContent({
   const show = showData?.show;
   const descriptionHtml = show?.htmlDescription ?? show?.description ?? "";
   const showLanguages = show?.languages?.filter(isNonEmptyString) ?? [];
-  const isSubscribed = Boolean(subscription);
+  const isSubscribed = Boolean(subscription) || showExistsInProfile;
   const isMutatingSubscription = subscribeLoading || unsubscribeLoading;
   const ratingDisplayValue = subscription?.ratingStars ?? 0;
   const canRateShow = Boolean(subscription);
@@ -246,7 +260,9 @@ function PodcastDetailAppContent({
   }, [episodeFilter, episodes, progressMap]);
 
   const activeFilterLabel = useMemo(() => {
-    const current = EPISODE_FILTERS.find((item) => item.value === episodeFilter);
+    const current = EPISODE_FILTERS.find(
+      (item) => item.value === episodeFilter
+    );
     return current?.label ?? "All";
   }, [episodeFilter]);
 
