@@ -1,18 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import {
   EpisodeDetailsDocument,
   type EpisodeDetailsQuery,
   type EpisodeDetailsQueryVariables,
-  EpisodeProgressByIdsDocument,
-  type EpisodeProgressByIdsQuery,
-  type EpisodeProgressByIdsQueryVariables,
+  ShowDetailDocument,
+  type ShowDetailQuery,
+  type ShowDetailQueryVariables,
   MarkEpisodeProgressDocument,
   type MarkEpisodeProgressMutation,
   type MarkEpisodeProgressMutationVariables,
-  ShowByIdDocument,
-  type ShowByIdQuery,
-  type ShowByIdQueryVariables,
 } from "@shared";
 import { AuroraBackground, GlowCard, InteractiveButton } from "@ui";
 
@@ -49,12 +46,21 @@ export default function EpisodeDetailApp({
   episodeId,
 }: EpisodeDetailAppProps) {
   const {
-    data: showData,
-    loading: showLoading,
-    error: showError,
-  } = useQuery<ShowByIdQuery, ShowByIdQueryVariables>(ShowByIdDocument, {
-    variables: { showId },
-  });
+    data: showDetailData,
+    loading: showDetailLoading,
+    error: showDetailError,
+    refetch: refetchShowDetail,
+  } = useQuery<ShowDetailQuery, ShowDetailQueryVariables>(
+    ShowDetailDocument,
+    {
+      variables: {
+        showId,
+        episodeLimit: 0,
+        episodeCursor: null,
+        progressEpisodeIds: [episodeId],
+      },
+    }
+  );
   const {
     data: episodeData,
     loading: episodeLoading,
@@ -66,27 +72,16 @@ export default function EpisodeDetailApp({
     }
   );
 
-  const {
-    data: progressData,
-    refetch: refetchProgress,
-    loading: progressLoading,
-  } = useQuery<EpisodeProgressByIdsQuery, EpisodeProgressByIdsQueryVariables>(
-    EpisodeProgressByIdsDocument,
-    {
-      variables: { episodeIds: [episodeId] },
-    }
-  );
-
   const [markProgress, { loading: progressMutating }] = useMutation<
     MarkEpisodeProgressMutation,
     MarkEpisodeProgressMutationVariables
   >(MarkEpisodeProgressDocument);
 
   const episode = episodeData?.episode ?? null;
-  const progress = useMemo(() => {
-    const list = progressData?.episodeProgress ?? [];
-    return list.length > 0 ? (list[0] ?? null) : null;
-  }, [progressData]);
+  const show = showDetailData?.showDetail?.show ?? null;
+  const progress = showDetailData?.showDetail?.progress?.find(
+    (entry) => entry?.episodeId === episodeId
+  ) ?? null;
   const [draftProgress, setDraftProgress] = useState<number>(
     progress?.positionSec ?? 0
   );
@@ -113,10 +108,10 @@ export default function EpisodeDetailApp({
         showId,
       },
     });
-    await refetchProgress();
+    await refetchShowDetail();
   };
 
-  if (episodeLoading || showLoading || progressLoading) {
+  if (episodeLoading || showDetailLoading) {
     return (
       <div className="relative isolate w-full">
         <AuroraBackground className="opacity-80" />
@@ -127,10 +122,10 @@ export default function EpisodeDetailApp({
     );
   }
 
-  if (episodeError || showError) {
+  if (episodeError || showDetailError) {
     return (
       <div className="rounded-3xl border border-red-500/40 bg-red-500/20 p-6 text-sm text-red-100">
-        Failed to load episode: {episodeError?.message ?? showError?.message}
+        Failed to load episode: {episodeError?.message ?? showDetailError?.message}
       </div>
     );
   }
@@ -176,7 +171,7 @@ export default function EpisodeDetailApp({
               <div className="flex-1 space-y-5">
                 <div className="space-y-2">
                   <p className="text-xs uppercase tracking-[0.35em] text-white/50">
-                    {showData?.show?.title}
+                  {show?.title}
                   </p>
                   <h1 className="text-3xl font-semibold text-white">
                     {episode.title}

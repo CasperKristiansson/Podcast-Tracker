@@ -76,16 +76,25 @@ type EpisodeConnection implements PaginatedResult {
   nextToken: String
 }
 
+type ShowDetail {
+  show: Show!
+  subscription: UserSubscription
+  episodes: EpisodeConnection!
+  progress: [Progress!]!
+}
+
 type Query {
   health: String!
   mySubscriptions(limit: Int, nextToken: String): SubscriptionConnection!
-  episodes(showId: ID!, limit: Int, nextToken: String): EpisodeConnection!
   search(term: String!, limit: Int, offset: Int): [Show!]!
-  show(showId: ID!): Show!
-  mySubscription(showId: ID!): UserSubscription
   episode(showId: ID!, episodeId: ID!): Episode
-  episodeProgress(episodeIds: [ID!]!): [Progress!]!
   myProfile: UserProfile!
+  showDetail(
+    showId: ID!
+    episodeLimit: Int
+    episodeCursor: String
+    progressEpisodeIds: [ID!]
+  ): ShowDetail!
 }
 
 type ProfileStats {

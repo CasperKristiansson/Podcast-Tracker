@@ -19,59 +19,73 @@ query MySubscriptions($limit: Int, $nextToken: String) {
   }
 }
 
-query EpisodesByShow($showId: ID!, $limit: Int, $nextToken: String) {
-  episodes(showId: $showId, limit: $limit, nextToken: $nextToken) {
-    items {
-      episodeId
-      showId
+query ShowDetail(
+  $showId: ID!
+  $episodeLimit: Int
+  $episodeCursor: String
+  $progressEpisodeIds: [ID!]
+) {
+  showDetail(
+    showId: $showId
+    episodeLimit: $episodeLimit
+    episodeCursor: $episodeCursor
+    progressEpisodeIds: $progressEpisodeIds
+  ) {
+    show {
+      id
       title
-      audioUrl
-      publishedAt
-      durationSec
+      publisher
       description
       htmlDescription
       image
-      linkUrl
+      totalEpisodes
+      externalUrl
+      categories
       explicit
-      isExternallyHosted
-      isPlayable
-      releaseDatePrecision
       languages
+      availableMarkets
+      mediaType
+      isSubscribed
     }
-    nextToken
-  }
-}
-
-query ShowById($showId: ID!) {
-  show(showId: $showId) {
-    id
-    title
-    publisher
-    description
-    htmlDescription
-    image
-    totalEpisodes
-    externalUrl
-    categories
-    explicit
-    languages
-    availableMarkets
-    mediaType
-    isSubscribed
-  }
-}
-
-query MySubscriptionByShow($showId: ID!) {
-  mySubscription(showId: $showId) {
-    showId
-    title
-    publisher
-    image
-    addedAt
-    totalEpisodes
-    ratingStars
-    ratingReview
-    ratingUpdatedAt
+    subscription {
+      showId
+      title
+      publisher
+      image
+      addedAt
+      totalEpisodes
+      ratingStars
+      ratingReview
+      ratingUpdatedAt
+      subscriptionSyncedAt
+    }
+    episodes {
+      items {
+        episodeId
+        showId
+        title
+        audioUrl
+        publishedAt
+        durationSec
+        description
+        htmlDescription
+        image
+        linkUrl
+        explicit
+        isExternallyHosted
+        isPlayable
+        releaseDatePrecision
+        languages
+      }
+      nextToken
+    }
+    progress {
+      episodeId
+      positionSec
+      completed
+      updatedAt
+      showId
+    }
   }
 }
 
@@ -92,16 +106,6 @@ query EpisodeDetails($showId: ID!, $episodeId: ID!) {
     isPlayable
     releaseDatePrecision
     languages
-  }
-}
-
-query EpisodeProgressByIds($episodeIds: [ID!]!) {
-  episodeProgress(episodeIds: $episodeIds) {
-    episodeId
-    positionSec
-    completed
-    updatedAt
-    showId
   }
 }
 

@@ -131,36 +131,16 @@ export type Progress = {
 export type Query = {
   __typename: 'Query';
   episode?: Maybe<Episode>;
-  episodeProgress: Array<Progress>;
-  episodes: EpisodeConnection;
   health: Scalars['String']['output'];
   myProfile: UserProfile;
-  mySubscription?: Maybe<UserSubscription>;
   mySubscriptions: SubscriptionConnection;
   search: Array<Show>;
-  show: Show;
+  showDetail: ShowDetail;
 };
 
 
 export type QueryEpisodeArgs = {
   episodeId: Scalars['ID']['input'];
-  showId: Scalars['ID']['input'];
-};
-
-
-export type QueryEpisodeProgressArgs = {
-  episodeIds: Array<Scalars['ID']['input']>;
-};
-
-
-export type QueryEpisodesArgs = {
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  nextToken?: InputMaybe<Scalars['String']['input']>;
-  showId: Scalars['ID']['input'];
-};
-
-
-export type QueryMySubscriptionArgs = {
   showId: Scalars['ID']['input'];
 };
 
@@ -178,7 +158,10 @@ export type QuerySearchArgs = {
 };
 
 
-export type QueryShowArgs = {
+export type QueryShowDetailArgs = {
+  episodeCursor?: InputMaybe<Scalars['String']['input']>;
+  episodeLimit?: InputMaybe<Scalars['Int']['input']>;
+  progressEpisodeIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   showId: Scalars['ID']['input'];
 };
 
@@ -198,6 +181,14 @@ export type Show = {
   publisher: Scalars['String']['output'];
   title: Scalars['String']['output'];
   totalEpisodes: Scalars['Int']['output'];
+};
+
+export type ShowDetail = {
+  __typename: 'ShowDetail';
+  episodes: EpisodeConnection;
+  progress: Array<Progress>;
+  show: Show;
+  subscription?: Maybe<UserSubscription>;
 };
 
 export type Subscription = {
@@ -250,28 +241,15 @@ export type MySubscriptionsQueryVariables = Exact<{
 
 export type MySubscriptionsQuery = { __typename: 'Query', mySubscriptions: { __typename: 'SubscriptionConnection', nextToken?: string | null | undefined, items: Array<{ __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined }> } };
 
-export type EpisodesByShowQueryVariables = Exact<{
+export type ShowDetailQueryVariables = Exact<{
   showId: Scalars['ID']['input'];
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  nextToken?: InputMaybe<Scalars['String']['input']>;
+  episodeLimit?: InputMaybe<Scalars['Int']['input']>;
+  episodeCursor?: InputMaybe<Scalars['String']['input']>;
+  progressEpisodeIds?: InputMaybe<Array<Scalars['ID']['input']> | Scalars['ID']['input']>;
 }>;
 
 
-export type EpisodesByShowQuery = { __typename: 'Query', episodes: { __typename: 'EpisodeConnection', nextToken?: string | null | undefined, items: Array<{ __typename: 'Episode', episodeId: string, showId: string, title: string, audioUrl: string, publishedAt: any, durationSec: number, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, linkUrl?: string | null | undefined, explicit?: boolean | null | undefined, isExternallyHosted?: boolean | null | undefined, isPlayable?: boolean | null | undefined, releaseDatePrecision?: string | null | undefined, languages?: Array<string> | null | undefined }> } };
-
-export type ShowByIdQueryVariables = Exact<{
-  showId: Scalars['ID']['input'];
-}>;
-
-
-export type ShowByIdQuery = { __typename: 'Query', show: { __typename: 'Show', id: string, title: string, publisher: string, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, totalEpisodes: number, externalUrl?: string | null | undefined, categories: Array<string>, explicit?: boolean | null | undefined, languages?: Array<string> | null | undefined, availableMarkets?: Array<string> | null | undefined, mediaType?: string | null | undefined, isSubscribed?: boolean | null | undefined } };
-
-export type MySubscriptionByShowQueryVariables = Exact<{
-  showId: Scalars['ID']['input'];
-}>;
-
-
-export type MySubscriptionByShowQuery = { __typename: 'Query', mySubscription?: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined } | null | undefined };
+export type ShowDetailQuery = { __typename: 'Query', showDetail: { __typename: 'ShowDetail', show: { __typename: 'Show', id: string, title: string, publisher: string, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, totalEpisodes: number, externalUrl?: string | null | undefined, categories: Array<string>, explicit?: boolean | null | undefined, languages?: Array<string> | null | undefined, availableMarkets?: Array<string> | null | undefined, mediaType?: string | null | undefined, isSubscribed?: boolean | null | undefined }, subscription?: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined, subscriptionSyncedAt?: any | null | undefined } | null | undefined, episodes: { __typename: 'EpisodeConnection', nextToken?: string | null | undefined, items: Array<{ __typename: 'Episode', episodeId: string, showId: string, title: string, audioUrl: string, publishedAt: any, durationSec: number, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, linkUrl?: string | null | undefined, explicit?: boolean | null | undefined, isExternallyHosted?: boolean | null | undefined, isPlayable?: boolean | null | undefined, releaseDatePrecision?: string | null | undefined, languages?: Array<string> | null | undefined }> }, progress: Array<{ __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any, showId?: string | null | undefined }> } };
 
 export type EpisodeDetailsQueryVariables = Exact<{
   showId: Scalars['ID']['input'];
@@ -280,13 +258,6 @@ export type EpisodeDetailsQueryVariables = Exact<{
 
 
 export type EpisodeDetailsQuery = { __typename: 'Query', episode?: { __typename: 'Episode', showId: string, episodeId: string, title: string, audioUrl: string, publishedAt: any, durationSec: number, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, linkUrl?: string | null | undefined, explicit?: boolean | null | undefined, isExternallyHosted?: boolean | null | undefined, isPlayable?: boolean | null | undefined, releaseDatePrecision?: string | null | undefined, languages?: Array<string> | null | undefined } | null | undefined };
-
-export type EpisodeProgressByIdsQueryVariables = Exact<{
-  episodeIds: Array<Scalars['ID']['input']> | Scalars['ID']['input'];
-}>;
-
-
-export type EpisodeProgressByIdsQuery = { __typename: 'Query', episodeProgress: Array<{ __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any, showId?: string | null | undefined }> };
 
 export type SearchShowsQueryVariables = Exact<{
   term: Scalars['String']['input'];
@@ -389,68 +360,73 @@ export const MySubscriptionsDocument = gql`
 }
     `;
 export type MySubscriptionsQueryResult = ApolloReactCommon.QueryResult<MySubscriptionsQuery, MySubscriptionsQueryVariables>;
-export const EpisodesByShowDocument = gql`
-    query EpisodesByShow($showId: ID!, $limit: Int, $nextToken: String) {
-  episodes(showId: $showId, limit: $limit, nextToken: $nextToken) {
-    items {
-      episodeId
-      showId
+export const ShowDetailDocument = gql`
+    query ShowDetail($showId: ID!, $episodeLimit: Int, $episodeCursor: String, $progressEpisodeIds: [ID!]) {
+  showDetail(
+    showId: $showId
+    episodeLimit: $episodeLimit
+    episodeCursor: $episodeCursor
+    progressEpisodeIds: $progressEpisodeIds
+  ) {
+    show {
+      id
       title
-      audioUrl
-      publishedAt
-      durationSec
+      publisher
       description
       htmlDescription
       image
-      linkUrl
+      totalEpisodes
+      externalUrl
+      categories
       explicit
-      isExternallyHosted
-      isPlayable
-      releaseDatePrecision
       languages
+      availableMarkets
+      mediaType
+      isSubscribed
     }
-    nextToken
+    subscription {
+      showId
+      title
+      publisher
+      image
+      addedAt
+      totalEpisodes
+      ratingStars
+      ratingReview
+      ratingUpdatedAt
+      subscriptionSyncedAt
+    }
+    episodes {
+      items {
+        episodeId
+        showId
+        title
+        audioUrl
+        publishedAt
+        durationSec
+        description
+        htmlDescription
+        image
+        linkUrl
+        explicit
+        isExternallyHosted
+        isPlayable
+        releaseDatePrecision
+        languages
+      }
+      nextToken
+    }
+    progress {
+      episodeId
+      positionSec
+      completed
+      updatedAt
+      showId
+    }
   }
 }
     `;
-export type EpisodesByShowQueryResult = ApolloReactCommon.QueryResult<EpisodesByShowQuery, EpisodesByShowQueryVariables>;
-export const ShowByIdDocument = gql`
-    query ShowById($showId: ID!) {
-  show(showId: $showId) {
-    id
-    title
-    publisher
-    description
-    htmlDescription
-    image
-    totalEpisodes
-    externalUrl
-    categories
-    explicit
-    languages
-    availableMarkets
-    mediaType
-    isSubscribed
-  }
-}
-    `;
-export type ShowByIdQueryResult = ApolloReactCommon.QueryResult<ShowByIdQuery, ShowByIdQueryVariables>;
-export const MySubscriptionByShowDocument = gql`
-    query MySubscriptionByShow($showId: ID!) {
-  mySubscription(showId: $showId) {
-    showId
-    title
-    publisher
-    image
-    addedAt
-    totalEpisodes
-    ratingStars
-    ratingReview
-    ratingUpdatedAt
-  }
-}
-    `;
-export type MySubscriptionByShowQueryResult = ApolloReactCommon.QueryResult<MySubscriptionByShowQuery, MySubscriptionByShowQueryVariables>;
+export type ShowDetailQueryResult = ApolloReactCommon.QueryResult<ShowDetailQuery, ShowDetailQueryVariables>;
 export const EpisodeDetailsDocument = gql`
     query EpisodeDetails($showId: ID!, $episodeId: ID!) {
   episode(showId: $showId, episodeId: $episodeId) {
@@ -473,18 +449,6 @@ export const EpisodeDetailsDocument = gql`
 }
     `;
 export type EpisodeDetailsQueryResult = ApolloReactCommon.QueryResult<EpisodeDetailsQuery, EpisodeDetailsQueryVariables>;
-export const EpisodeProgressByIdsDocument = gql`
-    query EpisodeProgressByIds($episodeIds: [ID!]!) {
-  episodeProgress(episodeIds: $episodeIds) {
-    episodeId
-    positionSec
-    completed
-    updatedAt
-    showId
-  }
-}
-    `;
-export type EpisodeProgressByIdsQueryResult = ApolloReactCommon.QueryResult<EpisodeProgressByIdsQuery, EpisodeProgressByIdsQueryVariables>;
 export const SearchShowsDocument = gql`
     query SearchShows($term: String!, $limit: Int, $offset: Int) {
   search(term: $term, limit: $limit, offset: $offset) {

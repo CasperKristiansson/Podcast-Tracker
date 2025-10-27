@@ -28,6 +28,7 @@ export class ApiDataStack extends cdk.Stack {
   public readonly refreshSubscriptionsLambda: lambda.IFunction;
   public readonly profileLambda: lambda.IFunction;
   public readonly progressLambda: lambda.IFunction;
+  public readonly showDetailLambda: lambda.IFunction;
 
   constructor(scope: Construct, id: string, props: ApiDataStackProps) {
     super(scope, id, props);
@@ -170,6 +171,19 @@ export class ApiDataStack extends cdk.Stack {
     grantTableReadWrite(this.progressLambda, this.table);
     this.spotifyProxyLambda.grantInvoke(this.progressLambda);
 
+    this.showDetailLambda = new NodeLambda(this, "ShowDetailLambda", {
+      entry: resolveLambdaEntry("showDetail", "src", "index.ts"),
+      handler: "handler",
+      environment: {
+        TABLE_NAME: this.table.tableName,
+        SPOTIFY_PROXY_FUNCTION_NAME: this.spotifyProxyLambda.functionName,
+      },
+      timeout: cdk.Duration.seconds(10),
+    });
+
+    this.table.grantReadData(this.showDetailLambda);
+    this.spotifyProxyLambda.grantInvoke(this.showDetailLambda);
+
     new events.Rule(this, "RefreshSubscriptionsSchedule", {
       schedule: events.Schedule.cron({ minute: "0", hour: "3" }),
       description:
@@ -200,9 +214,14 @@ export class ApiDataStack extends cdk.Stack {
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
-    spotifyLambdaDataSource.createResolver("ShowResolver", {
+    const showDetailDataSource = this.api.addLambdaDataSource(
+      "ShowDetailDataSource",
+      this.showDetailLambda
+    );
+
+    showDetailDataSource.createResolver("ShowDetailResolver", {
       typeName: "Query",
-      fieldName: "show",
+      fieldName: "showDetail",
       requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
@@ -216,24 +235,6 @@ export class ApiDataStack extends cdk.Stack {
       responseMappingTemplate: appsync.MappingTemplate.fromFile(
         path.join(resolverDir, "Query.mySubscriptions.response.vtl")
       ),
-    });
-
-    tableDataSource.createResolver("MySubscriptionResolver", {
-      typeName: "Query",
-      fieldName: "mySubscription",
-      requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.mySubscription.request.vtl")
-      ),
-      responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.mySubscription.response.vtl")
-      ),
-    });
-
-    spotifyLambdaDataSource.createResolver("EpisodesResolver", {
-      typeName: "Query",
-      fieldName: "episodes",
-      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
-      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
     spotifyLambdaDataSource.createResolver("EpisodeResolver", {
@@ -272,17 +273,6 @@ export class ApiDataStack extends cdk.Stack {
       fieldName: "unsubscribe",
       requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
-    });
-
-    tableDataSource.createResolver("EpisodeProgressResolver", {
-      typeName: "Query",
-      fieldName: "episodeProgress",
-      requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.episodeProgress.request.vtl")
-      ),
-      responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.episodeProgress.response.vtl")
-      ),
     });
 
     tableDataSource.createResolver("SubscribeResolver", {

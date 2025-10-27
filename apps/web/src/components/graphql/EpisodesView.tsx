@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { useQuery } from "@apollo/client/react";
 import {
-  EpisodesByShowDocument,
-  type EpisodesByShowQuery,
-  type EpisodesByShowQueryVariables,
+  ShowDetailDocument,
+  type ShowDetailQuery,
+  type ShowDetailQueryVariables,
   type Episode,
 } from "@shared";
 
@@ -38,14 +38,14 @@ export default function EpisodesView({
   showId,
 }: EpisodesViewProps): JSX.Element {
   const { data, loading, error, refetch } = useQuery<
-    EpisodesByShowQuery,
-    EpisodesByShowQueryVariables
-  >(EpisodesByShowDocument, {
-    variables: { showId, limit: 20 },
+    ShowDetailQuery,
+    ShowDetailQueryVariables
+  >(ShowDetailDocument, {
+    variables: { showId, episodeLimit: 20 },
   });
 
   const items = useMemo<Episode[]>(() => {
-    const list = data?.episodes.items ?? [];
+    const list = data?.showDetail?.episodes?.items ?? [];
     return list.filter(
       (episode: Episode | null | undefined): episode is Episode =>
         Boolean(episode)
@@ -91,7 +91,7 @@ export default function EpisodesView({
         <button
           type="button"
           onClick={() => {
-            void refetch();
+            void refetch({ showId, episodeLimit: 20 });
           }}
           className="inline-flex items-center justify-center rounded-md border border-brand-primary/50 px-3 py-1.5 text-xs font-semibold text-brand-text transition hover:bg-brand-primary/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent"
         >

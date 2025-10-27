@@ -351,21 +351,6 @@ function buildRateShowResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   return util.dynamodb.fromMapValues(record);
 }
 
-function buildEpisodeProgressResponse(ctx: RuntimeContext, util: AppSyncUtil) {
-  const result = asRecord(ctx.result) ?? {};
-  const items = Array.isArray(result.items) ? (result.items as unknown[]) : [];
-
-  return items.map((item) => {
-    const map = util.dynamodb.fromMapValues(
-      asRecord(item) ?? (item as Record<string, unknown>)
-    );
-    delete map.pk;
-    delete map.sk;
-    delete map.dataType;
-    return map;
-  });
-}
-
 function buildPublishProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   return {
     version: "2018-05-29",
@@ -399,28 +384,6 @@ function buildUnsubscribeRequest(ctx: RuntimeContext, util: AppSyncUtil) {
 function buildUnsubscribeResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   ensureNoError(ctx, util);
   return !util.isNull(ctx.result);
-}
-
-function buildMySubscriptionRequest(ctx: RuntimeContext, util: AppSyncUtil) {
-  return {
-    version: "2018-05-29",
-    operation: "GetItem",
-    key: {
-      pk: util.dynamodb.toDynamoDBJson(`user#${String(ctx.identity.sub)}`),
-      sk: util.dynamodb.toDynamoDBJson(`sub#${String(ctx.args.showId)}`),
-    },
-  };
-}
-
-function buildMySubscriptionResponse(ctx: RuntimeContext, util: AppSyncUtil) {
-  if (!ctx.result) {
-    return null;
-  }
-  const item = util.dynamodb.fromMapValues(asRecord(ctx.result) ?? {});
-  delete item.pk;
-  delete item.sk;
-  delete item.dataType;
-  return item;
 }
 
 function buildMySubscriptionsRequest(ctx: RuntimeContext, util: AppSyncUtil) {
@@ -495,16 +458,10 @@ const templateBuilders: Record<
     buildUnsubscribeRequest(ctx, util),
   "Mutation.unsubscribe.response.vtl": (ctx, util) =>
     buildUnsubscribeResponse(ctx, util),
-  "Query.mySubscription.request.vtl": (ctx, util) =>
-    buildMySubscriptionRequest(ctx, util),
-  "Query.mySubscription.response.vtl": (ctx, util) =>
-    buildMySubscriptionResponse(ctx, util),
   "Query.mySubscriptions.request.vtl": (ctx, util) =>
     buildMySubscriptionsRequest(ctx, util),
   "Query.mySubscriptions.response.vtl": (ctx, util) =>
     buildMySubscriptionsResponse(ctx, util),
-  "Query.episodeProgress.response.vtl": (ctx, util) =>
-    buildEpisodeProgressResponse(ctx, util),
   "Query.health.request.vtl": () => buildHealthRequest(),
   "Query.health.response.vtl": () => buildHealthResponse(),
 };

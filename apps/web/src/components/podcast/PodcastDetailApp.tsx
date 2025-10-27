@@ -9,20 +9,12 @@ import {
 import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "@apollo/client/react";
 import {
-  EpisodesByShowDocument,
-  type EpisodesByShowQuery,
-  type EpisodesByShowQueryVariables,
-  EpisodeProgressByIdsDocument,
-  type EpisodeProgressByIdsQuery,
+  ShowDetailDocument,
+  type ShowDetailQuery,
+  type ShowDetailQueryVariables,
   type Episode,
   MarkEpisodeProgressDocument,
-  MyProfileDocument,
-  type MyProfileQuery,
-  MySubscriptionByShowDocument,
-  type MySubscriptionByShowQuery,
   RateShowDocument,
-  ShowByIdDocument,
-  type ShowByIdQuery,
   SubscribeToShowDocument,
   UnsubscribeFromShowDocument,
 } from "@shared";
@@ -99,47 +91,15 @@ const formatRelative = (iso: string | null | undefined): string => {
 function PodcastDetailAppContent({
   showId,
 }: PodcastDetailAppProps): JSX.Element {
-  const { data: profileData } = useQuery<MyProfileQuery>(MyProfileDocument, {
-    fetchPolicy: "cache-first",
-    nextFetchPolicy: "cache-first",
-  });
-
-  const showExistsInProfile = useMemo(() => {
-    const shows = profileData?.myProfile?.shows ?? [];
-    return shows.some((profileShow) => profileShow?.showId === showId);
-  }, [profileData, showId]);
-
   const {
-    data: showData,
-    loading: showLoading,
-    error: showError,
-  } = useQuery<ShowByIdQuery>(ShowByIdDocument, {
-    variables: { showId },
-  });
-
-  const {
-    data: subscriptionData,
-    loading: subscriptionLoading,
-    refetch: refetchSubscription,
-  } = useQuery<MySubscriptionByShowQuery>(MySubscriptionByShowDocument, {
-    variables: { showId },
-    fetchPolicy: "network-only",
-    nextFetchPolicy: "cache-first",
-    errorPolicy: "all",
-    skip: showExistsInProfile,
-  });
-
-  const {
-    data: episodesData,
-    loading: episodesLoading,
-    error: episodesError,
+    data: showDetailData,
+    loading: showDetailLoading,
+    error: showDetailError,
     fetchMore,
-  } = useQuery<EpisodesByShowQuery, EpisodesByShowQueryVariables>(
-    EpisodesByShowDocument,
-    {
-      variables: { showId, limit: 25 },
-    }
-  );
+    refetch: refetchShowDetail,
+  } = useQuery<ShowDetailQuery, ShowDetailQueryVariables>(ShowDetailDocument, {
+    variables: { showId, episodeLimit: 25 },
+  });
 
   const [episodeFilter, setEpisodeFilter] = useState<EpisodeFilterValue>("all");
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
@@ -148,40 +108,31 @@ function PodcastDetailAppContent({
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
   const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const detail = showDetailData?.showDetail ?? null;
+
+  const episodesConnection = detail?.episodes ?? null;
 
   const episodes = useMemo(() => {
-    const list = episodesData?.episodes.items ?? [];
+    const list = episodesConnection?.items ?? [];
     return list.filter((episode): episode is Episode => Boolean(episode));
-  }, [episodesData]);
-
-  const episodeIds = useMemo(
-    () => episodes.map((episode) => episode.episodeId),
-    [episodes]
-  );
-
-  const {
-    data: progressData,
-    loading: progressLoading,
-    refetch: refetchProgress,
-  } = useQuery<EpisodeProgressByIdsQuery>(EpisodeProgressByIdsDocument, {
-    variables: { episodeIds },
-    skip: episodeIds.length === 0,
-  });
+  }, [episodesConnection]);
 
   const progressMap = useMemo(() => {
     const map = new Map<
       string,
-      EpisodeProgressByIdsQuery["episodeProgress"][number]
+      ShowDetailQuery["showDetail"]["progress"][number]
     >();
-    for (const item of progressData?.episodeProgress ?? []) {
+    for (const item of detail?.progress ?? []) {
       if (item?.episodeId) {
         map.set(item.episodeId, item);
       }
     }
     return map;
-  }, [progressData]);
+  }, [detail?.progress]);
 
-  const subscription = subscriptionData?.mySubscription ?? null;
+  const subscription = detail?.subscription ?? null;
 
   const [ratingDraft, setRatingDraft] = useState<RatingDraft>({
     stars: subscription?.ratingStars ?? 0,
@@ -222,10 +173,10 @@ function PodcastDetailAppContent({
   );
   const [rateShow, { loading: rateLoading }] = useMutation(RateShowDocument);
 
-  const show = showData?.show;
+  const show = detail?.show ?? null;
   const descriptionHtml = show?.htmlDescription ?? show?.description ?? "";
   const showLanguages = show?.languages?.filter(isNonEmptyString) ?? [];
-  const isSubscribed = Boolean(subscription) || showExistsInProfile;
+  const isSubscribed = Boolean(subscription) || Boolean(show?.isSubscribed);
   const isMutatingSubscription = subscribeLoading || unsubscribeLoading;
   const ratingDisplayValue = subscription?.ratingStars ?? 0;
   const canRateShow = Boolean(subscription);
@@ -239,10 +190,8 @@ function PodcastDetailAppContent({
   const ratingUpdatedAt = toOptionalString(subscription?.ratingUpdatedAt);
 
   const watchedCount = useMemo(() => {
-    return (progressData?.episodeProgress ?? []).filter(
-      (entry) => entry?.completed
-    ).length;
-  }, [progressData]);
+    return (detail?.progress ?? []).filter((entry) => entry?.completed).length;
+  }, [detail?.progress]);
 
   const filteredEpisodes = useMemo(() => {
     if (episodeFilter === "all") {
@@ -266,8 +215,10 @@ function PodcastDetailAppContent({
     return current?.label ?? "All";
   }, [episodeFilter]);
 
-  const heroLoading = (showLoading || subscriptionLoading) && !show;
-  const episodesInitialLoading = episodesLoading && episodes.length === 0;
+  const heroLoading = showDetailLoading && !show;
+  const episodesInitialLoading =
+    showDetailLoading && episodes.length === 0;
+  const progressSyncing = showDetailLoading || markProgressLoading;
 
   const handleSubscribeToggle = async () => {
     if (!show) return;
@@ -286,7 +237,7 @@ function PodcastDetailAppContent({
           },
         });
       }
-      await refetchSubscription();
+      await refetchShowDetail();
     } catch (err) {
       console.error("Subscription mutation failed", err);
     }
@@ -406,7 +357,7 @@ function PodcastDetailAppContent({
           showId,
         },
       });
-      await refetchProgress();
+      await refetchShowDetail();
     } catch (err) {
       console.error("Failed to update episode completion", err);
     } finally {
@@ -424,7 +375,7 @@ function PodcastDetailAppContent({
           review: ratingDraft.review.trim() || null,
         },
       });
-      await refetchSubscription();
+      await refetchShowDetail();
       handleCloseRatingModal();
     } catch (err) {
       console.error("Failed to save rating", err);
@@ -440,7 +391,7 @@ function PodcastDetailAppContent({
           review: null,
         },
       });
-      await refetchSubscription();
+      await refetchShowDetail();
       handleCloseRatingModal();
     } catch (err) {
       console.error("Failed to clear rating", err);
@@ -448,12 +399,66 @@ function PodcastDetailAppContent({
   };
 
   const handleLoadMore = async () => {
-    if (!episodesData?.episodes.nextToken) return;
-    await fetchMore({
-      variables: {
-        nextToken: episodesData.episodes.nextToken,
-      },
-    });
+    const nextToken = episodesConnection?.nextToken;
+    if (!nextToken) return;
+    setLoadingMore(true);
+    try {
+      await fetchMore({
+        variables: {
+          showId,
+          episodeLimit: 25,
+          episodeCursor: nextToken,
+        },
+        updateQuery: (previous, { fetchMoreResult }) => {
+          if (!fetchMoreResult?.showDetail) {
+            return previous;
+          }
+          if (!previous?.showDetail) {
+            return fetchMoreResult;
+          }
+
+          const prevDetail = previous.showDetail;
+          const nextDetail = fetchMoreResult.showDetail;
+
+          const mergedEpisodes = [
+            ...(prevDetail.episodes?.items ?? []),
+            ...(nextDetail.episodes?.items ?? []),
+          ];
+
+          const progressMap = new Map<
+            string,
+            ShowDetailQuery["showDetail"]["progress"][number]
+          >();
+          for (const entry of prevDetail.progress ?? []) {
+            if (entry?.episodeId) {
+              progressMap.set(entry.episodeId, entry);
+            }
+          }
+          for (const entry of nextDetail.progress ?? []) {
+            if (entry?.episodeId) {
+              progressMap.set(entry.episodeId, entry);
+            }
+          }
+
+          return {
+            ...previous,
+            showDetail: {
+              ...prevDetail,
+              ...nextDetail,
+              show: nextDetail.show ?? prevDetail.show,
+              subscription: nextDetail.subscription ?? prevDetail.subscription,
+              episodes: {
+                ...nextDetail.episodes,
+                items: mergedEpisodes,
+              },
+              progress: Array.from(progressMap.values()),
+            },
+          };
+        },
+      });
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const handleSelectEpisodeFilter = (value: EpisodeFilterValue) => {
@@ -605,9 +610,9 @@ function PodcastDetailAppContent({
           </div>
         ) : null}
 
-        {showError ? (
+        {showDetailError ? (
           <div className="rounded-3xl border border-red-500/40 bg-red-500/20 p-6 text-sm text-red-100">
-            Failed to load show: {showError.message}
+            Failed to load show: {showDetailError.message}
           </div>
         ) : null}
 
@@ -680,7 +685,7 @@ function PodcastDetailAppContent({
                         {formatNumber(show.totalEpisodes ?? 0)} episodes
                       </span>
                       <span className="rounded-2xl border border-emerald-400/40 bg-emerald-400/15 px-3 py-1 text-emerald-100">
-                        {progressLoading
+                        {progressSyncing
                           ? "Tracking progress…"
                           : `${formatNumber(watchedCount)} watched`}
                       </span>
@@ -853,12 +858,6 @@ function PodcastDetailAppContent({
           </GlowCard>
         ) : null}
 
-        {episodesError ? (
-          <div className="rounded-3xl border border-red-500/40 bg-red-500/20 p-6 text-sm text-red-100">
-            Failed to load episodes: {episodesError.message}
-          </div>
-        ) : null}
-
         <div className="space-y-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -869,9 +868,7 @@ function PodcastDetailAppContent({
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
               <div className="flex items-center gap-3 text-xs text-white/50">
-                {progressLoading || markProgressLoading
-                  ? "Syncing progress…"
-                  : null}
+                {progressSyncing ? "Syncing progress…" : null}
               </div>
               <div className="relative">
                 <button
@@ -1087,14 +1084,14 @@ function PodcastDetailAppContent({
             })}
           </ul>
 
-          {episodesData?.episodes.nextToken ? (
+          {episodesConnection?.nextToken ? (
             <div className="flex justify-center">
               <InteractiveButton
                 variant="secondary"
                 onClick={() => {
                   void handleLoadMore();
                 }}
-                isLoading={episodesLoading}
+                isLoading={loadingMore}
                 loadingLabel="Loading…"
               >
                 Load more episodes
