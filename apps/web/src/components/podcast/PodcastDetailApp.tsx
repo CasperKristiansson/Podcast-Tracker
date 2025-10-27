@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ChangeEvent,
 } from "react";
@@ -42,6 +43,12 @@ const EPISODE_FILTERS: Array<{ value: EpisodeFilterValue; label: string }> = [
   { value: "unplayed", label: "Unplayed" },
   { value: "played", label: "Watched" },
 ];
+
+const debugLog = (...messages: unknown[]): void => {
+  if (process.env.NODE_ENV !== "production") {
+    console.debug("[PodcastDetail]", ...messages);
+  }
+};
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
@@ -125,6 +132,12 @@ function PodcastDetailAppContent({
   );
 
   const [episodeFilter, setEpisodeFilter] = useState<EpisodeFilterValue>("all");
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+  const filterButtonRef = useRef<HTMLButtonElement | null>(null);
+  const filterMenuRef = useRef<HTMLDivElement | null>(null);
+  const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
 
   const episodes = useMemo(() => {
     const list = episodesData?.episodes.items ?? [];
@@ -205,6 +218,7 @@ function PodcastDetailAppContent({
   const isSubscribed = Boolean(subscription);
   const isMutatingSubscription = subscribeLoading || unsubscribeLoading;
   const ratingDisplayValue = subscription?.ratingStars ?? 0;
+  const canRateShow = Boolean(subscription);
   const handleDraftStarChange = (stars: number) => {
     setRatingDraft((prev) => ({
       ...prev,
@@ -235,6 +249,11 @@ function PodcastDetailAppContent({
     });
   }, [episodeFilter, episodes, progressMap]);
 
+  const activeFilterLabel = useMemo(() => {
+    const current = EPISODE_FILTERS.find((item) => item.value === episodeFilter);
+    return current?.label ?? "All";
+  }, [episodeFilter]);
+
   const heroLoading = (showLoading || subscriptionLoading) && !show;
   const episodesInitialLoading = episodesLoading && episodes.length === 0;
 
@@ -262,7 +281,15 @@ function PodcastDetailAppContent({
   };
 
   const handleOpenRatingModal = useCallback(() => {
+    if (!subscription) {
+      debugLog("Attempted to open rating modal without subscription");
+      return;
+    }
     setRatingDraft({
+      stars: subscription?.ratingStars ?? 0,
+      review: subscription?.ratingReview ?? "",
+    });
+    debugLog("Opening rating modal", {
       stars: subscription?.ratingStars ?? 0,
       review: subscription?.ratingReview ?? "",
     });
@@ -274,6 +301,7 @@ function PodcastDetailAppContent({
       stars: subscription?.ratingStars ?? 0,
       review: subscription?.ratingReview ?? "",
     });
+    debugLog("Closing rating modal");
     setRatingModalOpen(false);
   }, [subscription?.ratingStars, subscription?.ratingReview]);
 
@@ -293,6 +321,68 @@ function PodcastDetailAppContent({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isRatingModalOpen, handleCloseRatingModal]);
+
+  useEffect(() => {
+    if (!filterMenuOpen) {
+      return undefined;
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (
+        filterButtonRef.current?.contains(target) ||
+        filterMenuRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setFilterMenuOpen(false);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setFilterMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [filterMenuOpen]);
+
+  useEffect(() => {
+    if (!actionsMenuOpen) {
+      return undefined;
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (
+        actionsButtonRef.current?.contains(target) ||
+        actionsMenuRef.current?.contains(target)
+      ) {
+        return;
+      }
+      debugLog("Outside click detected, closing actions menu");
+      setActionsMenuOpen(false);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        debugLog("Escape pressed, closing actions menu");
+        setActionsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [actionsMenuOpen]);
 
   const handleEpisodeCompletion = async (
     episode: Episode,
@@ -323,6 +413,7 @@ function PodcastDetailAppContent({
   const handleRatingSave = async () => {
     if (!show) return;
     try {
+      debugLog("Saving rating", ratingDraft);
       await rateShow({
         variables: {
           showId,
@@ -339,6 +430,7 @@ function PodcastDetailAppContent({
 
   const handleRatingClear = async () => {
     try {
+      debugLog("Clearing rating");
       await rateShow({
         variables: {
           showId,
@@ -362,20 +454,33 @@ function PodcastDetailAppContent({
     });
   };
 
+  const handleSelectEpisodeFilter = (value: EpisodeFilterValue) => {
+    setEpisodeFilter(value);
+    setFilterMenuOpen(false);
+  };
+
   const ratingModal =
     isRatingModalOpen && typeof document !== "undefined"
       ? createPortal(
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
             <div
               className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-              onClick={handleCloseRatingModal}
+              onMouseDown={(event) => {
+                debugLog("Backdrop clicked, closing modal");
+                event.stopPropagation();
+                handleCloseRatingModal();
+              }}
             />
             <div
               role="dialog"
               aria-modal="true"
               aria-labelledby="rating-dialog-title"
               className="relative z-10 w-full max-w-lg rounded-[32px] border border-white/12 bg-[#14072f]/95 p-6 shadow-[0_40px_140px_rgba(10,4,32,0.6)]"
-              onClick={(event) => {
+              onMouseDown={(event) => {
+                event.stopPropagation();
+                debugLog("Modal content mousedown");
+              }}
+              onMouseUp={(event) => {
                 event.stopPropagation();
               }}
             >
@@ -587,7 +692,7 @@ function PodcastDetailAppContent({
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
+                  <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-3">
                     <InteractiveButton
                       onClick={() => {
                         void handleSubscribeToggle();
@@ -605,16 +710,88 @@ function PodcastDetailAppContent({
                         ? "Remove from my shows"
                         : "Add to my shows"}
                     </InteractiveButton>
-                    {show.externalUrl ? (
-                      <a
-                        className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white px-4 py-2 text-sm font-semibold text-[#5f43b2] transition hover:-translate-y-0.5 hover:bg-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] visited:text-[#4a2fa3] no-underline hover:no-underline focus-visible:no-underline"
-                        href={show.externalUrl}
-                        target="_blank"
-                        rel="noreferrer"
+                    <div className="relative w-full sm:w-auto">
+                      <button
+                        ref={actionsButtonRef}
+                        type="button"
+                        onClick={() => setActionsMenuOpen((prev) => !prev)}
+                        aria-haspopup="menu"
+                        aria-expanded={actionsMenuOpen}
+                        className="inline-flex w-full items-center justify-between gap-3 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/[0.1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
                       >
-                        Listen on Spotify ↗
-                      </a>
-                    ) : null}
+                        <span>More actions</span>
+                        <svg
+                          aria-hidden
+                          viewBox="0 0 12 12"
+                          className={`h-3 w-3 text-white/70 transition-transform duration-200 ${
+                            actionsMenuOpen ? "rotate-180" : "rotate-0"
+                          }`}
+                          focusable="false"
+                        >
+                          <path
+                            d="M2 4.25L6 8l4-3.75"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                      {actionsMenuOpen ? (
+                        <div
+                          ref={actionsMenuRef}
+                          role="menu"
+                          aria-label="Additional actions"
+                          className="absolute right-0 z-30 mt-2 w-56 rounded-2xl border border-white/12 bg-[#14072f]/95 p-2 text-sm text-white shadow-[0_26px_90px_rgba(10,4,32,0.6)] backdrop-blur"
+                        >
+                          {canRateShow ? (
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                debugLog(
+                                  "Actions menu -> Add/Edit rating clicked"
+                                );
+                                setActionsMenuOpen(false);
+                                window.setTimeout(() => {
+                                  handleOpenRatingModal();
+                                }, 0);
+                              }}
+                              className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
+                            >
+                              <span>
+                                {ratingDisplayValue > 0
+                                  ? "Edit rating"
+                                  : "Add rating"}
+                              </span>
+                              <span aria-hidden>★</span>
+                            </button>
+                          ) : (
+                            <div className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-white/45">
+                              <span>Add to my shows to rate</span>
+                              <span aria-hidden>★</span>
+                            </div>
+                          )}
+                          {show.externalUrl ? (
+                            <a
+                              role="menuitem"
+                              onClick={() => {
+                                setActionsMenuOpen(false);
+                              }}
+                              className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] no-underline"
+                              href={show.externalUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <span>Listen on Spotify</span>
+                              <span aria-hidden>↗</span>
+                            </a>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
 
@@ -660,21 +837,12 @@ function PodcastDetailAppContent({
 
                 <div className="space-y-3">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      <StarRating
-                        value={ratingDisplayValue}
-                        readOnly
-                        size="lg"
-                        className="justify-start"
-                      />
-                      <InteractiveButton
-                        variant="secondary"
-                        compact
-                        onClick={handleOpenRatingModal}
-                      >
-                        {ratingDisplayValue > 0 ? "Edit rating" : "Add rating"}
-                      </InteractiveButton>
-                    </div>
+                    <StarRating
+                      value={ratingDisplayValue}
+                      readOnly
+                      size="lg"
+                      className="justify-start"
+                    />
                     {ratingUpdatedAt && ratingDisplayValue > 0 ? (
                       <span className="text-xs uppercase tracking-[0.35em] text-white/50">
                         Updated {formatRelative(ratingUpdatedAt)}
@@ -712,25 +880,70 @@ function PodcastDetailAppContent({
                   ? "Syncing progress…"
                   : null}
               </div>
-              <div className="flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] p-1 text-[11px] uppercase tracking-[0.35em] text-white/65">
-                {EPISODE_FILTERS.map(({ value, label }) => {
-                  const isActive = episodeFilter === value;
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setEpisodeFilter(value)}
-                      aria-pressed={isActive}
-                      className={`rounded-full px-3 py-1 font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] ${
-                        isActive
-                          ? "bg-white text-[#1a0f33] shadow-[0_12px_30px_rgba(255,255,255,0.2)]"
-                          : "text-white/70 hover:bg-white/10"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
+              <div className="relative">
+                <button
+                  ref={filterButtonRef}
+                  type="button"
+                  onClick={() => setFilterMenuOpen((prev) => !prev)}
+                  aria-haspopup="listbox"
+                  aria-expanded={filterMenuOpen}
+                  className="inline-flex min-w-[190px] items-center justify-between gap-3 rounded-full border border-white/12 bg-white/[0.06] px-4 py-2 text-left text-sm text-white transition hover:bg-white/[0.1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-[0.4em] text-white/50">
+                      Filter episodes
+                    </span>
+                    <span className="font-semibold text-white">
+                      {activeFilterLabel}
+                    </span>
+                  </div>
+                  <svg
+                    aria-hidden
+                    viewBox="0 0 12 12"
+                    className={`h-3 w-3 text-white/70 transition-transform duration-200 ${
+                      filterMenuOpen ? "rotate-180" : "rotate-0"
+                    }`}
+                    focusable="false"
+                  >
+                    <path
+                      d="M2 4.25L6 8l4-3.75"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                {filterMenuOpen ? (
+                  <div
+                    ref={filterMenuRef}
+                    role="listbox"
+                    aria-label="Episode filters"
+                    className="absolute right-0 z-20 mt-2 w-60 rounded-2xl border border-white/12 bg-[#14072f]/95 p-2 text-sm text-white shadow-[0_24px_80px_rgba(10,4,32,0.55)] backdrop-blur"
+                  >
+                    {EPISODE_FILTERS.map(({ value, label }) => {
+                      const isActive = episodeFilter === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          role="option"
+                          aria-selected={isActive}
+                          onClick={() => handleSelectEpisodeFilter(value)}
+                          className={`flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] ${
+                            isActive
+                              ? "bg-white/12 text-white"
+                              : "text-white/70 hover:bg-white/10"
+                          }`}
+                        >
+                          <span>{label}</span>
+                          {isActive ? <span aria-hidden>✓</span> : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
