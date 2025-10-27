@@ -44,12 +44,6 @@ const EPISODE_FILTERS: Array<{ value: EpisodeFilterValue; label: string }> = [
   { value: "played", label: "Watched" },
 ];
 
-const debugLog = (...messages: unknown[]): void => {
-  if (process.env.NODE_ENV !== "production") {
-    console.debug("[PodcastDetail]", ...messages);
-  }
-};
-
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
 const toOptionalString = (value: unknown): string | null =>
@@ -117,6 +111,8 @@ function PodcastDetailAppContent({
     refetch: refetchSubscription,
   } = useQuery<MySubscriptionByShowQuery>(MySubscriptionByShowDocument, {
     variables: { showId },
+    fetchPolicy: "network-only",
+    nextFetchPolicy: "cache-first",
   });
 
   const {
@@ -282,14 +278,9 @@ function PodcastDetailAppContent({
 
   const handleOpenRatingModal = useCallback(() => {
     if (!subscription) {
-      debugLog("Attempted to open rating modal without subscription");
       return;
     }
     setRatingDraft({
-      stars: subscription?.ratingStars ?? 0,
-      review: subscription?.ratingReview ?? "",
-    });
-    debugLog("Opening rating modal", {
       stars: subscription?.ratingStars ?? 0,
       review: subscription?.ratingReview ?? "",
     });
@@ -301,7 +292,6 @@ function PodcastDetailAppContent({
       stars: subscription?.ratingStars ?? 0,
       review: subscription?.ratingReview ?? "",
     });
-    debugLog("Closing rating modal");
     setRatingModalOpen(false);
   }, [subscription?.ratingStars, subscription?.ratingReview]);
 
@@ -365,13 +355,11 @@ function PodcastDetailAppContent({
       ) {
         return;
       }
-      debugLog("Outside click detected, closing actions menu");
       setActionsMenuOpen(false);
     };
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        debugLog("Escape pressed, closing actions menu");
         setActionsMenuOpen(false);
       }
     };
@@ -413,7 +401,6 @@ function PodcastDetailAppContent({
   const handleRatingSave = async () => {
     if (!show) return;
     try {
-      debugLog("Saving rating", ratingDraft);
       await rateShow({
         variables: {
           showId,
@@ -430,7 +417,6 @@ function PodcastDetailAppContent({
 
   const handleRatingClear = async () => {
     try {
-      debugLog("Clearing rating");
       await rateShow({
         variables: {
           showId,
@@ -466,7 +452,6 @@ function PodcastDetailAppContent({
             <div
               className="absolute inset-0 bg-black/70 backdrop-blur-sm"
               onMouseDown={(event) => {
-                debugLog("Backdrop clicked, closing modal");
                 event.stopPropagation();
                 handleCloseRatingModal();
               }}
@@ -478,7 +463,6 @@ function PodcastDetailAppContent({
               className="relative z-10 w-full max-w-lg rounded-[32px] border border-white/12 bg-[#14072f]/95 p-6 shadow-[0_40px_140px_rgba(10,4,32,0.6)]"
               onMouseDown={(event) => {
                 event.stopPropagation();
-                debugLog("Modal content mousedown");
               }}
               onMouseUp={(event) => {
                 event.stopPropagation();
@@ -693,23 +677,19 @@ function PodcastDetailAppContent({
                   </div>
 
                   <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-3">
-                    <InteractiveButton
-                      onClick={() => {
-                        void handleSubscribeToggle();
-                      }}
-                      variant={isSubscribed ? "outline" : "primary"}
-                      isLoading={isMutatingSubscription}
-                      loadingLabel={isSubscribed ? "Removing…" : "Adding…"}
-                      className={`w-full rounded-full sm:w-auto transition-colors duration-200 ${
-                        isSubscribed
-                          ? "hover:bg-white/15"
-                          : "hover:bg-[#7f4bff]/20 hover:text-white"
-                      }`}
-                    >
-                      {isSubscribed
-                        ? "Remove from my shows"
-                        : "Add to my shows"}
-                    </InteractiveButton>
+                    {!isSubscribed ? (
+                      <InteractiveButton
+                        onClick={() => {
+                          void handleSubscribeToggle();
+                        }}
+                        variant="primary"
+                        isLoading={isMutatingSubscription}
+                        loadingLabel="Adding…"
+                        className="w-full rounded-full sm:w-auto transition-colors duration-200 hover:bg-[#7f4bff]/20 hover:text-white"
+                      >
+                        Add to my shows
+                      </InteractiveButton>
+                    ) : null}
                     <div className="relative w-full sm:w-auto">
                       <button
                         ref={actionsButtonRef}
@@ -751,9 +731,6 @@ function PodcastDetailAppContent({
                               role="menuitem"
                               onClick={(event) => {
                                 event.stopPropagation();
-                                debugLog(
-                                  "Actions menu -> Add/Edit rating clicked"
-                                );
                                 setActionsMenuOpen(false);
                                 window.setTimeout(() => {
                                   handleOpenRatingModal();
