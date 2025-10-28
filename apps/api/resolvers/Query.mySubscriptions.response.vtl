@@ -1,12 +1,15 @@
 #set($items = [])
 #foreach($item in $ctx.result.items)
-  #set($map = $util.dynamodb.fromMapValues($item))
-  $util.qr($map.remove("pk"))
-  $util.qr($map.remove("sk"))
-  $util.qr($map.remove("dataType"))
-  $util.qr($items.add($map))
+  #set($copy = $util.parseJson($util.toJson($item)))
+  $util.qr($copy.remove("pk"))
+  $util.qr($copy.remove("sk"))
+  $util.qr($copy.remove("dataType"))
+  $util.qr($items.add($copy))
 #end
-$util.toJson({
-  "items": $items,
-  "nextToken": $ctx.result.nextToken
+#set($payload = {
+  "items": $items
 })
+#if($ctx.result.containsKey("nextToken"))
+  $util.qr($payload.put("nextToken", $ctx.result.nextToken))
+#end
+$util.toJson($payload)

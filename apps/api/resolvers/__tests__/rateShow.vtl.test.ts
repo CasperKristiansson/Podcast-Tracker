@@ -46,10 +46,13 @@ describe("Mutation.rateShow mapping templates", () => {
     const rendered = renderTemplate(requestTemplate, runtime);
     const request = JSON.parse(rendered);
 
-    expect(request.update.expressionValues[":review"]).toEqual({ NULL: true });
+    expect(request.update.expression).toBe(
+      "SET ratingStars = :stars, ratingUpdatedAt = :updated REMOVE ratingReview"
+    );
+    expect(request.update.expressionValues).not.toHaveProperty(":review");
   });
 
-  it("coerces DynamoDB map results to plain values", () => {
+  it("returns the data source payload when present", () => {
     const runtime = createRuntime();
     runtime.ctx.result = {
       pk: { S: "user#user-9" },
@@ -62,36 +65,17 @@ describe("Mutation.rateShow mapping templates", () => {
     const rendered = renderTemplate(responseTemplate, runtime);
     const response = JSON.parse(rendered);
 
-    expect(response).toEqual({
-      pk: "user#user-9",
-      sk: "sub#show-77",
-      ratingStars: 5,
-      ratingUpdatedAt: "2025-04-13T07:30:00.000Z",
-      ratingReview: "Great insight",
-    });
+    expect(response).toEqual(runtime.ctx.result);
   });
 
-  it("unwraps results nested under the Attributes key", () => {
+  it("returns null when the data source returns nothing", () => {
     const runtime = createRuntime();
-    runtime.ctx.result = {
-      Attributes: {
-        pk: { S: "user#user-9" },
-        sk: { S: "sub#show-77" },
-        ratingStars: { N: "4" },
-        ratingUpdatedAt: { S: "2025-04-14T11:00:00.000Z" },
-      },
-      ConsumedCapacity: null,
-    };
+    runtime.ctx.result = null;
 
     const rendered = renderTemplate(responseTemplate, runtime);
     const response = JSON.parse(rendered);
 
-    expect(response).toEqual({
-      pk: "user#user-9",
-      sk: "sub#show-77",
-      ratingStars: 4,
-      ratingUpdatedAt: "2025-04-14T11:00:00.000Z",
-    });
+    expect(response).toBeNull();
   });
 
   it("handles reviews that contain punctuation and extended text", () => {

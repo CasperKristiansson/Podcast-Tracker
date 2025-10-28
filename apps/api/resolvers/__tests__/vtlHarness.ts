@@ -1,35 +1,59 @@
-interface StashStore {
-  put: (key: string, value: unknown) => unknown;
-  get: (key: string) => unknown;
-}
-
 export interface RuntimeContext {
   args: Record<string, unknown>;
-  identity: { sub: string };
-  stash: StashStore;
+  identity: {
+    sub: string;
+    username?: string;
+    sourceIp?: string[];
+    groups?: string[];
+    claims?: Record<string, unknown>;
+  };
+  stash: VtlMap;
   result?: unknown;
   error?: unknown;
+}
+
+interface VtlMap {
+  put: (key: string, value: unknown) => unknown;
+  get: (key: string) => unknown;
+  remove: (key: string) => unknown;
+  keys: () => string[];
+  values: () => unknown[];
+  clear: () => void;
+  size: () => number;
+  toObject: () => Record<string, unknown>;
 }
 
 interface AppSyncUtil {
   time: {
     nowISO8601: () => string;
   };
-  defaultIfNull: <T>(value: T | null | undefined, defaultValue: T) => T;
+  defaultIfNull: <T>(value: T | null, defaultValue: T) => T;
   nullValue: () => null;
   isNull: (value: unknown) => boolean;
-  map: () => Record<string, unknown>;
-  qr: <T>(value: T) => T;
-  error: (message: string, type?: string) => never;
+  map: () => VtlMap;
+  qr: <T>(value: T) => undefined;
+  error: (
+    message: string,
+    type?: string,
+    data?: unknown,
+    info?: unknown
+  ) => never;
   toJson: (value: unknown) => string;
   log: {
     debug: (...args: unknown[]) => void;
   };
   dynamodb: {
-    toDynamoDBJson: (value: unknown) => unknown;
+    toDynamoDBJson: (value: unknown) => string;
+    toDynamoDBObject: (value: unknown) => Record<string, unknown>;
     toMapValues: (value: Record<string, unknown>) => Record<string, unknown>;
     fromMapValues: (value: Record<string, unknown>) => Record<string, unknown>;
   };
+  appendError: (
+    message: string,
+    type?: string,
+    data?: unknown,
+    info?: unknown
+  ) => never;
 }
 
 export interface VelocityRuntime {
@@ -37,29 +61,77 @@ export interface VelocityRuntime {
   util: AppSyncUtil;
 }
 
+interface CreateRuntimeIdentity {
+  sub?: string;
+  username?: string;
+  sourceIp?: string[];
+  groups?: string[];
+  claims?: Record<string, unknown>;
+}
+
 interface CreateRuntimeOptions {
   args?: Record<string, unknown>;
+  identity?: CreateRuntimeIdentity;
   identitySub?: string;
   now?: string;
 }
 
-export function createRuntime({
-  args = {},
-  identitySub = "user-123",
-  now = "2025-01-01T00:00:00.000Z",
-}: CreateRuntimeOptions = {}): VelocityRuntime {
-  const stashData: Record<string, unknown> = {};
-  const stash: StashStore = {
+function createVtlMap(initial?: Record<string, unknown>): VtlMap {
+  const store = new Map<string, unknown>(
+    Object.entries(initial ?? {}) as Iterable<[string, unknown]>
+  );
+  return {
     put: (key, value) => {
-      stashData[key] = value;
+      store.set(key, value);
       return value;
     },
-    get: (key) => stashData[key],
+    get: (key) => store.get(key),
+    remove: (key) => {
+      const existing = store.get(key);
+      store.delete(key);
+      return existing;
+    },
+    keys: () => Array.from(store.keys()),
+    values: () => Array.from(store.values()),
+    clear: () => store.clear(),
+    size: () => store.size,
+    toObject: () => Object.fromEntries(store.entries()),
   };
+}
+
+function isBinaryLike(value: unknown): value is Uint8Array | Buffer {
+  return (
+    value instanceof Uint8Array ||
+    (typeof Buffer !== "undefined" && value instanceof Buffer)
+  );
+}
+
+function encodeBinary(value: Uint8Array | Buffer): string {
+  if (value instanceof Uint8Array && !(value instanceof Buffer)) {
+    return Buffer.from(value).toString("base64");
+  }
+  return (value as Buffer).toString("base64");
+}
+
+export function createRuntime({
+  args = {},
+  identitySub,
+  identity = { sub: identitySub ?? "user-123" },
+  now = "2025-01-01T00:00:00.000Z",
+}: CreateRuntimeOptions = {}): VelocityRuntime {
+  const identityShape = {
+    sub: identity.sub ?? identitySub ?? "user-123",
+    username: identity.username,
+    sourceIp: identity.sourceIp ?? ["127.0.0.1"],
+    groups: identity.groups ?? [],
+    claims: identity.claims ?? {},
+  };
+
+  const stash = createVtlMap();
 
   const ctx: RuntimeContext = {
     args,
-    identity: { sub: identitySub },
+    identity: identityShape,
     stash,
     result: undefined,
     error: undefined,
@@ -69,55 +141,140 @@ export function createRuntime({
     time: {
       nowISO8601: () => now,
     },
-    defaultIfNull: (value, defaultValue) => value ?? defaultValue,
-    nullValue: () => null,
-    isNull: (value) => value === null || value === undefined,
-    map: () => ({}),
-    qr: (value) => value,
-    error: (message: string, type?: string) => {
-      const prefix = type ? `${type}: ` : "";
-      throw new Error(`${prefix}${message}`);
+    defaultIfNull: (value, defaultValue) => {
+      if (value === null) {
+        return defaultValue;
+      }
+      return value;
     },
-    toJson: (value) => JSON.stringify(value),
+    nullValue: () => null,
+    isNull: (value) => value === null,
+    map: () => createVtlMap(),
+    qr: <T>(value: T): undefined => {
+      void value;
+      return undefined;
+    },
+    error: (message, type, data, info) => {
+      const err = new Error(message);
+      const meta = err as unknown as Record<string, unknown>;
+      meta.type = type ?? "MappingTemplate";
+      if (data !== undefined) {
+        meta.data = data;
+      }
+      if (info !== undefined) {
+        meta.info = info;
+      }
+      throw err;
+    },
+    appendError: (message, type, data, info) => {
+      const err = new Error(message);
+      const meta = err as unknown as Record<string, unknown>;
+      meta.type = type ?? "MappingTemplate";
+      if (data !== undefined) {
+        meta.data = data;
+      }
+      if (info !== undefined) {
+        meta.info = info;
+      }
+      throw err;
+    },
+    toJson: (value) =>
+      JSON.stringify(value, (_key, val) => {
+        if (val instanceof Set) {
+          return Array.from(val.values()) as unknown;
+        }
+        if (val instanceof Map) {
+          return Object.fromEntries(Array.from(val.entries())) as Record<
+            string,
+            unknown
+          >;
+        }
+        if (isBinaryLike(val)) {
+          return encodeBinary(val);
+        }
+        if (
+          val &&
+          typeof val === "object" &&
+          "toObject" in (val as Record<string, unknown>)
+        ) {
+          const maybeMap = val as { toObject?: () => Record<string, unknown> };
+          if (typeof maybeMap.toObject === "function") {
+            return maybeMap.toObject();
+          }
+        }
+        return val as unknown;
+      }),
     log: {
-      debug: () => undefined,
+      debug: (...args: unknown[]) => {
+        if (process.env.VTL_DEBUG === "1") {
+          console.debug("[vtl]", ...args);
+        }
+      },
     },
     dynamodb: {
-      toDynamoDBJson: (value: unknown): unknown => {
-        if (value === null || value === undefined) {
-          return { NULL: true };
+      toDynamoDBObject: (value: unknown): Record<string, unknown> => {
+        if (value === null) {
+          return { NULL: null };
         }
-        if (typeof value === "string") {
-          return { S: value };
+        if (isBinaryLike(value)) {
+          return { B: encodeBinary(value) };
         }
-        if (typeof value === "number") {
-          return { N: value.toString() };
-        }
-        if (typeof value === "boolean") {
-          return { BOOL: value };
+        if (value instanceof Set) {
+          const entries = Array.from(value.values()) as unknown[];
+          if (entries.length === 0) {
+            return { SS: [] };
+          }
+          const first = entries[0];
+          if (typeof first === "string") {
+            return { SS: (entries as string[]).map((entry) => String(entry)) };
+          }
+          if (typeof first === "number") {
+            return {
+              NS: (entries as number[]).map((entry) => entry.toString()),
+            };
+          }
+          if (isBinaryLike(first)) {
+            return {
+              BS: (entries as (Uint8Array | Buffer)[]).map((entry) =>
+                encodeBinary(entry)
+              ),
+            };
+          }
+          throw new Error("Unsupported set element type for DynamoDB");
         }
         if (Array.isArray(value)) {
           return {
-            L: value.map((item) => util.dynamodb.toDynamoDBJson(item)),
+            L: value.map((item) => util.dynamodb.toDynamoDBObject(item)),
           };
         }
-        if (typeof value === "object") {
-          const mapValue: Record<string, unknown> = {};
-          for (const [key, entry] of Object.entries(
-            value as Record<string, unknown>
-          )) {
-            mapValue[key] = util.dynamodb.toDynamoDBJson(entry);
+        switch (typeof value) {
+          case "string":
+            return { S: value };
+          case "number":
+            return { N: value.toString() };
+          case "boolean":
+            return { BOOL: value };
+          case "object": {
+            const mapValue: Record<string, unknown> = {};
+            for (const [key, entry] of Object.entries(
+              value as Record<string, unknown>
+            )) {
+              mapValue[key] = util.dynamodb.toDynamoDBObject(entry);
+            }
+            return { M: mapValue };
           }
-          return { M: mapValue };
+          default:
+            throw new Error(
+              `Unsupported type for DynamoDB conversion: ${String(typeof value)}`
+            );
         }
-        throw new Error(
-          `Unsupported type for DynamoDB conversion: ${String(typeof value)}`
-        );
       },
+      toDynamoDBJson: (value: unknown) =>
+        JSON.stringify(util.dynamodb.toDynamoDBObject(value)),
       toMapValues: (value: Record<string, unknown>) => {
         const mapValues: Record<string, unknown> = {};
         for (const [key, entry] of Object.entries(value ?? {})) {
-          mapValues[key] = util.dynamodb.toDynamoDBJson(entry);
+          mapValues[key] = util.dynamodb.toDynamoDBObject(entry);
         }
         return mapValues;
       },
@@ -126,11 +283,11 @@ export function createRuntime({
           if (entry === null || entry === undefined) {
             return null;
           }
-          if (typeof entry !== "object") {
-            return entry;
-          }
           if (Array.isArray(entry)) {
             return entry.map(parse);
+          }
+          if (typeof entry !== "object") {
+            return entry;
           }
           const attribute = entry as Record<string, unknown>;
           if ("S" in attribute) {
@@ -144,6 +301,23 @@ export function createRuntime({
           }
           if ("NULL" in attribute) {
             return null;
+          }
+          if ("B" in attribute) {
+            const base64 = attribute.B as string;
+            return Buffer.from(base64, "base64");
+          }
+          if ("SS" in attribute) {
+            return new Set(attribute.SS as string[]);
+          }
+          if ("NS" in attribute) {
+            const values = attribute.NS as string[];
+            return new Set(values.map((item) => Number(item)));
+          }
+          if ("BS" in attribute) {
+            const buffers = (attribute.BS as string[]).map((value) =>
+              Buffer.from(value, "base64")
+            );
+            return new Set(buffers);
           }
           if ("L" in attribute) {
             const list = attribute.L as unknown[];
@@ -174,8 +348,31 @@ export function createRuntime({
 
 function ensureNoError(ctx: RuntimeContext, util: AppSyncUtil) {
   if (ctx.error) {
-    const error = ctx.error as Error;
-    util.error(error.message ?? "Error", "MappingTemplate");
+    if (ctx.error instanceof Error) {
+      const errMeta = ctx.error as Error & {
+        type?: string;
+        data?: unknown;
+        info?: unknown;
+      };
+      util.error(
+        errMeta.message ?? "Error",
+        errMeta.type,
+        errMeta.data,
+        errMeta.info
+      );
+      return;
+    }
+    const errorRecord = asRecord(ctx.error) ?? {};
+    const messageValue = errorRecord.message;
+    const message = typeof messageValue === "string" ? messageValue : "Error";
+    const type =
+      typeof errorRecord.type === "string" ? errorRecord.type : undefined;
+    const data = errorRecord.data;
+    const info =
+      errorRecord.errorInfo !== undefined
+        ? errorRecord.errorInfo
+        : errorRecord.info;
+    util.error(message, type, data, info);
   }
 }
 
@@ -186,12 +383,26 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return undefined;
 }
 
+function toAttribute(
+  util: AppSyncUtil,
+  value: unknown
+): Record<string, unknown> {
+  return JSON.parse(util.dynamodb.toDynamoDBJson(value)) as Record<
+    string,
+    unknown
+  >;
+}
+
 function buildSubscribeRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   const now = util.time.nowISO8601();
-  const totalEpisodes = util.defaultIfNull(
-    ctx.args.totalEpisodes as number | null | undefined,
-    0
-  );
+  const totalEpisodesInput = ctx.args.totalEpisodes as
+    | number
+    | null
+    | undefined;
+  const totalEpisodes =
+    totalEpisodesInput === null || totalEpisodesInput === undefined
+      ? 0
+      : Number(totalEpisodesInput);
   const showId = String(ctx.args.showId);
   const title = String(ctx.args.title);
   const publisher = String(ctx.args.publisher);
@@ -219,18 +430,18 @@ function buildSubscribeRequest(ctx: RuntimeContext, util: AppSyncUtil) {
     version: "2018-05-29",
     operation: "PutItem",
     key: {
-      pk: util.dynamodb.toDynamoDBJson(pk),
-      sk: util.dynamodb.toDynamoDBJson(sk),
+      pk: toAttribute(util, pk),
+      sk: toAttribute(util, sk),
     },
     attributeValues: {
-      dataType: util.dynamodb.toDynamoDBJson("subscription"),
-      showId: util.dynamodb.toDynamoDBJson(showId),
-      title: util.dynamodb.toDynamoDBJson(title),
-      publisher: util.dynamodb.toDynamoDBJson(publisher),
-      image: util.dynamodb.toDynamoDBJson(image),
-      totalEpisodes: util.dynamodb.toDynamoDBJson(totalEpisodes),
-      subscriptionSyncedAt: util.dynamodb.toDynamoDBJson(now),
-      addedAt: util.dynamodb.toDynamoDBJson(now),
+      dataType: util.dynamodb.toDynamoDBObject("subscription"),
+      showId: util.dynamodb.toDynamoDBObject(showId),
+      title: util.dynamodb.toDynamoDBObject(title),
+      publisher: util.dynamodb.toDynamoDBObject(publisher),
+      image: util.dynamodb.toDynamoDBObject(image),
+      totalEpisodes: util.dynamodb.toDynamoDBObject(totalEpisodes),
+      subscriptionSyncedAt: util.dynamodb.toDynamoDBObject(now),
+      addedAt: util.dynamodb.toDynamoDBObject(now),
     },
   };
 }
@@ -276,8 +487,8 @@ function buildMarkProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
     version: "2018-05-29",
     operation: "PutItem",
     key: {
-      pk: util.dynamodb.toDynamoDBJson(pk),
-      sk: util.dynamodb.toDynamoDBJson(sk),
+      pk: toAttribute(util, pk),
+      sk: toAttribute(util, sk),
     },
     attributeValues,
   };
@@ -285,13 +496,8 @@ function buildMarkProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
 
 function buildMarkProgressResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   ensureNoError(ctx, util);
-  const result = asRecord(ctx.result);
-  if (result && Object.keys(result).length > 0) {
-    const converted = util.dynamodb.fromMapValues(result);
-    delete converted.pk;
-    delete converted.sk;
-    delete converted.dataType;
-    return converted;
+  if (ctx.result) {
+    return ctx.result;
   }
 
   const stashed = asRecord(ctx.stash.get("progress"));
@@ -308,50 +514,42 @@ function buildRateShowRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   const sk = `sub#${String(ctx.args.showId)}`;
 
   let expression = "SET ratingStars = :stars, ratingUpdatedAt = :updated";
+  let removeExpression = "";
   const expressionValues: Record<string, unknown> = {
-    ":stars": util.dynamodb.toDynamoDBJson(ctx.args.stars),
-    ":updated": util.dynamodb.toDynamoDBJson(now),
+    ":stars": toAttribute(util, ctx.args.stars),
+    ":updated": toAttribute(util, now),
   };
 
-  expression += ", ratingReview = :review";
   if (
     Object.prototype.hasOwnProperty.call(ctx.args, "review") &&
     !util.isNull(ctx.args.review)
   ) {
-    expressionValues[":review"] = util.dynamodb.toDynamoDBJson(
-      String(ctx.args.review)
-    );
+    expression += ", ratingReview = :review";
+    expressionValues[":review"] = toAttribute(util, String(ctx.args.review));
   } else {
-    expressionValues[":review"] = { NULL: true };
+    removeExpression = " REMOVE ratingReview";
   }
 
   return {
     version: "2018-05-29",
     operation: "UpdateItem",
     key: {
-      pk: util.dynamodb.toDynamoDBJson(pk),
-      sk: util.dynamodb.toDynamoDBJson(sk),
+      pk: toAttribute(util, pk),
+      sk: toAttribute(util, sk),
     },
     update: {
-      expression,
+      expression: `${expression}${removeExpression}`,
       expressionValues,
     },
     condition: {
       expression: "attribute_exists(pk) AND attribute_exists(sk)",
     },
-    returnValues: "ALL_NEW",
   };
 }
 
 function buildRateShowResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   ensureNoError(ctx, util);
-  const raw = asRecord(ctx.result);
-  if (!raw) {
-    return null;
-  }
-
-  const attributes = asRecord(raw.Attributes) ?? raw;
-  return util.dynamodb.fromMapValues(attributes);
+  return ctx.result ?? null;
 }
 
 function buildUnsubscribeRequest(ctx: RuntimeContext, util: AppSyncUtil) {
@@ -359,15 +557,15 @@ function buildUnsubscribeRequest(ctx: RuntimeContext, util: AppSyncUtil) {
     version: "2018-05-29",
     operation: "DeleteItem",
     key: {
-      pk: util.dynamodb.toDynamoDBJson(`user#${String(ctx.identity.sub)}`),
-      sk: util.dynamodb.toDynamoDBJson(`sub#${String(ctx.args.showId)}`),
+      pk: toAttribute(util, `user#${String(ctx.identity.sub)}`),
+      sk: toAttribute(util, `sub#${String(ctx.args.showId)}`),
     },
   };
 }
 
 function buildUnsubscribeResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   ensureNoError(ctx, util);
-  return !util.isNull(ctx.result);
+  return Boolean(ctx.result);
 }
 
 function buildMySubscriptionsRequest(ctx: RuntimeContext, util: AppSyncUtil) {
@@ -377,11 +575,14 @@ function buildMySubscriptionsRequest(ctx: RuntimeContext, util: AppSyncUtil) {
     query: {
       expression: "pk = :pk",
       expressionValues: {
-        ":pk": util.dynamodb.toDynamoDBJson(`user#${String(ctx.identity.sub)}`),
+        ":pk": toAttribute(util, `user#${String(ctx.identity.sub)}`),
       },
     },
     nextToken: ctx.args.nextToken ?? null,
-    limit: util.defaultIfNull(ctx.args.limit as number | null | undefined, 20),
+    limit:
+      ctx.args.limit === null || ctx.args.limit === undefined
+        ? 20
+        : Number(ctx.args.limit),
   };
 }
 

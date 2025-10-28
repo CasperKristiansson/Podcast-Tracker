@@ -2,10 +2,4 @@
   $util.error($ctx.error.message, $ctx.error.type)
 #end
 
-#if($util.isNull($ctx.result))
-  $util.toJson(null)
-#elseif(!$util.isNull($ctx.result.Attributes))
-  $util.toJson($util.dynamodb.fromMapValues($ctx.result.Attributes))
-#else
-  $util.toJson($util.dynamodb.fromMapValues($ctx.result))
-#end
+$util.toJson($ctx.result)

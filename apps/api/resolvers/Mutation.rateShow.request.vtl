@@ -1,5 +1,6 @@
 #set($now = $util.time.nowISO8601())
 #set($expression = "SET ratingStars = :stars, ratingUpdatedAt = :updated")
+#set($removeExpression = "")
 #set($values = {
   ":stars": $util.dynamodb.toDynamoDBJson($ctx.args.stars),
   ":updated": $util.dynamodb.toDynamoDBJson($now)
@@ -8,8 +9,7 @@
   #set($expression = "${expression}, ratingReview = :review")
   $util.qr($values.put(":review", $util.dynamodb.toDynamoDBJson($ctx.args.review)))
 #else
-  #set($expression = "${expression}, ratingReview = :review")
-  $util.qr($values.put(":review", {"NULL": true}))
+  #set($removeExpression = " REMOVE ratingReview")
 #end
 #set($userPk = "user#" + $ctx.identity.sub)
 #set($subscriptionSk = "sub#" + $ctx.args.showId)
@@ -21,11 +21,10 @@
     "sk": $util.dynamodb.toDynamoDBJson($subscriptionSk)
   },
   "update": {
-    "expression": $expression,
+    "expression": "${expression}${removeExpression}",
     "expressionValues": $values
   },
   "condition": {
     "expression": "attribute_exists(pk) AND attribute_exists(sk)"
-  },
-  "returnValues": "ALL_NEW"
+  }
 }

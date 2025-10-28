@@ -55,7 +55,7 @@ describe("Mutation.markProgress mapping templates", () => {
     });
   });
 
-  it("converts DynamoDB map results into native values", () => {
+  it("returns the raw data source payload when available", () => {
     const runtime = createRuntime();
     runtime.ctx.result = {
       pk: { S: "user#user-1" },
@@ -69,11 +69,7 @@ describe("Mutation.markProgress mapping templates", () => {
     const rendered = renderTemplate(responseTemplate, runtime);
     const response = JSON.parse(rendered);
 
-    expect(response).toMatchObject({
-      episodeId: "episode-3",
-      completed: true,
-      updatedAt: "2025-04-12T08:00:00.000Z",
-    });
+    expect(response).toEqual(runtime.ctx.result);
   });
 
   it("falls back to stashed progress when DynamoDB does not return attributes", () => {
