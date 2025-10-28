@@ -2,11 +2,8 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
-  type ChangeEvent,
 } from "react";
-import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "@apollo/client/react";
 import {
   ShowDetailDocument,
@@ -29,8 +26,15 @@ import {
   type UnsubscribeFromShowMutation,
   type UnsubscribeFromShowMutationVariables,
 } from "@shared";
-import { AuroraBackground, GlowCard, InteractiveButton, StarRating } from "@ui";
+import { AuroraBackground, InteractiveButton } from "@ui";
 import { GraphQLProvider } from "../graphql/GraphQLProvider";
+import { EpisodeSection } from "./detail/EpisodeSection";
+import { HeroSection } from "./detail/HeroSection";
+import { RatingModal } from "./detail/RatingModal";
+import {
+  BulkProgressToast,
+  type BulkProgressState,
+} from "./detail/BulkProgressToast";
 
 interface PodcastDetailAppProps {
   showId: string;
@@ -40,72 +44,8 @@ interface RatingDraft {
   stars: number;
   review: string;
 }
-
-type EpisodeFilterValue = "all" | "unplayed" | "played";
-
-const EPISODE_FILTERS: { value: EpisodeFilterValue; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "unplayed", label: "Unplayed" },
-  { value: "played", label: "Watched" },
-];
-
-type BulkProgressState =
-  | { state: "idle"; message: "" }
-  | { state: "loading"; message: string }
-  | { state: "success"; message: string }
-  | { state: "error"; message: string };
-
-const DESCRIPTION_COLLAPSED_MAX_HEIGHT = 220;
-
-const isNonEmptyString = (value: unknown): value is string =>
-  typeof value === "string" && value.trim().length > 0;
 const toOptionalString = (value: unknown): string | null =>
   typeof value === "string" ? value : null;
-
-const formatNumber = (value: number): string =>
-  new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(
-    Number.isFinite(value) ? value : 0
-  );
-
-const formatDuration = (seconds: number): string => {
-  if (!Number.isFinite(seconds) || seconds <= 0) {
-    return "0s";
-  }
-  const hrs = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-  const parts = [] as string[];
-  if (hrs > 0) parts.push(`${hrs}h`);
-  if (mins > 0) parts.push(`${mins}m`);
-  if (hrs === 0 && secs > 0) parts.push(`${secs}s`);
-  return parts.join(" ") || "0s";
-};
-
-const formatDate = (iso: string | null | undefined): string => {
-  if (!iso) return "";
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
-};
-
-const formatRelative = (iso: string | null | undefined): string => {
-  if (!iso) return "";
-  try {
-    const formatter = new Intl.RelativeTimeFormat(undefined, {
-      numeric: "auto",
-    });
-    const now = Date.now();
-    const target = new Date(iso).getTime();
-    const diffDays = Math.round((target - now) / (1000 * 60 * 60 * 24));
-    return formatter.format(diffDays, "day");
-  } catch {
-    return iso;
-  }
-};
 
 function PodcastDetailAppContent({
   showId,
@@ -124,28 +64,12 @@ function PodcastDetailAppContent({
     variables: showDetailVariables,
   });
 
-  const [episodeFilter, setEpisodeFilter] = useState<EpisodeFilterValue>("all");
-  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
-  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
-  const filterButtonRef = useRef<HTMLButtonElement | null>(null);
-  const filterMenuRef = useRef<HTMLDivElement | null>(null);
-  const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
-  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
-  const descriptionRef = useRef<HTMLDivElement | null>(null);
-  const [isDescriptionExpanded, setDescriptionExpanded] = useState(false);
-  const [isDescriptionOverflowing, setDescriptionOverflowing] = useState(false);
-  const [descriptionContentHeight, setDescriptionContentHeight] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
   const detail = showDetailData?.showDetail ?? null;
 
   const episodesConnection = detail?.episodes ?? null;
-
-  const episodes = useMemo(() => {
-    const list = episodesConnection?.items ?? [];
-    return list.filter((episode): episode is Episode => Boolean(episode));
-  }, [episodesConnection]);
 
   const progressMap = useMemo(() => {
     const map = new Map<
@@ -162,8 +86,6 @@ function PodcastDetailAppContent({
 
   const subscription = detail?.subscription ?? null;
   const show = detail?.show ?? null;
-  const descriptionHtml = show?.htmlDescription ?? show?.description ?? "";
-  const showLanguages = show?.languages?.filter(isNonEmptyString) ?? [];
 
   const [ratingDraft, setRatingDraft] = useState<RatingDraft>({
     stars: subscription?.ratingStars ?? 0,
@@ -194,37 +116,6 @@ function PodcastDetailAppContent({
     subscription,
     isRatingModalOpen,
   ]);
-
-  useEffect(() => {
-    setDescriptionExpanded(false);
-  }, [descriptionHtml]);
-
-  useEffect(() => {
-    const element = descriptionRef.current;
-    if (!element) {
-      setDescriptionContentHeight(0);
-      setDescriptionOverflowing(false);
-      return;
-    }
-    const updateOverflow = () => {
-      const contentHeight = element.scrollHeight;
-      setDescriptionContentHeight(contentHeight);
-      setDescriptionOverflowing(
-        contentHeight > DESCRIPTION_COLLAPSED_MAX_HEIGHT + 1
-      );
-    };
-    updateOverflow();
-    if (typeof ResizeObserver === "undefined") {
-      return;
-    }
-    const resizeObserver = new ResizeObserver(() => {
-      updateOverflow();
-    });
-    resizeObserver.observe(element);
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [descriptionHtml]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -262,10 +153,6 @@ function PodcastDetailAppContent({
   const isMutatingSubscription = subscribeLoading || unsubscribeLoading;
   const ratingDisplayValue = subscription?.ratingStars ?? 0;
   const canRateShow = Boolean(subscription);
-  const expandedDescriptionHeight = Math.max(
-    descriptionContentHeight + 24,
-    DESCRIPTION_COLLAPSED_MAX_HEIGHT
-  );
   const handleDraftStarChange = (stars: number) => {
     setRatingDraft((prev) => ({
       ...prev,
@@ -279,30 +166,9 @@ function PodcastDetailAppContent({
     return (detail?.progress ?? []).filter((entry) => entry?.completed).length;
   }, [detail?.progress]);
 
-  const filteredEpisodes = useMemo(() => {
-    if (episodeFilter === "all") {
-      return episodes;
-    }
-
-    return episodes.filter((episode) => {
-      const progress = progressMap.get(episode.episodeId);
-      const isWatched = Boolean(progress?.completed);
-      if (episodeFilter === "played") {
-        return isWatched;
-      }
-      return !isWatched;
-    });
-  }, [episodeFilter, episodes, progressMap]);
-
-  const activeFilterLabel = useMemo(() => {
-    const current = EPISODE_FILTERS.find(
-      (item) => item.value === episodeFilter
-    );
-    return current?.label ?? "All";
-  }, [episodeFilter]);
-
   const heroLoading = showDetailLoading && !show;
-  const episodesInitialLoading = showDetailLoading && episodes.length === 0;
+  const episodesInitialLoading =
+    showDetailLoading && (episodesConnection?.items?.length ?? 0) === 0;
   const progressSyncing = showDetailLoading || markProgressLoading;
 
   const handleSubscribeToggle = async () => {
@@ -420,66 +286,6 @@ function PodcastDetailAppContent({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isRatingModalOpen, handleCloseRatingModal]);
-
-  useEffect(() => {
-    if (!filterMenuOpen) {
-      return undefined;
-    }
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node | null;
-      if (
-        filterButtonRef.current?.contains(target) ||
-        filterMenuRef.current?.contains(target)
-      ) {
-        return;
-      }
-      setFilterMenuOpen(false);
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setFilterMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    window.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, [filterMenuOpen]);
-
-  useEffect(() => {
-    if (!actionsMenuOpen) {
-      return undefined;
-    }
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node | null;
-      if (
-        actionsButtonRef.current?.contains(target) ||
-        actionsMenuRef.current?.contains(target)
-      ) {
-        return;
-      }
-      setActionsMenuOpen(false);
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setActionsMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    window.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, [actionsMenuOpen]);
 
   useEffect(() => {
     if (
@@ -830,219 +636,58 @@ function PodcastDetailAppContent({
     });
   }, []);
 
-  const handleSelectEpisodeFilter = (value: EpisodeFilterValue) => {
-    setEpisodeFilter(value);
-    setFilterMenuOpen(false);
-  };
-
-  const bulkStatusVisible = bulkProgressStatus.state !== "idle";
-  const bulkStatusContainerClass =
-    bulkProgressStatus.state === "loading"
-      ? "border-white/15 bg-[#0f0423]/90 text-white/85"
-      : bulkProgressStatus.state === "success"
-        ? "border-emerald-400/40 bg-emerald-500/20 text-emerald-100"
-        : bulkProgressStatus.state === "error"
-          ? "border-red-500/40 bg-red-500/20 text-red-100"
-          : "";
-  const bulkStatusIcon = (() => {
-    switch (bulkProgressStatus.state) {
-      case "loading":
-        return (
-          <span className="flex h-5 w-5 items-center justify-center">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-          </span>
-        );
-      case "success":
-        return (
-          <span className="flex h-5 w-5 items-center justify-center text-current">
-            <svg
-              viewBox="0 0 16 16"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3.5 8.5l3 3L12.5 5" />
-            </svg>
-          </span>
-        );
-      case "error":
-        return (
-          <span className="flex h-5 w-5 items-center justify-center text-current">
-            <svg
-              viewBox="0 0 16 16"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M4 4l8 8" />
-              <path d="M12 4l-8 8" />
-            </svg>
-          </span>
-        );
-      default:
-        return null;
-    }
-  })();
-
-  const ratingModal =
-    isRatingModalOpen && typeof document !== "undefined"
-      ? createPortal(
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            <div
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-              onMouseDown={(event) => {
-                event.stopPropagation();
-                handleCloseRatingModal();
-              }}
-            />
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="rating-dialog-title"
-              className="relative z-10 w-full max-w-lg rounded-[32px] border border-white/12 bg-[#14072f]/95 p-6 shadow-[0_40px_140px_rgba(10,4,32,0.6)]"
-              onMouseDown={(event) => {
-                event.stopPropagation();
-              }}
-              onMouseUp={(event) => {
-                event.stopPropagation();
-              }}
-            >
-              <div className="flex items-center justify-between gap-4">
-                <h2
-                  id="rating-dialog-title"
-                  className="text-lg font-semibold text-white"
-                >
-                  Rate this podcast
-                </h2>
-                <button
-                  type="button"
-                  onClick={handleCloseRatingModal}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white/70 transition hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                  aria-label="Close rating modal"
-                >
-                  &times;
-                </button>
-              </div>
-              <div className="mt-6 space-y-5">
-                <div className="flex flex-col items-center gap-4 text-center text-white/80">
-                  <StarRating
-                    value={ratingDraft.stars}
-                    onChange={handleDraftStarChange}
-                    size="lg"
-                    className="justify-center"
-                  />
-                  <p className="text-xs uppercase tracking-[0.35em] text-white/50">
-                    {show?.title ?? "This show"}
-                  </p>
-                </div>
-                <textarea
-                  value={ratingDraft.review}
-                  onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                    setRatingDraft((prev) => ({
-                      ...prev,
-                      review: event.target.value,
-                    }))
-                  }
-                  rows={4}
-                  placeholder="Optional note about the show"
-                  className="w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[#8f73ff]"
-                />
-                <div className="flex flex-wrap gap-3">
-                  <InteractiveButton
-                    onClick={() => {
-                      void handleRatingSave();
-                    }}
-                    isLoading={rateLoading}
-                    loadingLabel="Saving…"
-                  >
-                    Save rating
-                  </InteractiveButton>
-                  {(subscription?.ratingStars ?? 0) > 0 ||
-                  subscription?.ratingReview ? (
-                    <InteractiveButton
-                      variant="outline"
-                      onClick={() => {
-                        void handleRatingClear();
-                      }}
-                      isLoading={rateLoading}
-                      loadingLabel="Clearing…"
-                    >
-                      Clear rating
-                    </InteractiveButton>
-                  ) : null}
-                  <InteractiveButton
-                    variant="ghost"
-                    onClick={handleCloseRatingModal}
-                    disabled={rateLoading}
-                  >
-                    Cancel
-                  </InteractiveButton>
-                </div>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )
-      : null;
-
-  const backToProfileLink =
-    typeof document !== "undefined"
-      ? createPortal(
-          <a
-            href="/app/profile"
-            className="group pointer-events-auto fixed left-4 top-4 z-[1200] inline-flex items-center gap-3 rounded-full border border-white/20 bg-white px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.3em] text-[#12072d]/80 shadow-[0_12px_35px_rgba(17,8,40,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#bcaeff] hover:bg-[#f5f0ff] hover:text-[#12072d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
-          >
-            <svg
-              aria-hidden
-              viewBox="0 0 28 16"
-              className="h-3.5 w-6 text-[#8f73ff] transition-colors duration-200 group-hover:text-[#5635c7]"
-              fill="none"
-            >
-              <path
-                d="M10.5 1.5L3 8l7.5 6.5"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M26 8H4"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              />
-              <defs>
-                <linearGradient
-                  id="back-arrow-glow"
-                  x1="12"
-                  y1="1"
-                  x2="19.5"
-                  y2="14"
-                  gradientUnits="userSpaceOnUse"
-                >
-                  <stop stopColor="currentColor" stopOpacity="0.9" />
-                  <stop offset="1" stopColor="currentColor" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <span className="transition-colors duration-200 group-hover:text-[#12072d]">
-              Back to profile
-            </span>
-          </a>,
-          document.body
-        )
-      : null;
-
   return (
     <div className="relative isolate w-full">
-      {backToProfileLink}
-      {ratingModal}
+      <RatingModal
+        isOpen={isRatingModalOpen}
+        ratingDraft={ratingDraft}
+        onStarsChange={handleDraftStarChange}
+        onReviewChange={(value) =>
+          setRatingDraft((prev) => ({ ...prev, review: value }))
+        }
+        onClose={handleCloseRatingModal}
+        onSave={handleRatingSave}
+        onClear={handleRatingClear}
+        canClear={(subscription?.ratingStars ?? 0) > 0 || Boolean(subscription?.ratingReview)}
+        loading={rateLoading}
+        showTitle={show?.title ?? null}
+      />
+      <BulkProgressToast status={bulkProgressStatus} />
+      <a
+        href="/app/profile"
+        className="group fixed left-4 top-4 z-50 inline-flex items-center gap-3 rounded-full border border-white/15 bg-white px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.3em] text-[#12072d]/80 shadow-[0_12px_35px_rgba(17,8,40,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#bcaeff] hover:bg-[#f5f0ff] hover:text-[#12072d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
+      >
+        <svg
+          aria-hidden
+          viewBox="0 0 28 16"
+          className="h-3.5 w-6 text-[#8f73ff] transition-colors duration-200 group-hover:text-[#5635c7]"
+          fill="none"
+        >
+          <path
+            d="M10.5 1.5L3 8l7.5 6.5"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M26 8H4"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M12.5 2.5c-1.2 1.5-1.2 5.5 0 7s5.5 1.5 7 0"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeOpacity={0.6}
+          />
+        </svg>
+        <span className="transition-colors duration-200 group-hover:text-[#12072d]">
+          Back to profile
+        </span>
+      </a>
       <AuroraBackground className="opacity-80" />
       {showScrollTop && !episodesInitialLoading ? (
         <div className="fixed bottom-16 right-8 z-50">
@@ -1154,643 +799,37 @@ function PodcastDetailAppContent({
         ) : null}
 
         {show ? (
-          <GlowCard className="relative overflow-hidden w-full max-w-none px-6 py-10 sm:px-10 sm:py-12 bg-[radial-gradient(circle_at_top,_rgba(138,94,255,0.23),_transparent_70%)]">
-            <div className="pointer-events-none absolute inset-0" aria-hidden />
-            {show.image ? (
-              <div
-                className="pointer-events-none absolute -right-36 -top-40 hidden h-[22rem] w-[22rem] rotate-12 transform-gpu rounded-full bg-cover bg-center opacity-35 blur-[120px] sm:block"
-                style={{
-                  backgroundImage: `url(${show.image})`,
-                }}
-                aria-hidden
-              />
-            ) : null}
-            <div className="relative z-10 flex flex-col gap-10 lg:flex-row lg:items-start">
-              <div className="relative mx-auto w-44 shrink-0 sm:w-56 lg:mx-0 lg:w-64">
-                <div
-                  className="pointer-events-none absolute -inset-6 rounded-[36px] bg-gradient-to-br from-white/40 via-transparent to-white/10 opacity-80 blur-3xl"
-                  aria-hidden
-                />
-                {show.image ? (
-                  <div
-                    className="pointer-events-none absolute -top-10 -right-16 hidden h-32 w-32 rotate-12 overflow-hidden rounded-[28px] border border-white/10 opacity-50 sm:block"
-                    aria-hidden
-                  >
-                    <img
-                      src={show.image}
-                      alt=""
-                      className="h-full w-full object-cover opacity-75"
-                      loading="lazy"
-                    />
-                  </div>
-                ) : null}
-                <div className="relative overflow-hidden rounded-[32px] border border-white/15 bg-[#12072d]/80 shadow-[0_45px_120px_rgba(31,16,78,0.55)]">
-                  {show.image ? (
-                    <img
-                      src={show.image}
-                      alt={show.title ?? "Podcast artwork"}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex aspect-square items-center justify-center bg-white/5 text-sm text-white/40">
-                      No artwork
-                    </div>
-                  )}
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-black/50 via-transparent to-black/30" />
-                </div>
-              </div>
-
-              <div className="flex-1 space-y-8">
-                <div className="space-y-4">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <span className="inline-flex items-center gap-2 self-start lg:self-center rounded-full border border-white/15 bg-white/10 px-4 py-1 text-[11px] uppercase tracking-[0.4em] text-white/65">
-                      {show.publisher}
-                      <span className="hidden h-1 w-1 rounded-full bg-white/50 sm:inline" />
-                      <span className="text-white/45">
-                        {show.mediaType ?? "Podcast"}
-                      </span>
-                    </span>
-
-                    <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-                      {!isSubscribed ? (
-                        <InteractiveButton
-                          onClick={() => {
-                            void handleSubscribeToggle();
-                          }}
-                          variant="primary"
-                          isLoading={isMutatingSubscription}
-                          loadingLabel="Adding…"
-                          className="w-full rounded-full sm:w-auto transition-colors duration-200 hover:bg-[#7f4bff]/20 hover:text-white"
-                        >
-                          Add to my shows
-                        </InteractiveButton>
-                      ) : null}
-                      <div className="relative w-full sm:w-auto">
-                        <button
-                          ref={actionsButtonRef}
-                          type="button"
-                          onClick={() => setActionsMenuOpen((prev) => !prev)}
-                          aria-haspopup="menu"
-                          aria-expanded={actionsMenuOpen}
-                          className="inline-flex w-full items-center justify-between gap-3 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white whitespace-nowrap transition hover:bg-white/[0.1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
-                        >
-                          <span>More actions</span>
-                          <svg
-                            aria-hidden
-                            viewBox="0 0 12 12"
-                            className={`h-3 w-3 text-white/70 transition-transform duration-200 ${
-                              actionsMenuOpen ? "rotate-180" : "rotate-0"
-                            }`}
-                            focusable="false"
-                          >
-                            <path
-                              d="M2 4.25L6 8l4-3.75"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </button>
-                        {actionsMenuOpen ? (
-                          <div
-                            ref={actionsMenuRef}
-                            role="menu"
-                            aria-label="Additional actions"
-                            className="absolute right-0 z-30 mt-2 w-56 rounded-2xl border border-white/12 bg-[#14072f]/95 p-2 text-sm text-white shadow-[0_26px_90px_rgba(10,4,32,0.6)] backdrop-blur"
-                          >
-                            {canRateShow ? (
-                              <button
-                                type="button"
-                                role="menuitem"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  setActionsMenuOpen(false);
-                                  window.setTimeout(() => {
-                                    handleOpenRatingModal();
-                                  }, 0);
-                                }}
-                                className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
-                              >
-                                <span>
-                                  {ratingDisplayValue > 0
-                                    ? "Edit rating"
-                                    : "Add rating"}
-                                </span>
-                                <span aria-hidden>★</span>
-                              </button>
-                            ) : (
-                              <div className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-white/45">
-                                <span>Add to my shows to rate</span>
-                                <span aria-hidden>★</span>
-                              </div>
-                            )}
-                            {show.externalUrl ? (
-                              <a
-                                role="menuitem"
-                                onClick={() => {
-                                  setActionsMenuOpen(false);
-                                }}
-                                className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] no-underline"
-                                href={show.externalUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                <span>Listen on Spotify</span>
-                                <span aria-hidden>↗</span>
-                              </a>
-                            ) : null}
-                            {isSubscribed ? (
-                              <button
-                                type="button"
-                                role="menuitem"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  setActionsMenuOpen(false);
-                                  window.setTimeout(() => {
-                                    void handleMarkAllEpisodes();
-                                  }, 0);
-                                }}
-                                disabled={markAllLoading}
-                                className={`flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] ${
-                                  markAllLoading
-                                    ? "cursor-wait bg-white/12 text-white/60"
-                                    : "hover:bg-white/10"
-                                }`}
-                              >
-                                <span>
-                                  {markAllLoading
-                                    ? "Marking episodes…"
-                                    : "Mark all episodes as watched"}
-                                </span>
-                                <span aria-hidden>
-                                  {markAllLoading ? "…" : "✓"}
-                                </span>
-                              </button>
-                            ) : null}
-                            {isSubscribed ? (
-                              <button
-                                type="button"
-                                role="menuitem"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  setActionsMenuOpen(false);
-                                  window.setTimeout(() => {
-                                    void handleSubscribeToggle();
-                                  }, 0);
-                                }}
-                                className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-red-200 transition hover:bg-red-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
-                              >
-                                <span>Remove show</span>
-                                <span aria-hidden>✕</span>
-                              </button>
-                            ) : null}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-
-                  <h1 className="text-4xl font-semibold text-white sm:text-5xl">
-                    {show.title}
-                  </h1>
-                  <div className="flex flex-wrap gap-3 text-sm text-white/70">
-                    <span className="rounded-2xl border border-white/12 bg-white/[0.05] px-3 py-1">
-                      {formatNumber(show.totalEpisodes ?? 0)} episodes
-                    </span>
-                    <span className="rounded-2xl border border-emerald-400/40 bg-emerald-400/15 px-3 py-1 text-emerald-100">
-                      {progressSyncing
-                        ? "Tracking progress…"
-                        : `${formatNumber(watchedCount)} watched`}
-                    </span>
-                    {subscriptionAddedAt ? (
-                      <span className="rounded-2xl border border-white/12 bg-white/[0.04] px-3 py-1 text-white/60">
-                        Added {formatRelative(subscriptionAddedAt)}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-
-                {descriptionHtml ? (
-                  <div className="relative max-w-3xl">
-                    <div
-                      ref={descriptionRef}
-                      className="prose prose-invert text-base leading-relaxed text-white/75 transition-[max-height] duration-300 ease-in-out prose-a:text-white prose-strong:text-white"
-                      style={{
-                        maxHeight: isDescriptionExpanded
-                          ? `${expandedDescriptionHeight}px`
-                          : `${DESCRIPTION_COLLAPSED_MAX_HEIGHT}px`,
-                        overflow: "hidden",
-                        WebkitMaskImage:
-                          !isDescriptionExpanded && isDescriptionOverflowing
-                            ? "linear-gradient(180deg, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)"
-                            : undefined,
-                        maskImage:
-                          !isDescriptionExpanded && isDescriptionOverflowing
-                            ? "linear-gradient(180deg, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)"
-                            : undefined,
-                      }}
-                      dangerouslySetInnerHTML={{ __html: descriptionHtml }}
-                    />
-                    {isDescriptionOverflowing ? (
-                      <div
-                        className={
-                          isDescriptionExpanded
-                            ? "mt-4 flex justify-center"
-                            : "absolute inset-x-0 bottom-0 flex justify-center pb-4 transform translate-y-2"
-                        }
-                      >
-                        <InteractiveButton
-                          variant="outline"
-                          type="button"
-                          size="xs"
-                          onClick={() =>
-                            setDescriptionExpanded((prevState) => !prevState)
-                          }
-                          aria-expanded={isDescriptionExpanded}
-                          className="pointer-events-auto backdrop-blur-md border-white/20 bg-[#12072d]/60 hover:-translate-y-0.5 hover:border-white/40"
-                        >
-                          {isDescriptionExpanded ? "Show less" : "Read more"}
-                        </InteractiveButton>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                <div className="flex flex-wrap gap-3">
-                  {show.categories?.map((category) => (
-                    <span
-                      key={category}
-                      className="rounded-full border border-white/15 bg-white/[0.08] px-4 py-1 text-xs font-medium uppercase tracking-[0.4em] text-white/70"
-                    >
-                      {category}
-                    </span>
-                  ))}
-                  {show.explicit ? (
-                    <span className="rounded-full border border-red-400/50 bg-red-500/20 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-red-100">
-                      Explicit
-                    </span>
-                  ) : null}
-                  {showLanguages.map((lang) => (
-                    <span
-                      key={lang}
-                      className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] uppercase tracking-[0.35em] text-white/65"
-                    >
-                      {lang}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-4 text-sm text-white/70">
-                  {show.availableMarkets?.length ? (
-                    <span>
-                      Available in {formatNumber(show.availableMarkets.length)}
-                      &nbsp;markets
-                    </span>
-                  ) : null}
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <StarRating
-                      value={ratingDisplayValue}
-                      readOnly
-                      size="lg"
-                      className="justify-start"
-                    />
-                    {ratingUpdatedAt && ratingDisplayValue > 0 ? (
-                      <span className="text-xs uppercase tracking-[0.35em] text-white/50">
-                        Updated {formatRelative(ratingUpdatedAt)}
-                      </span>
-                    ) : null}
-                  </div>
-                  {subscription?.ratingReview ? (
-                    <p className="rounded-2xl border border-white/12 bg-white/[0.05] px-4 py-3 text-sm text-white/80">
-                      “{subscription.ratingReview}”
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </GlowCard>
+          <HeroSection
+            show={show}
+            subscription={subscription}
+            isSubscribed={isSubscribed}
+            isMutatingSubscription={isMutatingSubscription}
+            onSubscribeToggle={handleSubscribeToggle}
+            onOpenRatingModal={handleOpenRatingModal}
+            onMarkAllEpisodes={handleMarkAllEpisodes}
+            markAllLoading={markAllLoading}
+            canRateShow={canRateShow}
+            ratingDisplayValue={ratingDisplayValue}
+            subscriptionAddedAt={subscriptionAddedAt}
+            ratingUpdatedAt={ratingUpdatedAt}
+            watchedCount={watchedCount}
+          />
         ) : null}
 
-        <div className="space-y-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="text-3xl font-semibold text-white">Episodes</h2>
-              <p className="text-sm text-white/60">
-                Modern queue of everything you haven&apos;t listened to yet.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
-              <div className="flex items-center gap-3 text-xs text-white/50">
-                {progressSyncing ? "Syncing progress…" : null}
-              </div>
-              <div className="relative">
-                <button
-                  ref={filterButtonRef}
-                  type="button"
-                  onClick={() => setFilterMenuOpen((prev) => !prev)}
-                  aria-haspopup="listbox"
-                  aria-expanded={filterMenuOpen}
-                  className="inline-flex min-w-[190px] items-center justify-between gap-3 rounded-full border border-white/12 bg-white/[0.06] px-4 py-2 text-left text-sm text-white transition hover:bg-white/[0.1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
-                >
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-[0.4em] text-white/50">
-                      Filter episodes
-                    </span>
-                    <span className="font-semibold text-white">
-                      {activeFilterLabel}
-                    </span>
-                  </div>
-                  <svg
-                    aria-hidden
-                    viewBox="0 0 12 12"
-                    className={`h-3 w-3 text-white/70 transition-transform duration-200 ${
-                      filterMenuOpen ? "rotate-180" : "rotate-0"
-                    }`}
-                    focusable="false"
-                  >
-                    <path
-                      d="M2 4.25L6 8l4-3.75"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-                {filterMenuOpen ? (
-                  <div
-                    ref={filterMenuRef}
-                    role="listbox"
-                    aria-label="Episode filters"
-                    className="absolute right-0 z-20 mt-2 w-60 rounded-2xl border border-white/12 bg-[#14072f]/95 p-2 text-sm text-white shadow-[0_24px_80px_rgba(10,4,32,0.55)] backdrop-blur"
-                  >
-                    {EPISODE_FILTERS.map(({ value, label }) => {
-                      const isActive = episodeFilter === value;
-                      return (
-                        <button
-                          key={value}
-                          type="button"
-                          role="option"
-                          aria-selected={isActive}
-                          onClick={() => handleSelectEpisodeFilter(value)}
-                          className={`flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] ${
-                            isActive
-                              ? "bg-white/12 text-white"
-                              : "text-white/70 hover:bg-white/10"
-                          }`}
-                        >
-                          <span>{label}</span>
-                          {isActive ? <span aria-hidden>✓</span> : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-
-          {episodesInitialLoading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 3 }).map((_, idx) => (
-                <div
-                  key={`episode-skeleton-${idx}`}
-                  className="animate-pulse rounded-3xl border border-white/10 bg-white/[0.05] p-6"
-                >
-                  <div className="h-3 w-1/3 rounded-full bg-white/10" />
-                  <div className="mt-4 h-6 w-2/3 rounded-full bg-white/10" />
-                  <div className="mt-3 h-4 w-full rounded-full bg-white/10" />
-                  <div className="mt-2 h-4 w-5/6 rounded-full bg-white/10" />
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    {Array.from({ length: 3 }).map((_, pillIdx) => (
-                      <div
-                        key={`episode-pill-${idx}-${pillIdx}`}
-                        className="h-6 w-24 rounded-full bg-white/10"
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          {filteredEpisodes.length === 0 && !episodesInitialLoading ? (
-            <div className="rounded-3xl border border-white/12 bg-white/[0.04] p-10 text-center text-sm text-white/70">
-              No episodes match this filter yet.
-            </div>
-          ) : null}
-
-          <ul className="space-y-5">
-            {filteredEpisodes.map((episode, index) => {
-              const progress = progressMap.get(episode.episodeId);
-              const isWatched = Boolean(progress?.completed);
-              const publishedAt = toOptionalString(episode.publishedAt);
-              const episodeLanguages =
-                episode.languages?.filter(isNonEmptyString) ?? [];
-              const durationLabel = formatDuration(
-                Number(episode.durationSec ?? 0)
-              );
-              const isEpisodeUpdating =
-                pendingEpisodeId === episode.episodeId && markProgressLoading;
-              const canTrackProgress = isSubscribed;
-              const cardClassName =
-                canTrackProgress && isWatched
-                  ? "group relative overflow-hidden rounded-3xl border border-emerald-400/35 bg-gradient-to-br from-emerald-500/15 via-[#12072d]/70 to-[#12072d]/90 p-6 shadow-[0_28px_80px_rgba(9,93,69,0.35)] transition duration-300 hover:border-emerald-300/60 hover:shadow-[0_32px_90px_rgba(9,93,69,0.45)]"
-                  : "group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_24px_60px_rgba(29,16,65,0.35)] transition duration-300 hover:border-white/25 hover:bg-white/[0.09]";
-              const glowClassName =
-                canTrackProgress && isWatched
-                  ? "absolute -top-24 -right-20 h-48 w-48 rounded-full bg-emerald-400/25 blur-[110px] opacity-50"
-                  : "absolute -top-24 -right-20 h-48 w-48 rounded-full bg-[#8f73ff]/20 blur-[110px] opacity-40";
-
-              return (
-                <li key={episode.episodeId} className={cardClassName}>
-                  <div className={glowClassName} />
-                  <div className="relative flex flex-col gap-6">
-                    {canTrackProgress ? (
-                      <div
-                        className={
-                          isWatched
-                            ? "absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-emerald-300/50 bg-emerald-400/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-emerald-100"
-                            : "absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-white/60"
-                        }
-                      >
-                        <span
-                          className={
-                            isWatched
-                              ? "flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400/30 text-emerald-100"
-                              : "flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-white/70"
-                          }
-                          aria-hidden
-                        >
-                          {isWatched ? (
-                            <svg
-                              viewBox="0 0 16 16"
-                              className="h-3.5 w-3.5"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M4 8l2.5 2.5L12 5" />
-                            </svg>
-                          ) : (
-                            <span className="text-base leading-none">•</span>
-                          )}
-                        </span>
-                        <span>{isWatched ? "Watched" : "Queued"}</span>
-                      </div>
-                    ) : null}
-                    <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.35em] text-white/45">
-                      <span>Episode {index + 1}</span>
-                      <span className="h-1 w-1 rounded-full bg-white/35" />
-                      <span>{formatDate(publishedAt)}</span>
-                      <span className="h-1 w-1 rounded-full bg-white/35" />
-                      <span>{durationLabel}</span>
-                    </div>
-
-                    <div className="space-y-4">
-                      <h3 className="text-xl font-semibold text-white md:text-2xl">
-                        {episode.title}
-                      </h3>
-                      {episode.htmlDescription ? (
-                        <div
-                          className="prose prose-invert prose-sm line-clamp-4 text-white/75 prose-p:my-1"
-                          dangerouslySetInnerHTML={{
-                            __html: episode.htmlDescription,
-                          }}
-                        />
-                      ) : episode.description ? (
-                        <p className="line-clamp-3 text-sm text-white/70">
-                          {episode.description}
-                        </p>
-                      ) : null}
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-white/65">
-                      {canTrackProgress ? (
-                        <span
-                          className={
-                            isWatched
-                              ? "inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-400/20 px-3 py-1 text-emerald-100"
-                              : "inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-white/70"
-                          }
-                        >
-                          {isWatched ? (
-                            <>
-                              <span
-                                className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-400/40 text-[10px] text-emerald-50"
-                                aria-hidden
-                              >
-                                ✓
-                              </span>
-                              Watched
-                            </>
-                          ) : (
-                            <>
-                              <span
-                                className="flex h-4 w-4 items-center justify-center rounded-full bg-white/15 text-[10px] text-white/70"
-                                aria-hidden
-                              >
-                                ●
-                              </span>
-                              Not watched yet
-                            </>
-                          )}
-                        </span>
-                      ) : null}
-                      {episode.explicit ? (
-                        <span className="rounded-full border border-red-400/40 bg-red-500/20 px-3 py-1 text-red-200">
-                          Explicit
-                        </span>
-                      ) : null}
-                      {episodeLanguages.length ? (
-                        <span className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-white/55">
-                          {episodeLanguages.join(" · ")}
-                        </span>
-                      ) : null}
-                      <a
-                        href={`/app/show/${showId}/episode/${episode.episodeId}`}
-                        className="inline-flex items-center gap-2 text-[#bcd9ff] transition hover:text-white"
-                      >
-                        Episode details ↗
-                      </a>
-                      {episode.linkUrl ? (
-                        <a
-                          href={episode.linkUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#12072d] transition hover:-translate-y-0.5 hover:bg-white/90"
-                        >
-                          Play on Spotify ↗
-                        </a>
-                      ) : null}
-                    </div>
-
-                    {canTrackProgress ? (
-                      <div className="flex flex-wrap gap-3">
-                        <InteractiveButton
-                          variant={isWatched ? "outline" : "secondary"}
-                          onClick={() => {
-                            void handleEpisodeCompletion(episode, !isWatched);
-                          }}
-                          disabled={
-                            markProgressLoading &&
-                            pendingEpisodeId !== episode.episodeId
-                          }
-                          isLoading={isEpisodeUpdating}
-                          loadingLabel="Updating…"
-                          className="transform hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(29,16,65,0.45)]"
-                        >
-                          {isWatched ? "Mark as unwatched" : "Mark as watched"}
-                        </InteractiveButton>
-                      </div>
-                    ) : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-
-          {episodesConnection?.nextToken ? (
-            <div className="flex justify-center">
-              <InteractiveButton
-                variant="secondary"
-                onClick={() => {
-                  void handleLoadMore();
-                }}
-                isLoading={loadingMore}
-                loadingLabel="Loading…"
-              >
-                Load more episodes
-              </InteractiveButton>
-            </div>
-          ) : null}
-        </div>
+        <EpisodeSection
+          showId={showId}
+          episodesConnection={episodesConnection}
+          progressMap={progressMap}
+          isSubscribed={isSubscribed}
+          episodesInitialLoading={episodesInitialLoading}
+          progressSyncing={progressSyncing}
+          onEpisodeCompletion={handleEpisodeCompletion}
+          pendingEpisodeId={pendingEpisodeId}
+          markProgressLoading={markProgressLoading}
+          onLoadMore={handleLoadMore}
+          loadingMore={loadingMore}
+        />
       </div>
-      {bulkStatusVisible ? (
-        <div
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-          aria-busy={bulkProgressStatus.state === "loading"}
-          className={`fixed bottom-6 right-6 z-50 inline-flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-[0_24px_60px_rgba(9,5,25,0.55)] backdrop-blur ${
-            bulkStatusContainerClass ?? ""
-          }`}
-        >
-          {bulkStatusIcon}
-          <span className="text-sm font-medium tracking-wide">
-            {bulkProgressStatus.message}
-          </span>
-        </div>
-      ) : null}
     </div>
   );
 }
