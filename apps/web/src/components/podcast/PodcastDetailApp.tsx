@@ -618,23 +618,57 @@ function PodcastDetailAppContent({
               className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(164,132,255,0.18),_transparent_75%)]"
               aria-hidden
             />
-            <div className="relative z-10 flex flex-col gap-10 lg:flex-row">
-              <div className="mx-auto w-44 sm:w-56 lg:mx-0 lg:w-64">
-                <div className="aspect-square animate-pulse rounded-[32px] bg-white/10" />
+            <div className="relative z-10 flex flex-col gap-10 lg:flex-row lg:items-start">
+              <div className="relative mx-auto w-44 shrink-0 sm:w-56 lg:mx-0 lg:w-64">
+                <div
+                  className="pointer-events-none absolute -inset-6 rounded-[36px] bg-gradient-to-br from-white/20 via-transparent to-white/10 opacity-60 blur-3xl"
+                  aria-hidden
+                />
+                <div className="aspect-square animate-pulse rounded-[32px] border border-white/10 bg-white/10" />
               </div>
-              <div className="flex-1 space-y-6">
-                <div className="space-y-3">
-                  <div className="h-3 w-36 animate-pulse rounded-full bg-white/10" />
-                  <div className="h-12 w-3/4 animate-pulse rounded-full bg-white/10" />
-                  <div className="h-4 w-32 animate-pulse rounded-full bg-white/10" />
+              <div className="flex-1 space-y-8">
+                <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="space-y-4">
+                    <div className="h-6 w-44 animate-pulse rounded-full bg-white/10" />
+                    <div className="h-10 w-3/4 animate-pulse rounded-full bg-white/12" />
+                    <div className="flex flex-wrap gap-3">
+                      {Array.from({ length: 3 }).map((_, idx) => (
+                        <div
+                          key={`hero-stat-pill-${idx}`}
+                          className="h-6 w-28 animate-pulse rounded-full bg-white/10"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex w-full max-w-xs flex-col gap-3">
+                    <div className="h-10 w-full animate-pulse rounded-full bg-white/10" />
+                    <div className="h-10 w-full animate-pulse rounded-full bg-white/10" />
+                    <div className="h-10 w-full animate-pulse rounded-full bg-white/10" />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {Array.from({ length: 3 }).map((_, idx) => (
+                <div className="relative max-w-3xl">
+                  <div
+                    className="space-y-2"
+                    style={{
+                      WebkitMaskImage:
+                        "linear-gradient(180deg, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
+                      maskImage:
+                        "linear-gradient(180deg, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
+                    }}
+                  >
+                    {Array.from({ length: 6 }).map((_, idx) => (
+                      <div
+                        key={`hero-description-line-${idx}`}
+                        className="h-4 w-full animate-pulse rounded-full bg-white/10"
+                      />
+                    ))}
+                  </div>
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center translate-y-2 pb-4">
                     <div
-                      key={`hero-line-${idx}`}
-                      className="h-4 w-full animate-pulse rounded-full bg-white/10"
+                      className="h-7 w-28 animate-pulse rounded-full border border-white/15 bg-white/10"
+                      aria-hidden
                     />
-                  ))}
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   {Array.from({ length: 4 }).map((_, idx) => (
@@ -644,7 +678,10 @@ function PodcastDetailAppContent({
                     />
                   ))}
                 </div>
-                <div className="h-28 w-full animate-pulse rounded-[28px] bg-white/10" />
+                <div className="space-y-3">
+                  <div className="h-10 w-48 animate-pulse rounded-full bg-white/10" />
+                  <div className="h-12 w-full animate-pulse rounded-2xl bg-white/8" />
+                </div>
               </div>
             </div>
           </div>
@@ -1121,7 +1158,7 @@ function PodcastDetailAppContent({
                           href={episode.linkUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-2 text-[#bcd9ff] transition hover:text-white"
+                          className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#12072d] transition hover:-translate-y-0.5 hover:bg-white/90"
                         >
                           Play on Spotify ↗
                         </a>
@@ -1140,19 +1177,10 @@ function PodcastDetailAppContent({
                         }
                         isLoading={isEpisodeUpdating}
                         loadingLabel="Updating…"
+                        className="transform hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(29,16,65,0.45)]"
                       >
                         {isWatched ? "Mark as unwatched" : "Mark as watched"}
                       </InteractiveButton>
-                      {episode.linkUrl ? (
-                        <a
-                          href={episode.linkUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white transition hover:-translate-y-0.5 hover:bg-white/10"
-                        >
-                          Open external player ↗
-                        </a>
-                      ) : null}
                     </div>
                   </div>
                 </li>
