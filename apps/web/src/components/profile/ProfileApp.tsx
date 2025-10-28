@@ -65,16 +65,16 @@ function ProfileAppContent(): JSX.Element {
 
   const spotlight = useMemo<ProfileShow[]>(
     () =>
-      (data?.myProfile.spotlight ?? []).filter(
-        (entry): entry is ProfileShow => Boolean(entry)
+      (data?.myProfile.spotlight ?? []).filter((entry): entry is ProfileShow =>
+        Boolean(entry)
       ),
     [data?.myProfile.spotlight]
   );
 
   const shows = useMemo<ProfileShow[]>(
     () =>
-      (data?.myProfile.shows ?? []).filter(
-        (entry): entry is ProfileShow => Boolean(entry)
+      (data?.myProfile.shows ?? []).filter((entry): entry is ProfileShow =>
+        Boolean(entry)
       ),
     [data?.myProfile.shows]
   );

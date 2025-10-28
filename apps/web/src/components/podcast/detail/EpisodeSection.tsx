@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Episode, ShowDetailQuery } from "@shared";
 import { InteractiveButton } from "@ui";
 import {
@@ -51,8 +45,7 @@ export function EpisodeSection({
   onLoadMore,
   loadingMore,
 }: EpisodeSectionProps): JSX.Element {
-  const [episodeFilter, setEpisodeFilter] =
-    useState<EpisodeFilterValue>("all");
+  const [episodeFilter, setEpisodeFilter] = useState<EpisodeFilterValue>("all");
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const filterButtonRef = useRef<HTMLButtonElement | null>(null);
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
@@ -241,9 +234,10 @@ export function EpisodeSection({
           const isEpisodeUpdating =
             pendingEpisodeId === episode.episodeId && markProgressLoading;
           const canTrack = canTrackProgress;
-          const cardClassName = canTrack && isWatched
-            ? "group relative overflow-hidden rounded-3xl border border-emerald-400/35 bg-gradient-to-br from-emerald-500/15 via-[#12072d]/70 to-[#12072d]/90 p-6 shadow-[0_28px_80px_rgba(9,93,69,0.35)] transition duration-300 hover:border-emerald-300/60 hover:shadow-[0_32px_90px_rgba(9,93,69,0.45)]"
-            : "group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_24px_60px_rgba(29,16,65,0.35)] transition duration-300 hover:border-white/25 hover:bg-white/[0.09]";
+          const cardClassName =
+            canTrack && isWatched
+              ? "group relative overflow-hidden rounded-3xl border border-emerald-400/35 bg-gradient-to-br from-emerald-500/15 via-[#12072d]/70 to-[#12072d]/90 p-6 shadow-[0_28px_80px_rgba(9,93,69,0.35)] transition duration-300 hover:border-emerald-300/60 hover:shadow-[0_32px_90px_rgba(9,93,69,0.45)]"
+              : "group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_24px_60px_rgba(29,16,65,0.35)] transition duration-300 hover:border-white/25 hover:bg-white/[0.09]";
 
           return (
             <li key={episode.episodeId} className={cardClassName}>

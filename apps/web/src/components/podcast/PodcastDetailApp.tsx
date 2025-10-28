@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import {
   ShowDetailDocument,
@@ -31,10 +26,7 @@ import { GraphQLProvider } from "../graphql/GraphQLProvider";
 import { EpisodeSection } from "./detail/EpisodeSection";
 import { HeroSection } from "./detail/HeroSection";
 import { RatingModal } from "./detail/RatingModal";
-import {
-  ActionToast,
-  type ActionToastState,
-} from "./detail/ActionToast";
+import { ActionToast, type ActionToastState } from "./detail/ActionToast";
 
 interface PodcastDetailAppProps {
   showId: string;
@@ -659,7 +651,10 @@ function PodcastDetailAppContent({
         onClose={handleCloseRatingModal}
         onSave={handleRatingSave}
         onClear={handleRatingClear}
-        canClear={(subscription?.ratingStars ?? 0) > 0 || Boolean(subscription?.ratingReview)}
+        canClear={
+          (subscription?.ratingStars ?? 0) > 0 ||
+          Boolean(subscription?.ratingReview)
+        }
         loading={rateLoading}
         showTitle={show?.title ?? null}
       />

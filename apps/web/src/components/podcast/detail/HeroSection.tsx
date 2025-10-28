@@ -244,8 +244,8 @@ export function HeroSection({
                             item.disabled
                               ? "cursor-not-allowed text-white/45"
                               : item.destructive
-                              ? "text-red-200 hover:bg-red-500/20"
-                              : "hover:bg-white/10"
+                                ? "text-red-200 hover:bg-red-500/20"
+                                : "hover:bg-white/10"
                           }`}
                         >
                           <span>{item.label}</span>
