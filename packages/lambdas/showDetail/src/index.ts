@@ -4,6 +4,8 @@ import {
   BatchGetCommand,
   DynamoDBDocumentClient,
   GetCommand,
+  QueryCommand,
+  type QueryCommandInput,
 } from "@aws-sdk/lib-dynamodb";
 
 interface AppSyncEvent {
@@ -120,19 +122,15 @@ export const handler = async (
     loadSubscription(userSub, showId),
   ]);
 
-  const episodeIds = new Set<string>();
-  for (const item of episodes.items ?? []) {
-    if (item?.episodeId) {
-      episodeIds.add(item.episodeId);
-    }
-  }
-  for (const id of requestedProgressIds) {
-    episodeIds.add(id);
-  }
-
-  const progress = episodeIds.size
-    ? await loadProgress(userSub, Array.from(episodeIds))
+  const progressFromShow = await loadProgressForShow(userSub, showId);
+  const missingRequested = requestedProgressIds.filter(
+    (episodeId) =>
+      !progressFromShow.some((record) => record.episodeId === episodeId)
+  );
+  const extraProgress = missingRequested.length
+    ? await loadProgressByEpisodeIds(userSub, missingRequested)
     : [];
+  const progress = mergeProgress(progressFromShow, extraProgress);
 
   return {
     show: {
@@ -257,7 +255,7 @@ async function loadSubscription(
   };
 }
 
-async function loadProgress(
+async function loadProgressByEpisodeIds(
   userSub: string,
   episodeIds: string[]
 ): Promise<ProgressRecord[]> {
@@ -306,6 +304,71 @@ async function loadProgress(
   }
 
   return deduped;
+}
+
+async function loadProgressForShow(
+  userSub: string,
+  showId: string
+): Promise<ProgressRecord[]> {
+  const items: ProgressRecord[] = [];
+  let exclusiveStartKey: QueryCommandInput["ExclusiveStartKey"];
+
+  do {
+    const response = await dynamo.send(
+      new QueryCommand({
+        TableName: tableName,
+        KeyConditionExpression:
+          "#pk = :pk AND begins_with(#sk, :progressPrefix)",
+        FilterExpression: "#showId = :showId",
+        ExpressionAttributeNames: {
+          "#pk": "pk",
+          "#sk": "sk",
+          "#showId": "showId",
+        },
+        ExpressionAttributeValues: {
+          ":pk": `user#${userSub}`,
+          ":progressPrefix": "ep#",
+          ":showId": showId,
+        },
+        ExclusiveStartKey: exclusiveStartKey,
+      })
+    );
+
+    for (const item of response.Items ?? []) {
+      const record = mapProgress(item);
+      if (record) {
+        items.push(record);
+      }
+    }
+
+    exclusiveStartKey = response.LastEvaluatedKey;
+  } while (exclusiveStartKey);
+
+  return items;
+}
+
+function mergeProgress(
+  base: ProgressRecord[],
+  additional: ProgressRecord[]
+): ProgressRecord[] {
+  if (additional.length === 0) {
+    return base;
+  }
+
+  const map = new Map<string, ProgressRecord>();
+  for (const record of base) {
+    map.set(record.episodeId, record);
+  }
+  for (const record of additional) {
+    if (!record?.episodeId) {
+      continue;
+    }
+    if (!map.has(record.episodeId)) {
+      map.set(record.episodeId, record);
+    }
+  }
+
+  return Array.from(map.values());
 }
 
 async function invokeSpotifyProxy(payload: unknown): Promise<unknown> {
