@@ -10,24 +10,24 @@ export function ProfileSkeleton(): JSX.Element {
       </div>
       <AuroraBackground className="min-h-screen opacity-45 saturate-200 mix-blend-screen" />
       <div className="relative z-10">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-3 pb-12 pt-12 sm:px-5 sm:pb-16 sm:pt-16 md:px-10 md:pb-28 md:pt-22">
-          <header className="space-y-6 text-center md:text-left">
-            <div className="inline-flex h-8 w-52 animate-pulse items-center justify-center gap-2 self-center rounded-full bg-white/10 md:self-start" />
-            <div className="h-12 w-full animate-pulse rounded-full bg-white/10 md:w-2/3" />
-            <div className="mx-auto h-5 w-full animate-pulse rounded-full bg-white/8 md:mx-0 md:w-3/4" />
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-3 pb-12 pt-10 sm:px-5 sm:pb-16 sm:pt-14 md:px-10 md:pb-24 md:pt-20">
+          <header className="space-y-4 text-center md:text-left">
+            <div className="inline-flex h-8 w-48 animate-pulse items-center justify-center gap-2 self-center rounded-full bg-white/10 md:self-start" />
+            <div className="h-10 w-full animate-pulse rounded-full bg-white/10 md:w-3/5" />
+            <div className="mx-auto h-4 w-full animate-pulse rounded-full bg-white/8 md:mx-0 md:w-1/2" />
           </header>
 
-          <section className="grid gap-6 md:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, index) => (
+          <section className="grid gap-4 md:grid-cols-2">
+            {Array.from({ length: 2 }).map((_, index) => (
               <div
                 key={`profile-stat-skeleton-${index}`}
-                className="relative overflow-hidden rounded-3xl border border-white/15 bg-white/[0.04] px-8 py-10 shadow-[0_45px_100px_rgba(26,16,84,0.35)]"
+                className="relative overflow-hidden rounded-3xl border border-white/15 bg-white/[0.04] px-6 py-8 shadow-[0_40px_90px_rgba(26,16,84,0.3)]"
               >
                 <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-white/10 via-transparent to-white/5" />
-                <div className="relative space-y-4">
-                  <div className="h-3 w-24 rounded-full bg-white/15" />
-                  <div className="h-10 w-32 rounded-full bg-white/12" />
-                  <div className="h-3 w-20 rounded-full bg-white/10" />
+                <div className="relative space-y-3">
+                  <div className="h-3 w-20 rounded-full bg-white/15" />
+                  <div className="h-9 w-28 rounded-full bg-white/12" />
+                  <div className="h-2.5 w-16 rounded-full bg-white/10" />
                 </div>
               </div>
             ))}
