@@ -885,51 +885,59 @@ function PodcastDetailAppContent({
         )
       : null;
 
+  const backToProfileLink =
+    typeof document !== "undefined"
+      ? createPortal(
+          <a
+            href="/app/profile"
+            className="group pointer-events-auto fixed left-4 top-4 z-[1200] inline-flex items-center gap-3 rounded-full border border-white/20 bg-white px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.3em] text-[#12072d]/80 shadow-[0_12px_35px_rgba(17,8,40,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#bcaeff] hover:bg-[#f5f0ff] hover:text-[#12072d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
+          >
+            <svg
+              aria-hidden
+              viewBox="0 0 28 16"
+              className="h-3.5 w-6 text-[#8f73ff] transition-colors duration-200 group-hover:text-[#5635c7]"
+              fill="none"
+            >
+              <path
+                d="M10.5 1.5L3 8l7.5 6.5"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M26 8H4"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+              />
+              <defs>
+                <linearGradient
+                  id="back-arrow-glow"
+                  x1="12"
+                  y1="1"
+                  x2="19.5"
+                  y2="14"
+                  gradientUnits="userSpaceOnUse"
+                >
+                  <stop stopColor="currentColor" stopOpacity="0.9" />
+                  <stop offset="1" stopColor="currentColor" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <span className="transition-colors duration-200 group-hover:text-[#12072d]">
+              Back to profile
+            </span>
+          </a>,
+          document.body
+        )
+      : null;
+
   return (
     <div className="relative isolate w-full">
+      {backToProfileLink}
       {ratingModal}
       <AuroraBackground className="opacity-80" />
-      <a
-        href="/app/profile"
-        className="group fixed left-4 top-4 z-50 inline-flex items-center gap-3 rounded-full border border-white/20 bg-white px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.3em] text-[#12072d]/80 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#bcaeff] hover:bg-[#f5f0ff] hover:text-[#12072d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
-      >
-        <svg
-          aria-hidden
-          viewBox="0 0 28 16"
-          className="h-3.5 w-6 text-[#8f73ff] transition-colors duration-200 group-hover:text-[#5635c7]"
-          fill="none"
-        >
-          <path
-            d="M10.5 1.5L3 8l7.5 6.5"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M26 8H4"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-          />
-          <defs>
-            <linearGradient
-              id="back-arrow-glow"
-              x1="12"
-              y1="1"
-              x2="19.5"
-              y2="14"
-              gradientUnits="userSpaceOnUse"
-            >
-              <stop stopColor="currentColor" stopOpacity="0.9" />
-              <stop offset="1" stopColor="currentColor" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <span className="transition-colors duration-200 group-hover:text-[#12072d]">
-          Back to profile
-        </span>
-      </a>
       {showScrollTop && !episodesInitialLoading ? (
         <div className="fixed bottom-16 right-8 z-50">
           <InteractiveButton
