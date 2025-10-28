@@ -43,6 +43,12 @@ const EPISODE_FILTERS: { value: EpisodeFilterValue; label: string }[] = [
   { value: "played", label: "Watched" },
 ];
 
+type BulkProgressState =
+  | { state: "idle"; message: "" }
+  | { state: "loading"; message: string }
+  | { state: "success"; message: string }
+  | { state: "error"; message: string };
+
 const DESCRIPTION_COLLAPSED_MAX_HEIGHT = 220;
 
 const isNonEmptyString = (value: unknown): value is string =>
@@ -160,6 +166,8 @@ function PodcastDetailAppContent({
   });
   const [isRatingModalOpen, setRatingModalOpen] = useState(false);
   const [pendingEpisodeId, setPendingEpisodeId] = useState<string | null>(null);
+  const [bulkProgressStatus, setBulkProgressStatus] =
+    useState<BulkProgressState>({ state: "idle", message: "" });
 
   useEffect(() => {
     if (!subscription) {
@@ -406,6 +414,21 @@ function PodcastDetailAppContent({
     };
   }, [actionsMenuOpen]);
 
+  useEffect(() => {
+    if (
+      bulkProgressStatus.state === "success" ||
+      bulkProgressStatus.state === "error"
+    ) {
+      const timer = window.setTimeout(() => {
+        setBulkProgressStatus({ state: "idle", message: "" });
+      }, 4000);
+      return () => {
+        window.clearTimeout(timer);
+      };
+    }
+    return undefined;
+  }, [bulkProgressStatus.state]);
+
   const handleEpisodeCompletion = async (
     episode: Episode,
     completed: boolean
@@ -492,8 +515,12 @@ function PodcastDetailAppContent({
   };
 
   const handleMarkAllEpisodes = useCallback(async () => {
+    setBulkProgressStatus({
+      state: "loading",
+      message: "Marking episodes as watched…",
+    });
     try {
-      await markAllEpisodesComplete({
+      const response = await markAllEpisodesComplete({
         variables: { showId },
         update(cache, result) {
           const updates =
@@ -560,10 +587,39 @@ function PodcastDetailAppContent({
           });
         },
       });
+
+      const newlyMarkedCount =
+        response.data?.markAllEpisodesComplete?.reduce((count, entry) => {
+          return entry?.episodeId ? count + 1 : count;
+        }, 0) ?? 0;
+
+      if (newlyMarkedCount > 0) {
+        setBulkProgressStatus({
+          state: "success",
+          message:
+            newlyMarkedCount === 1
+              ? "Marked 1 episode as watched."
+              : `Marked ${newlyMarkedCount} episodes as watched.`,
+        });
+      } else {
+        setBulkProgressStatus({
+          state: "success",
+          message: "All episodes were already marked as watched.",
+        });
+      }
     } catch (err) {
       console.error("Failed to mark all episodes complete", err);
+      setBulkProgressStatus({
+        state: "error",
+        message: "Failed to mark every episode. Please try again.",
+      });
     }
-  }, [markAllEpisodesComplete, showDetailVariables, showId]);
+  }, [
+    markAllEpisodesComplete,
+    setBulkProgressStatus,
+    showDetailVariables,
+    showId,
+  ]);
 
   const handleRatingSave = async () => {
     if (!show) return;
@@ -673,6 +729,61 @@ function PodcastDetailAppContent({
     setFilterMenuOpen(false);
   };
 
+  const bulkStatusVisible = bulkProgressStatus.state !== "idle";
+  const bulkStatusContainerClass =
+    bulkProgressStatus.state === "loading"
+      ? "border-white/15 bg-[#0f0423]/90 text-white/85"
+      : bulkProgressStatus.state === "success"
+        ? "border-emerald-400/40 bg-emerald-500/20 text-emerald-100"
+        : bulkProgressStatus.state === "error"
+          ? "border-red-500/40 bg-red-500/20 text-red-100"
+          : "";
+  const bulkStatusIcon = (() => {
+    switch (bulkProgressStatus.state) {
+      case "loading":
+        return (
+          <span className="flex h-5 w-5 items-center justify-center">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          </span>
+        );
+      case "success":
+        return (
+          <span className="flex h-5 w-5 items-center justify-center text-current">
+            <svg
+              viewBox="0 0 16 16"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3.5 8.5l3 3L12.5 5" />
+            </svg>
+          </span>
+        );
+      case "error":
+        return (
+          <span className="flex h-5 w-5 items-center justify-center text-current">
+            <svg
+              viewBox="0 0 16 16"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M4 4l8 8" />
+              <path d="M12 4l-8 8" />
+            </svg>
+          </span>
+        );
+      default:
+        return null;
+    }
+  })();
+
   const ratingModal =
     isRatingModalOpen && typeof document !== "undefined"
       ? createPortal(
@@ -778,6 +889,47 @@ function PodcastDetailAppContent({
     <div className="relative isolate w-full">
       {ratingModal}
       <AuroraBackground className="opacity-80" />
+      <a
+        href="/app/profile"
+        className="group fixed left-4 top-4 z-50 inline-flex items-center gap-3 rounded-full border border-white/20 bg-white px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.3em] text-[#12072d]/80 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#bcaeff] hover:bg-[#f5f0ff] hover:text-[#12072d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
+      >
+        <svg
+          aria-hidden
+          viewBox="0 0 28 16"
+          className="h-3.5 w-6 text-[#8f73ff] transition-colors duration-200 group-hover:text-[#5635c7]"
+          fill="none"
+        >
+          <path
+            d="M10.5 1.5L3 8l7.5 6.5"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M26 8H4"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+          />
+          <defs>
+            <linearGradient
+              id="back-arrow-glow"
+              x1="12"
+              y1="1"
+              x2="19.5"
+              y2="14"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stopColor="currentColor" stopOpacity="0.9" />
+              <stop offset="1" stopColor="currentColor" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <span className="transition-colors duration-200 group-hover:text-[#12072d]">
+          Back to profile
+        </span>
+      </a>
       {showScrollTop && !episodesInitialLoading ? (
         <div className="fixed bottom-16 right-8 z-50">
           <InteractiveButton
@@ -1509,6 +1661,22 @@ function PodcastDetailAppContent({
           ) : null}
         </div>
       </div>
+      {bulkStatusVisible ? (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          aria-busy={bulkProgressStatus.state === "loading"}
+          className={`fixed bottom-6 right-6 z-50 inline-flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-[0_24px_60px_rgba(9,5,25,0.55)] backdrop-blur ${
+            bulkStatusContainerClass ?? ""
+          }`}
+        >
+          {bulkStatusIcon}
+          <span className="text-sm font-medium tracking-wide">
+            {bulkProgressStatus.message}
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }
