@@ -1093,14 +1093,50 @@ function PodcastDetailAppContent({
               );
               const isEpisodeUpdating =
                 pendingEpisodeId === episode.episodeId && markProgressLoading;
+              const cardClassName = isWatched
+                ? "group relative overflow-hidden rounded-3xl border border-emerald-400/35 bg-gradient-to-br from-emerald-500/15 via-[#12072d]/70 to-[#12072d]/90 p-6 shadow-[0_28px_80px_rgba(9,93,69,0.35)] transition duration-300 hover:border-emerald-300/60 hover:shadow-[0_32px_90px_rgba(9,93,69,0.45)]"
+                : "group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_24px_60px_rgba(29,16,65,0.35)] transition duration-300 hover:border-white/25 hover:bg-white/[0.09]";
+              const glowClassName = isWatched
+                ? "absolute -top-24 -right-20 h-48 w-48 rounded-full bg-emerald-400/25 blur-[110px] opacity-50"
+                : "absolute -top-24 -right-20 h-48 w-48 rounded-full bg-[#8f73ff]/20 blur-[110px] opacity-40";
 
               return (
-                <li
-                  key={episode.episodeId}
-                  className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_24px_60px_rgba(29,16,65,0.35)] transition duration-300 hover:border-white/25 hover:bg-white/[0.09]"
-                >
-                  <div className="absolute -top-24 -right-20 h-48 w-48 rounded-full bg-[#8f73ff]/20 blur-[110px] opacity-40" />
+                <li key={episode.episodeId} className={cardClassName}>
+                  <div className={glowClassName} />
                   <div className="relative flex flex-col gap-6">
+                    <div
+                      className={
+                        isWatched
+                          ? "absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-emerald-300/50 bg-emerald-400/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-emerald-100"
+                          : "absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-white/60"
+                      }
+                    >
+                      <span
+                        className={
+                          isWatched
+                            ? "flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400/30 text-emerald-100"
+                            : "flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-white/70"
+                        }
+                        aria-hidden
+                      >
+                        {isWatched ? (
+                          <svg
+                            viewBox="0 0 16 16"
+                            className="h-3.5 w-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M4 8l2.5 2.5L12 5" />
+                          </svg>
+                        ) : (
+                          <span className="text-base leading-none">•</span>
+                        )}
+                      </span>
+                      <span>{isWatched ? "Watched" : "Queued"}</span>
+                    </div>
                     <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.35em] text-white/45">
                       <span>Episode {index + 1}</span>
                       <span className="h-1 w-1 rounded-full bg-white/35" />
@@ -1135,7 +1171,27 @@ function PodcastDetailAppContent({
                             : "inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-white/70"
                         }
                       >
-                        {isWatched ? "Watched" : "Not watched yet"}
+                        {isWatched ? (
+                          <>
+                            <span
+                              className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-400/40 text-[10px] text-emerald-50"
+                              aria-hidden
+                            >
+                              ✓
+                            </span>
+                            Watched
+                          </>
+                        ) : (
+                          <>
+                            <span
+                              className="flex h-4 w-4 items-center justify-center rounded-full bg-white/15 text-[10px] text-white/70"
+                              aria-hidden
+                            >
+                              ●
+                            </span>
+                            Not watched yet
+                          </>
+                        )}
                       </span>
                       {episode.explicit ? (
                         <span className="rounded-full border border-red-400/40 bg-red-500/20 px-3 py-1 text-red-200">
@@ -1167,7 +1223,7 @@ function PodcastDetailAppContent({
 
                     <div className="flex flex-wrap gap-3">
                       <InteractiveButton
-                        variant={isWatched ? "outline" : "primary"}
+                        variant={isWatched ? "outline" : "primaryBright"}
                         onClick={() => {
                           void handleEpisodeCompletion(episode, !isWatched);
                         }}

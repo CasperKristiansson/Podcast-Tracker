@@ -6,7 +6,8 @@ export type InteractiveButtonVariant =
   | "primary"
   | "secondary"
   | "outline"
-  | "ghost";
+  | "ghost"
+  | "primaryBright";
 
 export interface InteractiveButtonProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className"> {
@@ -21,7 +22,9 @@ export interface InteractiveButtonProps
 
 const variantClasses: Record<InteractiveButtonVariant, string> = {
   primary:
-    "bg-gradient-to-br from-[#8f73ff] via-[#745dd8] to-[#5635c7] text-white shadow-[0_18px_40px_rgba(104,80,200,0.35)] hover:from-[#9b81ff] hover:via-[#7f6ae3] hover:to-[#5f3fd4] focus-visible:ring-[#c6b5ff]",
+    "bg-gradient-to-br from-[#8f73ff] via-[#745dd8] to-[#5635c7] text-white shadow-[0_18px_40px_rgba(104,80,200,0.35)] hover:bg-[#7f4bff] focus-visible:ring-[#c6b5ff]",
+  primaryBright:
+    "bg-gradient-to-br from-[#9f8fff] via-[#8a7aff] to-[#5f3fff] text-[#0b031a] shadow-[0_24px_60px_rgba(122,103,255,0.45)] hover:from-[#b7a9ff] hover:via-[#988aff] hover:to-[#6d4dff] hover:text-[#12072d] focus-visible:ring-[#d8d0ff]",
   secondary:
     "bg-white/10 text-white hover:bg-white/15 focus-visible:ring-white/60",
   outline:
@@ -30,13 +33,15 @@ const variantClasses: Record<InteractiveButtonVariant, string> = {
     "bg-transparent text-white/80 hover:text-white focus-visible:ring-white/40",
 };
 
-const sizeClasses: Record<NonNullable<InteractiveButtonProps["size"]>, string> =
-  {
-    xs: "px-3 py-1",
-    sm: "px-4 py-2",
-    md: "px-6 py-3",
-    lg: "px-7 py-4",
-  };
+const sizeClasses: Record<
+  NonNullable<InteractiveButtonProps["size"]>,
+  string
+> = {
+  xs: "px-3 py-1",
+  sm: "px-4 py-2",
+  md: "px-6 py-3",
+  lg: "px-7 py-4",
+};
 
 export const InteractiveButton = forwardRef<
   HTMLButtonElement,
