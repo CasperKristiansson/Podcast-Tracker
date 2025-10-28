@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "@apollo/client/react";
 import {
   ShowDetailDocument,
@@ -159,6 +160,47 @@ function PodcastDetailAppContent({
   const watchedCount = useMemo(() => {
     return (detail?.progress ?? []).filter((entry) => entry?.completed).length;
   }, [detail?.progress]);
+
+  const hasEpisodesToMark = useMemo(() => {
+    if (!isSubscribed) {
+      return false;
+    }
+
+    if (typeof show?.totalEpisodes === "number" && show.totalEpisodes > 0) {
+      return watchedCount < show.totalEpisodes;
+    }
+
+    if (
+      typeof subscription?.totalEpisodes === "number" &&
+      subscription.totalEpisodes > 0
+    ) {
+      return watchedCount < subscription.totalEpisodes;
+    }
+
+    const items = (episodesConnection?.items ?? []).filter(
+      (
+        episode
+      ): episode is NonNullable<
+        ShowDetailQuery["showDetail"]["episodes"]["items"][number]
+      > => Boolean(episode)
+    );
+
+    if (items.length === 0) {
+      return false;
+    }
+
+    return items.some((episode) => {
+      const progress = progressMap.get(episode.episodeId);
+      return !progress?.completed;
+    });
+  }, [
+    episodesConnection?.items,
+    isSubscribed,
+    progressMap,
+    show?.totalEpisodes,
+    subscription?.totalEpisodes,
+    watchedCount,
+  ]);
 
   const heroLoading = showDetailLoading && !show;
   const episodesInitialLoading =
@@ -663,35 +705,11 @@ function PodcastDetailAppContent({
         showTitle={show?.title ?? null}
       />
       <ActionToast status={toastStatus} />
-      <a
-        href="/app/profile"
-        className="group fixed left-4 top-4 z-50 inline-flex items-center gap-3 rounded-full border border-white/15 bg-white px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.3em] text-[#12072d]/80 shadow-[0_12px_35px_rgba(17,8,40,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#bcaeff] hover:bg-[#f5f0ff] hover:text-[#12072d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
-      >
-        <svg
-          aria-hidden
-          viewBox="0 0 28 16"
-          className="h-3.5 w-6 text-[#8f73ff] transition-colors duration-200 group-hover:text-[#5635c7]"
-          fill="none"
-        >
-          <path
-            d="M10.5 1.5L3 8l7.5 6.5"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M26 8H4"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-          />
-        </svg>
-        <span className="transition-colors duration-200 group-hover:text-[#12072d]">
-          Back to profile
-        </span>
-      </a>
-      <AuroraBackground className="opacity-80" />
+      <BackToProfileLink />
+      <AuroraBackground
+        className="opacity-80"
+        variant={hasEpisodesToMark ? "default" : "completed"}
+      />
       {showScrollTop && !episodesInitialLoading ? (
         <div className="fixed bottom-16 right-8 z-50">
           <InteractiveButton
@@ -815,6 +833,7 @@ function PodcastDetailAppContent({
               void handleMarkAllEpisodes();
             }}
             markAllLoading={markAllLoading}
+            hasEpisodesToMark={hasEpisodesToMark}
             canRateShow={canRateShow}
             ratingDisplayValue={ratingDisplayValue}
             subscriptionAddedAt={subscriptionAddedAt}
@@ -848,5 +867,43 @@ export default function PodcastDetailApp(
     <GraphQLProvider>
       <PodcastDetailAppContent {...props} />
     </GraphQLProvider>
+  );
+}
+
+function BackToProfileLink(): JSX.Element | null {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <a
+      href="/app/profile"
+      className="group fixed left-4 top-4 z-[999] inline-flex items-center gap-3 rounded-full border border-white/15 bg-white px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.3em] text-[#12072d]/80 shadow-[0_12px_35px_rgba(17,8,40,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#bcaeff] hover:bg-[#f5f0ff] hover:text-[#12072d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
+    >
+      <svg
+        aria-hidden
+        viewBox="0 0 28 16"
+        className="h-3.5 w-6 text-[#8f73ff] transition-colors duration-200 group-hover:text-[#5635c7]"
+        fill="none"
+      >
+        <path
+          d="M10.5 1.5L3 8l7.5 6.5"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M26 8H4"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className="transition-colors duration-200 group-hover:text-[#12072d]">
+        Back to profile
+      </span>
+    </a>,
+    document.body
   );
 }

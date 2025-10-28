@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ShowDetailQuery } from "@shared";
 import { GlowCard, InteractiveButton, StarRating } from "@ui";
+import type { GlowCardProps } from "@ui";
 import { formatNumber, formatRelative } from "../../../lib/format";
 
 const isNonEmptyString = (value: unknown): value is string =>
@@ -15,6 +16,7 @@ interface HeroSectionProps {
   onOpenRatingModal: () => void;
   onMarkAllEpisodes: () => void;
   markAllLoading: boolean;
+  hasEpisodesToMark: boolean;
   canRateShow: boolean;
   ratingDisplayValue: number;
   subscriptionAddedAt: string | null;
@@ -31,6 +33,7 @@ export function HeroSection({
   onOpenRatingModal,
   onMarkAllEpisodes,
   markAllLoading,
+  hasEpisodesToMark,
   canRateShow,
   ratingDisplayValue,
   subscriptionAddedAt,
@@ -40,6 +43,13 @@ export function HeroSection({
   const [menuOpen, setMenuOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const glowVariant = useMemo<NonNullable<GlowCardProps["variant"]>>(() => {
+    if (!isSubscribed) {
+      return "untracked";
+    }
+    return hasEpisodesToMark ? "default" : "completed";
+  }, [hasEpisodesToMark, isSubscribed]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -102,7 +112,7 @@ export function HeroSection({
           icon: "↗",
         }
       : null,
-    isSubscribed
+    isSubscribed && hasEpisodesToMark
       ? {
           label: markAllLoading
             ? "Marking episodes…"
@@ -122,7 +132,10 @@ export function HeroSection({
   }[];
 
   return (
-    <GlowCard className="relative overflow-hidden w-full max-w-none px-6 py-10 sm:px-10 sm:py-12 bg-[radial-gradient(circle_at_top,_rgba(138,94,255,0.23),_transparent_70%)]">
+    <GlowCard
+      variant={glowVariant}
+      className="relative overflow-hidden w-full max-w-none px-6 py-10 sm:px-10 sm:py-12"
+    >
       <div className="pointer-events-none absolute inset-0" aria-hidden />
       {show.image ? (
         <div
