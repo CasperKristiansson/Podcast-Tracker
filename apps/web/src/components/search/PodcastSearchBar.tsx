@@ -102,6 +102,7 @@ export default function PodcastSearchBar({
   >(UnsubscribeFromShowDocument);
 
   const shows = useMemo(() => data?.search ?? [], [data]);
+  const showSkeleton = loading && shows.length === 0;
 
   const [pendingState, setPendingState] = useState<{
     showId: string;
@@ -708,7 +709,9 @@ export default function PodcastSearchBar({
                     <div className="rounded-2xl border border-white/12 bg-[#1d0d3b]/85 p-2 shadow-[0_30px_90px_rgba(12,4,40,0.45)]">
                       {error ? (
                         <ErrorState error={error} />
-                      ) : shows.length === 0 && !loading ? (
+                      ) : showSkeleton ? (
+                        <SearchResultsSkeleton />
+                      ) : shows.length === 0 ? (
                         <EmptyState />
                       ) : (
                         <ResultList
@@ -912,6 +915,26 @@ const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
       })}
     </ul>
   )
+);
+
+const SearchResultsSkeleton = (): JSX.Element => (
+  <ul className="flex max-h-[min(70vh,720px)] flex-col gap-2 overflow-y-auto overscroll-contain px-1 py-1">
+    {Array.from({ length: 4 }).map((_, index) => (
+      <li
+        key={`search-skeleton-${index}`}
+        className="flex animate-pulse items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+      >
+        <div className="h-14 w-14 shrink-0 rounded-2xl bg-white/10" />
+        <div className="flex-1 space-y-3">
+          <div className="h-4 w-3/5 rounded-full bg-white/15" />
+          <div className="h-3 w-2/5 rounded-full bg-white/12" />
+          <div className="h-3 w-full rounded-full bg-white/10" />
+          <div className="h-3 w-1/2 rounded-full bg-white/8" />
+        </div>
+        <div className="h-9 w-24 shrink-0 rounded-full bg-white/12" />
+      </li>
+    ))}
+  </ul>
 );
 
 function MetadataRow({

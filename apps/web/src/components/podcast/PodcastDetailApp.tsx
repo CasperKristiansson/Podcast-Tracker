@@ -32,9 +32,9 @@ import { EpisodeSection } from "./detail/EpisodeSection";
 import { HeroSection } from "./detail/HeroSection";
 import { RatingModal } from "./detail/RatingModal";
 import {
-  BulkProgressToast,
-  type BulkProgressState,
-} from "./detail/BulkProgressToast";
+  ActionToast,
+  type ActionToastState,
+} from "./detail/ActionToast";
 
 interface PodcastDetailAppProps {
   showId: string;
@@ -93,8 +93,10 @@ function PodcastDetailAppContent({
   });
   const [isRatingModalOpen, setRatingModalOpen] = useState(false);
   const [pendingEpisodeId, setPendingEpisodeId] = useState<string | null>(null);
-  const [bulkProgressStatus, setBulkProgressStatus] =
-    useState<BulkProgressState>({ state: "idle", message: "" });
+  const [toastStatus, setToastStatus] = useState<ActionToastState>({
+    state: "idle",
+    message: "",
+  });
 
   useEffect(() => {
     if (!subscription) {
@@ -175,6 +177,10 @@ function PodcastDetailAppContent({
     if (!show) return;
     try {
       if (isSubscribed) {
+        setToastStatus({
+          state: "loading",
+          message: "Removing from your library…",
+        });
         await unsubscribeFromShow({
           variables: { showId },
           update: (cache) => {
@@ -203,6 +209,13 @@ function PodcastDetailAppContent({
               }
             );
           },
+        });
+        const title = show.title?.trim();
+        setToastStatus({
+          state: "success",
+          message: title
+            ? `Removed “${title}” from your library.`
+            : "Removed the show from your library.",
         });
       } else {
         await subscribeToShow({
@@ -248,6 +261,12 @@ function PodcastDetailAppContent({
       }
     } catch (err) {
       console.error("Subscription mutation failed", err);
+      if (isSubscribed) {
+        setToastStatus({
+          state: "error",
+          message: "We couldn’t remove the show. Please try again.",
+        });
+      }
     }
   };
 
@@ -288,19 +307,16 @@ function PodcastDetailAppContent({
   }, [isRatingModalOpen, handleCloseRatingModal]);
 
   useEffect(() => {
-    if (
-      bulkProgressStatus.state === "success" ||
-      bulkProgressStatus.state === "error"
-    ) {
+    if (toastStatus.state === "success" || toastStatus.state === "error") {
       const timer = window.setTimeout(() => {
-        setBulkProgressStatus({ state: "idle", message: "" });
+        setToastStatus({ state: "idle", message: "" });
       }, 4000);
       return () => {
         window.clearTimeout(timer);
       };
     }
     return undefined;
-  }, [bulkProgressStatus.state]);
+  }, [toastStatus.state]);
 
   const handleEpisodeCompletion = async (
     episode: Episode,
@@ -382,7 +398,7 @@ function PodcastDetailAppContent({
   };
 
   const handleMarkAllEpisodes = useCallback(async () => {
-    setBulkProgressStatus({
+    setToastStatus({
       state: "loading",
       message: "Marking episodes as watched…",
     });
@@ -461,7 +477,7 @@ function PodcastDetailAppContent({
         }, 0) ?? 0;
 
       if (newlyMarkedCount > 0) {
-        setBulkProgressStatus({
+        setToastStatus({
           state: "success",
           message:
             newlyMarkedCount === 1
@@ -469,24 +485,19 @@ function PodcastDetailAppContent({
               : `Marked ${newlyMarkedCount} episodes as watched.`,
         });
       } else {
-        setBulkProgressStatus({
+        setToastStatus({
           state: "success",
           message: "All episodes were already marked as watched.",
         });
       }
     } catch (err) {
       console.error("Failed to mark all episodes complete", err);
-      setBulkProgressStatus({
+      setToastStatus({
         state: "error",
         message: "Failed to mark every episode. Please try again.",
       });
     }
-  }, [
-    markAllEpisodesComplete,
-    setBulkProgressStatus,
-    showDetailVariables,
-    showId,
-  ]);
+  }, [markAllEpisodesComplete, showDetailVariables, showId]);
 
   const handleRatingSave = async () => {
     if (!show) return;
@@ -652,7 +663,7 @@ function PodcastDetailAppContent({
         loading={rateLoading}
         showTitle={show?.title ?? null}
       />
-      <BulkProgressToast status={bulkProgressStatus} />
+      <ActionToast status={toastStatus} />
       <a
         href="/app/profile"
         className="group fixed left-4 top-4 z-50 inline-flex items-center gap-3 rounded-full border border-white/15 bg-white px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.3em] text-[#12072d]/80 shadow-[0_12px_35px_rgba(17,8,40,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#bcaeff] hover:bg-[#f5f0ff] hover:text-[#12072d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"

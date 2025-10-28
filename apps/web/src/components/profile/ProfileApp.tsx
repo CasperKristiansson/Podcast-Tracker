@@ -19,6 +19,7 @@ import { StatsSection } from "./sections/StatsSection";
 import { SpotlightSection } from "./sections/SpotlightSection";
 import { LibrarySection } from "./sections/LibrarySection";
 import type { CelebrationState } from "./types";
+import { ProfileSkeleton } from "./sections/ProfileSkeleton";
 
 function ProfileAppContent(): JSX.Element {
   const {
@@ -286,27 +287,7 @@ function ProfileAppContent(): JSX.Element {
   }, [refetchProfile]);
 
   if (loading) {
-    return (
-      <div className="relative isolate flex min-h-screen items-center justify-center overflow-hidden px-6 py-24 md:px-12 md:py-32">
-        <AuroraBackground className="opacity-45 saturate-200 mix-blend-screen" />
-        <div className="pointer-events-none absolute -top-48 left-1/2 h-[40rem] w-[40rem] -translate-x-1/2 rounded-full bg-[#d9c4ff]/26 blur-[210px]" />
-        <div className="pointer-events-none absolute -bottom-48 left-[-12%] h-[32rem] w-[32rem] rounded-full bg-[#5a2ae4]/24 blur-[190px]" />
-        <div className="pointer-events-none absolute -right-40 top-20 h-[30rem] w-[30rem] rounded-full bg-[#291150]/20 blur-[190px]" />
-        <div className="relative z-10 w-full max-w-lg rounded-[36px] border border-white/15 bg-[#190d3a]/85 px-10 py-12 text-center text-white/80 shadow-[0_40px_120px_rgba(18,7,60,0.55)] backdrop-blur-2xl">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs uppercase tracking-[0.35em] text-white/70">
-            Syncing profile
-            <span className="h-1 w-1 animate-pulse rounded-full bg-[#f5e4ff]" />
-          </span>
-          <p className="mt-6 text-lg font-semibold text-white">
-            Loading your soundscape…
-          </p>
-          <p className="mt-3 text-sm text-white/65">
-            We’re fetching the latest shows, progress, and celebrations for your
-            account.
-          </p>
-        </div>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (error) {

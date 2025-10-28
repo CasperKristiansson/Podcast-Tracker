@@ -1,16 +1,18 @@
-export type BulkProgressState =
+export type ActionToastState =
   | { state: "idle"; message: "" }
   | { state: "loading"; message: string }
   | { state: "success"; message: string }
   | { state: "error"; message: string };
 
-interface BulkProgressToastProps {
-  status: BulkProgressState;
+interface ActionToastProps {
+  status: ActionToastState;
+  offset?: number;
 }
 
-export function BulkProgressToast({
+export function ActionToast({
   status,
-}: BulkProgressToastProps): JSX.Element | null {
+  offset = 0,
+}: ActionToastProps): JSX.Element | null {
   if (status.state === "idle") {
     return null;
   }
@@ -64,7 +66,8 @@ export function BulkProgressToast({
       aria-live="polite"
       aria-atomic="true"
       aria-busy={status.state === "loading"}
-      className={`fixed bottom-6 right-6 z-50 inline-flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-[0_24px_60px_rgba(9,5,25,0.55)] backdrop-blur ${containerClass}`}
+      className={`fixed right-6 z-50 inline-flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-[0_24px_60px_rgba(9,5,25,0.55)] backdrop-blur ${containerClass}`}
+      style={{ bottom: `${24 + offset}px` }}
     >
       {icon}
       <span className="text-sm font-medium tracking-wide">
