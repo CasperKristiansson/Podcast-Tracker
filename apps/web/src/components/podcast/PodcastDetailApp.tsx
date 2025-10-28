@@ -38,6 +38,8 @@ const EPISODE_FILTERS: { value: EpisodeFilterValue; label: string }[] = [
   { value: "played", label: "Watched" },
 ];
 
+const DESCRIPTION_COLLAPSED_MAX_HEIGHT = 220;
+
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
 const toOptionalString = (value: unknown): string | null =>
@@ -108,6 +110,10 @@ function PodcastDetailAppContent({
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
   const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
+  const descriptionRef = useRef<HTMLDivElement | null>(null);
+  const [isDescriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [isDescriptionOverflowing, setDescriptionOverflowing] = useState(false);
+  const [descriptionContentHeight, setDescriptionContentHeight] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
 
   const detail = showDetailData?.showDetail ?? null;
@@ -133,6 +139,9 @@ function PodcastDetailAppContent({
   }, [detail?.progress]);
 
   const subscription = detail?.subscription ?? null;
+  const show = detail?.show ?? null;
+  const descriptionHtml = show?.htmlDescription ?? show?.description ?? "";
+  const showLanguages = show?.languages?.filter(isNonEmptyString) ?? [];
 
   const [ratingDraft, setRatingDraft] = useState<RatingDraft>({
     stars: subscription?.ratingStars ?? 0,
@@ -162,6 +171,37 @@ function PodcastDetailAppContent({
     isRatingModalOpen,
   ]);
 
+  useEffect(() => {
+    setDescriptionExpanded(false);
+  }, [descriptionHtml]);
+
+  useEffect(() => {
+    const element = descriptionRef.current;
+    if (!element) {
+      setDescriptionContentHeight(0);
+      setDescriptionOverflowing(false);
+      return;
+    }
+    const updateOverflow = () => {
+      const contentHeight = element.scrollHeight;
+      setDescriptionContentHeight(contentHeight);
+      setDescriptionOverflowing(
+        contentHeight > DESCRIPTION_COLLAPSED_MAX_HEIGHT + 1
+      );
+    };
+    updateOverflow();
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const resizeObserver = new ResizeObserver(() => {
+      updateOverflow();
+    });
+    resizeObserver.observe(element);
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [descriptionHtml]);
+
   const [markProgress, { loading: markProgressLoading }] = useMutation(
     MarkEpisodeProgressDocument
   );
@@ -173,13 +213,14 @@ function PodcastDetailAppContent({
   );
   const [rateShow, { loading: rateLoading }] = useMutation(RateShowDocument);
 
-  const show = detail?.show ?? null;
-  const descriptionHtml = show?.htmlDescription ?? show?.description ?? "";
-  const showLanguages = show?.languages?.filter(isNonEmptyString) ?? [];
   const isSubscribed = Boolean(subscription) || Boolean(show?.isSubscribed);
   const isMutatingSubscription = subscribeLoading || unsubscribeLoading;
   const ratingDisplayValue = subscription?.ratingStars ?? 0;
   const canRateShow = Boolean(subscription);
+  const expandedDescriptionHeight = Math.max(
+    descriptionContentHeight + 24,
+    DESCRIPTION_COLLAPSED_MAX_HEIGHT
+  );
   const handleDraftStarChange = (stars: number) => {
     setRatingDraft((prev) => ({
       ...prev,
@@ -790,10 +831,49 @@ function PodcastDetailAppContent({
                 </div>
 
                 {descriptionHtml ? (
-                  <div
-                    className="prose prose-invert max-w-3xl text-base leading-relaxed text-white/75 prose-a:text-white prose-strong:text-white"
-                    dangerouslySetInnerHTML={{ __html: descriptionHtml }}
-                  />
+                  <div className="relative max-w-3xl">
+                    <div
+                      ref={descriptionRef}
+                      className="prose prose-invert text-base leading-relaxed text-white/75 transition-[max-height] duration-300 ease-in-out prose-a:text-white prose-strong:text-white"
+                      style={{
+                        maxHeight: isDescriptionExpanded
+                          ? `${expandedDescriptionHeight}px`
+                          : `${DESCRIPTION_COLLAPSED_MAX_HEIGHT}px`,
+                        overflow: "hidden",
+                        WebkitMaskImage:
+                          !isDescriptionExpanded && isDescriptionOverflowing
+                            ? "linear-gradient(180deg, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)"
+                            : undefined,
+                        maskImage:
+                          !isDescriptionExpanded && isDescriptionOverflowing
+                            ? "linear-gradient(180deg, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)"
+                            : undefined,
+                      }}
+                      dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+                    />
+                    {isDescriptionOverflowing ? (
+                      <div
+                        className={
+                          isDescriptionExpanded
+                            ? "mt-4 flex justify-center"
+                            : "absolute inset-x-0 bottom-0 flex justify-center pb-4 transform translate-y-2"
+                        }
+                      >
+                        <InteractiveButton
+                          variant="outline"
+                          type="button"
+                          size="xs"
+                          onClick={() =>
+                            setDescriptionExpanded((prevState) => !prevState)
+                          }
+                          aria-expanded={isDescriptionExpanded}
+                          className="pointer-events-auto backdrop-blur-md border-white/20 bg-[#12072d]/60 hover:-translate-y-0.5 hover:border-white/40"
+                        >
+                          {isDescriptionExpanded ? "Show less" : "Read more"}
+                        </InteractiveButton>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
 
                 <div className="flex flex-wrap gap-3">
