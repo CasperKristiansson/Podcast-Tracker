@@ -616,11 +616,8 @@ function PodcastDetailAppContent({
         ) : null}
 
         {show ? (
-          <GlowCard className="relative overflow-hidden w-full max-w-none px-6 py-10 sm:px-10 sm:py-12">
-            <div
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(138,94,255,0.23),_transparent_70%)]"
-              aria-hidden
-            />
+          <GlowCard className="relative overflow-hidden w-full max-w-none px-6 py-10 sm:px-10 sm:py-12 bg-[radial-gradient(circle_at_top,_rgba(138,94,255,0.23),_transparent_70%)]">
+            <div className="pointer-events-none absolute inset-0" aria-hidden />
             {show.image ? (
               <div
                 className="pointer-events-none absolute -right-36 -top-40 hidden h-[22rem] w-[22rem] rotate-12 transform-gpu rounded-full bg-cover bg-center opacity-35 blur-[120px] sm:block"
