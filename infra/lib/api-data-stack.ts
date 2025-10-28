@@ -92,7 +92,6 @@ export class ApiDataStack extends cdk.Stack {
       "TableDataSource",
       this.table
     );
-    const noneDataSource = this.api.addNoneDataSource("NoneDataSource");
 
     const spotifyClientIdParameter =
       ssm.StringParameter.fromStringParameterName(
@@ -195,17 +194,6 @@ export class ApiDataStack extends cdk.Stack {
       "SpotifyProxyDataSource",
       this.spotifyProxyLambda
     );
-
-    noneDataSource.createResolver("HealthResolver", {
-      typeName: "Query",
-      fieldName: "health",
-      requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.health.request.vtl")
-      ),
-      responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.health.response.vtl")
-      ),
-    });
 
     spotifyLambdaDataSource.createResolver("SearchResolver", {
       typeName: "Query",
@@ -312,28 +300,6 @@ export class ApiDataStack extends cdk.Stack {
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromFile(
         path.join(resolverDir, "Mutation.markProgress.response.vtl")
-      ),
-    });
-
-    noneDataSource.createResolver("PublishProgressResolver", {
-      typeName: "Mutation",
-      fieldName: "publishProgress",
-      requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Mutation.publishProgress.request.vtl")
-      ),
-      responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Mutation.publishProgress.response.vtl")
-      ),
-    });
-
-    noneDataSource.createResolver("OnProgressResolver", {
-      typeName: "Subscription",
-      fieldName: "onProgress",
-      requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Subscription.onProgress.request.vtl")
-      ),
-      responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Subscription.onProgress.response.vtl")
       ),
     });
 

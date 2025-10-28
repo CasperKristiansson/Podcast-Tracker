@@ -3,7 +3,6 @@ scalar AWSDateTime
 schema {
   query: Query
   mutation: Mutation
-  subscription: Subscription
 }
 
 interface PaginatedResult {
@@ -83,7 +82,6 @@ type ShowDetail {
 }
 
 type Query {
-  health: String!
   mySubscriptions(limit: Int, nextToken: String): SubscriptionConnection!
   search(term: String!, limit: Int, offset: Int): [Show!]!
   episode(showId: ID!, episodeId: ID!): Episode
@@ -132,12 +130,6 @@ type Mutation {
   markProgress(episodeId: ID!, completed: Boolean!, showId: ID): Progress!
   markNextEpisodeComplete(showId: ID!, limit: Int = 25): Progress!
   markAllEpisodesComplete(showId: ID!): [Progress!]!
-  publishProgress(episodeId: ID!, completed: Boolean!): Progress!
   unsubscribe(showId: ID!): Boolean!
   rateShow(showId: ID!, stars: Int!, review: String): UserSubscription!
-}
-
-type Subscription {
-  onProgress(episodeId: ID!): Progress!
-    @aws_subscribe(mutations: ["publishProgress"])
 }

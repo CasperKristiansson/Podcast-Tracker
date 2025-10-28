@@ -1,7 +1,3 @@
-query HealthCheck {
-  health
-}
-
 query MySubscriptions($limit: Int, $nextToken: String) {
   mySubscriptions(limit: $limit, nextToken: $nextToken) {
     items {
@@ -199,22 +195,6 @@ mutation MarkAllEpisodesComplete($showId: ID!) {
     completed
     updatedAt
     showId
-  }
-}
-
-mutation PublishProgressUpdate($episodeId: ID!, $completed: Boolean!) {
-  publishProgress(episodeId: $episodeId, completed: $completed) {
-    episodeId
-    completed
-    updatedAt
-  }
-}
-
-subscription OnProgress($episodeId: ID!) {
-  onProgress(episodeId: $episodeId) {
-    episodeId
-    completed
-    updatedAt
   }
 }
 

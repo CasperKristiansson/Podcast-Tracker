@@ -47,7 +47,6 @@ export type Mutation = {
   markAllEpisodesComplete: Array<Progress>;
   markNextEpisodeComplete: Progress;
   markProgress: Progress;
-  publishProgress: Progress;
   rateShow: UserSubscription;
   subscribe: UserSubscription;
   unsubscribe: Scalars['Boolean']['output'];
@@ -69,12 +68,6 @@ export type MutationMarkProgressArgs = {
   completed: Scalars['Boolean']['input'];
   episodeId: Scalars['ID']['input'];
   showId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-
-export type MutationPublishProgressArgs = {
-  completed: Scalars['Boolean']['input'];
-  episodeId: Scalars['ID']['input'];
 };
 
 
@@ -134,7 +127,6 @@ export type Progress = {
 export type Query = {
   __typename: 'Query';
   episode?: Maybe<Episode>;
-  health: Scalars['String']['output'];
   myProfile: UserProfile;
   mySubscriptions: SubscriptionConnection;
   search: Array<Show>;
@@ -194,16 +186,6 @@ export type ShowDetail = {
   subscription?: Maybe<UserSubscription>;
 };
 
-export type Subscription = {
-  __typename: 'Subscription';
-  onProgress: Progress;
-};
-
-
-export type SubscriptionOnProgressArgs = {
-  episodeId: Scalars['ID']['input'];
-};
-
 export type SubscriptionConnection = PaginatedResult & {
   __typename: 'SubscriptionConnection';
   items: Array<UserSubscription>;
@@ -230,11 +212,6 @@ export type UserSubscription = {
   title: Scalars['String']['output'];
   totalEpisodes: Scalars['Int']['output'];
 };
-
-export type HealthCheckQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type HealthCheckQuery = { __typename: 'Query', health: string };
 
 export type MySubscriptionsQueryVariables = Exact<{
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -322,33 +299,12 @@ export type MarkAllEpisodesCompleteMutationVariables = Exact<{
 
 export type MarkAllEpisodesCompleteMutation = { __typename: 'Mutation', markAllEpisodesComplete: Array<{ __typename: 'Progress', episodeId: string, completed: boolean, updatedAt: any, showId?: string | null | undefined }> };
 
-export type PublishProgressUpdateMutationVariables = Exact<{
-  episodeId: Scalars['ID']['input'];
-  completed: Scalars['Boolean']['input'];
-}>;
-
-
-export type PublishProgressUpdateMutation = { __typename: 'Mutation', publishProgress: { __typename: 'Progress', episodeId: string, completed: boolean, updatedAt: any } };
-
-export type OnProgressSubscriptionVariables = Exact<{
-  episodeId: Scalars['ID']['input'];
-}>;
-
-
-export type OnProgressSubscription = { __typename: 'Subscription', onProgress: { __typename: 'Progress', episodeId: string, completed: boolean, updatedAt: any } };
-
 export type MyProfileQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type MyProfileQuery = { __typename: 'Query', myProfile: { __typename: 'UserProfile', stats: { __typename: 'ProfileStats', totalShows: number, episodesCompleted: number, episodesInProgress: number }, spotlight: Array<{ __typename: 'ProfileShow', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, completedEpisodes: number, inProgressEpisodes: number, unlistenedEpisodes: number, subscriptionSyncedAt?: any | null | undefined }>, shows: Array<{ __typename: 'ProfileShow', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, completedEpisodes: number, inProgressEpisodes: number, unlistenedEpisodes: number, subscriptionSyncedAt?: any | null | undefined }> } };
 
 
-export const HealthCheckDocument = gql`
-    query HealthCheck {
-  health
-}
-    `;
-export type HealthCheckQueryResult = ApolloReactCommon.QueryResult<HealthCheckQuery, HealthCheckQueryVariables>;
 export const MySubscriptionsDocument = gql`
     query MySubscriptions($limit: Int, $nextToken: String) {
   mySubscriptions(limit: $limit, nextToken: $nextToken) {
@@ -554,26 +510,6 @@ export const MarkAllEpisodesCompleteDocument = gql`
 }
     `;
 export type MarkAllEpisodesCompleteMutationResult = ApolloReactCommon.MutationResult<MarkAllEpisodesCompleteMutation>;
-export const PublishProgressUpdateDocument = gql`
-    mutation PublishProgressUpdate($episodeId: ID!, $completed: Boolean!) {
-  publishProgress(episodeId: $episodeId, completed: $completed) {
-    episodeId
-    completed
-    updatedAt
-  }
-}
-    `;
-export type PublishProgressUpdateMutationResult = ApolloReactCommon.MutationResult<PublishProgressUpdateMutation>;
-export const OnProgressDocument = gql`
-    subscription OnProgress($episodeId: ID!) {
-  onProgress(episodeId: $episodeId) {
-    episodeId
-    completed
-    updatedAt
-  }
-}
-    `;
-export type OnProgressSubscriptionResult = ApolloReactCommon.SubscriptionResult<OnProgressSubscription>;
 export const MyProfileDocument = gql`
     query MyProfile {
   myProfile {

@@ -349,26 +349,6 @@ function buildRateShowResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   return util.dynamodb.fromMapValues(record);
 }
 
-function buildPublishProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
-  return {
-    version: "2018-05-29",
-    payload: {
-      userId: String(ctx.identity.sub),
-      episodeId: ctx.args.episodeId,
-      completed: ctx.args.completed,
-      updatedAt: util.time.nowISO8601(),
-    },
-  };
-}
-
-function buildPublishProgressResponse(ctx: RuntimeContext) {
-  const payload = {
-    ...(asRecord(ctx.result) ?? {}),
-  } as Record<string, unknown>;
-  delete payload.userId;
-  return payload;
-}
-
 function buildUnsubscribeRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   return {
     version: "2018-05-29",
@@ -420,19 +400,6 @@ function buildMySubscriptionsResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   };
 }
 
-function buildHealthRequest() {
-  return {
-    version: "2018-05-29",
-    payload: {},
-  };
-}
-
-function buildHealthResponse() {
-  return {
-    status: "ok",
-  };
-}
-
 const templateBuilders: Record<
   string,
   (ctx: RuntimeContext, util: AppSyncUtil) => unknown
@@ -449,10 +416,6 @@ const templateBuilders: Record<
     buildRateShowRequest(ctx, util),
   "Mutation.rateShow.response.vtl": (ctx, util) =>
     buildRateShowResponse(ctx, util),
-  "Mutation.publishProgress.request.vtl": (ctx, util) =>
-    buildPublishProgressRequest(ctx, util),
-  "Mutation.publishProgress.response.vtl": (ctx) =>
-    buildPublishProgressResponse(ctx),
   "Mutation.unsubscribe.request.vtl": (ctx, util) =>
     buildUnsubscribeRequest(ctx, util),
   "Mutation.unsubscribe.response.vtl": (ctx, util) =>
@@ -461,8 +424,6 @@ const templateBuilders: Record<
     buildMySubscriptionsRequest(ctx, util),
   "Query.mySubscriptions.response.vtl": (ctx, util) =>
     buildMySubscriptionsResponse(ctx, util),
-  "Query.health.request.vtl": () => buildHealthRequest(),
-  "Query.health.response.vtl": () => buildHealthResponse(),
 };
 
 export function renderTemplate(

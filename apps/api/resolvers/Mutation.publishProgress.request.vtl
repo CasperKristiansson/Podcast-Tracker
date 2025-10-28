@@ -1,9 +1,0 @@
-$util.toJson({
-  "version": "2018-05-29",
-  "payload": {
-    "userId": $ctx.identity.sub,
-    "episodeId": $ctx.args.episodeId,
-    "completed": $ctx.args.completed,
-    "updatedAt": $util.time.nowISO8601()
-  }
-})
