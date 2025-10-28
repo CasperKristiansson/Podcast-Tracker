@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Episode, ShowDetailQuery } from "@shared";
 import { InteractiveButton } from "@ui";
 import {
@@ -294,7 +294,14 @@ export function EpisodeSection({
                   {progress?.updatedAt ? (
                     <>
                       <span className="hidden h-1 w-1 rounded-full bg-white/25 sm:block" />
-                      <span>Updated {formatRelative(progress.updatedAt)}</span>
+                      <span>
+                        Updated{" "}
+                        {formatRelative(
+                          typeof progress.updatedAt === "string"
+                            ? progress.updatedAt
+                            : null
+                        )}
+                      </span>
                     </>
                   ) : null}
                 </div>

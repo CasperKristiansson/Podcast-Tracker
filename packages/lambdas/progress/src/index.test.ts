@@ -81,11 +81,20 @@ describe("progress lambda", () => {
     expect(batchCalls).toHaveLength(1);
     const batchCall = batchCalls[0];
     expect(batchCall).toBeDefined();
-    const requestItems =
+    const requestItemsForTable =
       batchCall?.args[0].input.RequestItems?.["test-table"] ?? [];
-    const writtenEpisodeIds = requestItems.map(
-      (request) => request.PutRequest?.Item?.episodeId
-    );
+    const requestItems = requestItemsForTable as {
+      PutRequest?: {
+        Item?: {
+          episodeId?: unknown;
+        };
+      };
+    }[];
+    const writtenEpisodeIds = requestItems.map((request) => {
+      const episodeId = request.PutRequest?.Item?.episodeId;
+      expect(typeof episodeId).toBe("string");
+      return episodeId as string;
+    });
     expect(writtenEpisodeIds).toEqual(["ep-2", "ep-3"]);
 
     const invokePayloads = lambdaMock
@@ -94,7 +103,7 @@ describe("progress lambda", () => {
         const payload = call.args[0].input.Payload;
         expect(payload).toBeDefined();
         const decoded = new TextDecoder().decode(payload as Uint8Array);
-        return JSON.parse(decoded);
+        return JSON.parse(decoded) as Record<string, unknown>;
       });
     expect(invokePayloads).toEqual([
       expect.objectContaining({

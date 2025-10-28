@@ -142,7 +142,7 @@ async function handleMarkAllEpisodesComplete(
   const completedSet = new Set(completedEpisodes.map((item) => item.episodeId));
 
   const updates: ProgressResponse[] = [];
-  const writeRequests: Array<{
+  const writeRequests: {
     PutRequest: {
       Item: {
         pk: string;
@@ -154,7 +154,7 @@ async function handleMarkAllEpisodesComplete(
         showId: string;
       };
     };
-  }> = [];
+  }[] = [];
 
   for (const episode of episodes) {
     if (completedSet.has(episode.episodeId)) {

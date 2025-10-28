@@ -113,13 +113,13 @@ export function HeroSection({
           icon: markAllLoading ? "…" : "✓",
         }
       : null,
-  ].filter(Boolean) as Array<{
+  ].filter(Boolean) as {
     label: string;
     onSelect: () => void;
     destructive: boolean;
     disabled: boolean;
     icon: string;
-  }>;
+  }[];
 
   return (
     <GlowCard className="relative overflow-hidden w-full max-w-none px-6 py-10 sm:px-10 sm:py-12 bg-[radial-gradient(circle_at_top,_rgba(138,94,255,0.23),_transparent_70%)]">

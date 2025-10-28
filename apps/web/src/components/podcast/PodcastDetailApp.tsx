@@ -182,7 +182,7 @@ function PodcastDetailAppContent({
                 variables: showDetailVariables,
               },
               (existing) => {
-                if (!existing?.showDetail || !existing.showDetail.show) {
+                if (!existing?.showDetail?.show) {
                   return existing;
                 }
                 const showDetail = existing.showDetail;
@@ -230,7 +230,7 @@ function PodcastDetailAppContent({
                 variables: showDetailVariables,
               },
               (existing) => {
-                if (!existing?.showDetail || !existing.showDetail.show) {
+                if (!existing?.showDetail?.show) {
                   return existing;
                 }
                 const showDetail = existing.showDetail;
@@ -649,8 +649,12 @@ function PodcastDetailAppContent({
           setRatingDraft((prev) => ({ ...prev, review: value }))
         }
         onClose={handleCloseRatingModal}
-        onSave={handleRatingSave}
-        onClear={handleRatingClear}
+        onSave={() => {
+          void handleRatingSave();
+        }}
+        onClear={() => {
+          void handleRatingClear();
+        }}
         canClear={
           (subscription?.ratingStars ?? 0) > 0 ||
           Boolean(subscription?.ratingReview)
@@ -810,9 +814,13 @@ function PodcastDetailAppContent({
             subscription={subscription}
             isSubscribed={isSubscribed}
             isMutatingSubscription={isMutatingSubscription}
-            onSubscribeToggle={handleSubscribeToggle}
+            onSubscribeToggle={() => {
+              void handleSubscribeToggle();
+            }}
             onOpenRatingModal={handleOpenRatingModal}
-            onMarkAllEpisodes={handleMarkAllEpisodes}
+            onMarkAllEpisodes={() => {
+              void handleMarkAllEpisodes();
+            }}
             markAllLoading={markAllLoading}
             canRateShow={canRateShow}
             ratingDisplayValue={ratingDisplayValue}
