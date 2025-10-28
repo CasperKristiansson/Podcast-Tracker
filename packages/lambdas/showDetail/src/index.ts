@@ -80,7 +80,6 @@ interface SubscriptionRecord {
 
 interface ProgressRecord {
   episodeId: string;
-  positionSec: number;
   completed: boolean;
   updatedAt: string;
   showId: string | null;
@@ -450,10 +449,8 @@ function mapProgress(item: Record<string, unknown>): ProgressRecord | null {
     return null;
   }
 
-  const position = nullableNumber(item.positionSec);
   return {
     episodeId,
-    positionSec: Number.isFinite(position) ? Number(position) : 0,
     completed: Boolean(item.completed),
     updatedAt,
     showId: nullableString(item.showId),

@@ -108,7 +108,6 @@ describe("show detail lambda", () => {
           pk: "user#user-1",
           sk: "ep#ep-1",
           episodeId: "ep-1",
-          positionSec: 120,
           completed: true,
           updatedAt: "2024-01-10T00:00:00.000Z",
           showId: "show-42",
@@ -146,7 +145,6 @@ describe("show detail lambda", () => {
     expect(result.progress).toEqual([
       {
         episodeId: "ep-1",
-        positionSec: 120,
         completed: true,
         updatedAt: "2024-01-10T00:00:00.000Z",
         showId: "show-42",
@@ -155,26 +153,24 @@ describe("show detail lambda", () => {
   });
 
   it("falls back to batch loading progress for requested episodes", async () => {
-    lambdaMock
-      .on(InvokeCommand)
-      .resolves({
-        Payload: encodePayload({
-          id: "show-42",
-          title: "Test Show",
-          publisher: "Studio",
-          description: "Desc",
-          htmlDescription: "<p>Desc</p>",
-          image: "https://image",
-          totalEpisodes: 200,
-          externalUrl: "https://spotify/show-42",
-          categories: ["Fiction"],
-          explicit: false,
-          languages: ["en"],
-          availableMarkets: ["US"],
-          mediaType: "audio",
-          isSubscribed: false,
-        }),
-      });
+    lambdaMock.on(InvokeCommand).resolves({
+      Payload: encodePayload({
+        id: "show-42",
+        title: "Test Show",
+        publisher: "Studio",
+        description: "Desc",
+        htmlDescription: "<p>Desc</p>",
+        image: "https://image",
+        totalEpisodes: 200,
+        externalUrl: "https://spotify/show-42",
+        categories: ["Fiction"],
+        explicit: false,
+        languages: ["en"],
+        availableMarkets: ["US"],
+        mediaType: "audio",
+        isSubscribed: false,
+      }),
+    });
 
     dynamoMock.on(GetCommand).resolves({ Item: undefined });
     dynamoMock.on(QueryCommand).resolves({ Items: [] });
@@ -185,7 +181,6 @@ describe("show detail lambda", () => {
             pk: "user#user-1",
             sk: "ep#ep-99",
             episodeId: "ep-99",
-            positionSec: 0,
             completed: false,
             updatedAt: "2024-02-01T00:00:00.000Z",
             showId: "show-42",
@@ -206,7 +201,6 @@ describe("show detail lambda", () => {
     expect(result.progress).toEqual([
       {
         episodeId: "ep-99",
-        positionSec: 0,
         completed: false,
         updatedAt: "2024-02-01T00:00:00.000Z",
         showId: "show-42",

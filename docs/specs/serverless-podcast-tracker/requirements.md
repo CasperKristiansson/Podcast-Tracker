@@ -65,7 +65,7 @@ Data Model (DynamoDB)
 
 - User: `pk=user#<sub>`, `sk=meta`
 - Subscription: `pk=user#<sub>`, `sk=sub#<showId>`
-- Progress: `pk=user#<sub>`, `sk=ep#<episodeId>`, `positionSec`, `completed`
+- Progress: `pk=user#<sub>`, `sk=ep#<episodeId>`, `completed`
 - Show: `pk=show#<spotifyShowId>`, `sk=meta`, `title`, `publisher`, `image`, `feedUrl?`, `lastSeen`
 - Episode: `pk=show#<spotifyShowId>`, `sk=ep#<episodeId>`, `title`, `audioUrl`, `publishedAt`, `durationSec`
 - Cache: `pk=cache#<key>`, `sk=spotify`, `payload`, `expiresAt` (with TTL on `expiresAt`)
@@ -78,7 +78,7 @@ GraphQL Surface (AppSync)
   - `episodes(showId: ID!, cursor: String, limit: Int = 50): [Episode!]!` → DynamoDB direct resolver
 - Mutation
   - `subscribe(showId: ID!): Subscription!` → DynamoDB
-  - `markProgress(episodeId: ID!, positionSec: Int!, completed: Boolean): Progress!` → DynamoDB
+  - `markProgress(episodeId: ID!, completed: Boolean): Progress!` → DynamoDB
 - Subscription
   - `progressUpdated(userId: ID!): Progress!` → broadcast to the user via AppSync subscriptions
 
@@ -155,7 +155,7 @@ Then a `Subscription` item is created or updated for `user#<sub>` and `sub#<show
 
 Scenario: AC-serverless-podcast-tracker-10 — Progress mutation updates state
 Given an `episodeId` and playback information
-When the client calls `markProgress(episodeId, positionSec, completed)`
+When the client calls `markProgress(episodeId, completed)`
 Then a `Progress` item is upserted with the new values
 
 Scenario: AC-serverless-podcast-tracker-11 — Real-time progress updates

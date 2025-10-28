@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import {
   EpisodeDetailsDocument,
@@ -80,28 +80,25 @@ export default function EpisodeDetailApp({
     showDetailData?.showDetail?.progress?.find(
       (entry) => entry?.episodeId === episodeId
     ) ?? null;
-  const [draftProgress, setDraftProgress] = useState<number>(
-    progress?.positionSec ?? 0
-  );
-
   const descriptionHtml =
     episode?.htmlDescription ?? episode?.description ?? "";
   const languages = episode?.languages?.filter(Boolean) ?? [];
 
-  useEffect(() => {
-    setDraftProgress(progress?.positionSec ?? 0);
-  }, [progress?.positionSec]);
-
   const totalDuration = Number(episode?.durationSec ?? 0);
 
-  const handleProgressUpdate = async (positionSec: number) => {
+  const isCompleted = Boolean(progress?.completed);
+  const progressLabel = useMemo(() => {
+    if (!totalDuration) return isCompleted ? "Completed" : "Not watched";
+    return isCompleted
+      ? `Completed · ${formatDuration(totalDuration)}`
+      : `Not watched · ${formatDuration(totalDuration)}`;
+  }, [isCompleted, totalDuration]);
+
+  const handleCompletionToggle = async (completed: boolean) => {
     if (!episode) return;
-    const bounded = Math.max(0, Math.min(positionSec, totalDuration));
-    const completed = totalDuration > 0 ? bounded >= totalDuration - 5 : false;
     await markProgress({
       variables: {
         episodeId,
-        positionSec: Math.round(bounded),
         completed,
         showId,
       },
@@ -234,54 +231,20 @@ export default function EpisodeDetailApp({
 
             <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
               <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between text-xs uppercase tracking-widest text-white/50">
-                  <span>Progress</span>
-                  <span>{formatDuration(draftProgress)}</span>
+                <div className="flex items-center justify-between text-xs uppercase tracking-widest text-white/55">
+                  <span>Status</span>
+                  <span>{progressLabel}</span>
                 </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={Math.max(1, totalDuration)}
-                  value={draftProgress}
-                  onChange={(event) => {
-                    const value = Number(event.target.value);
-                    setDraftProgress(value);
-                  }}
-                  onPointerUp={(event) => {
-                    const value = Number(
-                      (event.target as HTMLInputElement).value
-                    );
-                    void handleProgressUpdate(value);
-                  }}
-                  onMouseUp={(event) => {
-                    const value = Number(
-                      (event.target as HTMLInputElement).value
-                    );
-                    void handleProgressUpdate(value);
-                  }}
-                  className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-[#8f73ff]"
-                />
                 <div className="flex flex-wrap gap-3">
                   <InteractiveButton
-                    variant="secondary"
+                    variant={isCompleted ? "outline" : "secondary"}
                     onClick={() => {
-                      setDraftProgress(totalDuration);
-                      void handleProgressUpdate(totalDuration);
+                      void handleCompletionToggle(!isCompleted);
                     }}
                     isLoading={progressMutating}
                     loadingLabel="Updating…"
                   >
-                    Mark complete
-                  </InteractiveButton>
-                  <InteractiveButton
-                    variant="ghost"
-                    onClick={() => {
-                      setDraftProgress(0);
-                      void handleProgressUpdate(0);
-                    }}
-                    isLoading={progressMutating}
-                  >
-                    Reset progress
+                    {isCompleted ? "Mark as unwatched" : "Mark as watched"}
                   </InteractiveButton>
                 </div>
               </div>

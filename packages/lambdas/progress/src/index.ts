@@ -35,7 +35,6 @@ interface ProgressRecord {
 
 interface ProgressResponse {
   episodeId: string;
-  positionSec: number;
   completed: boolean;
   updatedAt: string;
   showId: string;
@@ -105,7 +104,6 @@ async function handleMarkNextEpisodeComplete(
     throw new Error("You are already up to date on the latest episodes.");
   }
 
-  const positionSec = normaliseDuration(nextEpisode.durationSec);
   const nowIso = new Date().toISOString();
 
   await dynamo.send(
@@ -116,7 +114,6 @@ async function handleMarkNextEpisodeComplete(
         sk: `ep#${nextEpisode.episodeId}`,
         dataType: "progress",
         episodeId: nextEpisode.episodeId,
-        positionSec,
         completed: true,
         updatedAt: nowIso,
         showId,
@@ -126,7 +123,6 @@ async function handleMarkNextEpisodeComplete(
 
   return {
     episodeId: nextEpisode.episodeId,
-    positionSec,
     completed: true,
     updatedAt: nowIso,
     showId,
@@ -153,7 +149,6 @@ async function handleMarkAllEpisodesComplete(
         sk: string;
         dataType: string;
         episodeId: string;
-        positionSec: number;
         completed: boolean;
         updatedAt: string;
         showId: string;
@@ -166,12 +161,10 @@ async function handleMarkAllEpisodesComplete(
       continue;
     }
 
-    const positionSec = normaliseDuration(episode.durationSec);
     const updatedAt = new Date().toISOString();
 
     updates.push({
       episodeId: episode.episodeId,
-      positionSec,
       completed: true,
       updatedAt,
       showId,
@@ -184,7 +177,6 @@ async function handleMarkAllEpisodesComplete(
           sk: `ep#${episode.episodeId}`,
           dataType: "progress",
           episodeId: episode.episodeId,
-          positionSec,
           completed: true,
           updatedAt,
           showId,
@@ -451,17 +443,6 @@ async function loadProgressKeys(
   } while (exclusiveStartKey);
 
   return items;
-}
-
-function normaliseDuration(durationSec: number | null | undefined): number {
-  if (
-    typeof durationSec === "number" &&
-    Number.isFinite(durationSec) &&
-    durationSec >= 0
-  ) {
-    return Math.round(durationSec);
-  }
-  return 0;
 }
 
 function requiredEnv(name: string): string {

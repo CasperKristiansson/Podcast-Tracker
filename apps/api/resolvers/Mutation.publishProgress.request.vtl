@@ -3,7 +3,6 @@ $util.toJson({
   "payload": {
     "userId": $ctx.identity.sub,
     "episodeId": $ctx.args.episodeId,
-    "positionSec": $ctx.args.positionSec,
     "completed": $ctx.args.completed,
     "updatedAt": $util.time.nowISO8601()
   }

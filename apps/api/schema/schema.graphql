@@ -43,7 +43,6 @@ type Episode {
 
 type Progress {
   episodeId: ID!
-  positionSec: Int!
   completed: Boolean!
   updatedAt: AWSDateTime!
   showId: ID
@@ -130,19 +129,10 @@ type Mutation {
     image: String!
     totalEpisodes: Int
   ): UserSubscription!
-  markProgress(
-    episodeId: ID!
-    positionSec: Int!
-    completed: Boolean!
-    showId: ID
-  ): Progress!
+  markProgress(episodeId: ID!, completed: Boolean!, showId: ID): Progress!
   markNextEpisodeComplete(showId: ID!, limit: Int = 25): Progress!
   markAllEpisodesComplete(showId: ID!): [Progress!]!
-  publishProgress(
-    episodeId: ID!
-    positionSec: Int!
-    completed: Boolean!
-  ): Progress!
+  publishProgress(episodeId: ID!, completed: Boolean!): Progress!
   unsubscribe(showId: ID!): Boolean!
   rateShow(showId: ID!, stars: Int!, review: String): UserSubscription!
 }

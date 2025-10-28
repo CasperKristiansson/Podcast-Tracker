@@ -55,7 +55,7 @@ Single-table DynamoDB using `pk` (partition key) and `sk` (sort key):
 
 - User: `pk=user#<sub>`, `sk=meta`
 - Subscription: `pk=user#<sub>`, `sk=sub#<showId>`
-- Progress: `pk=user#<sub>`, `sk=ep#<episodeId>`, `positionSec: number`, `completed: boolean`
+- Progress: `pk=user#<sub>`, `sk=ep#<episodeId>`, `completed: boolean`
 - Show: `pk=show#<spotifyShowId>`, `sk=meta`, `title`, `publisher`, `image`, `feedUrl?`, `lastSeen: ISO or epoch`
 - Episode: `pk=show#<spotifyShowId>`, `sk=ep#<episodeId>`, `title`, `audioUrl`, `publishedAt`, `durationSec`
 - Cache: `pk=cache#<key>`, `sk=spotify`, `payload: string/json`, `expiresAt: number` (epoch seconds; TTL enabled on this attribute)
@@ -70,7 +70,7 @@ GraphQL Types (representative)
 - `type Show { id: ID!, title: String!, publisher: String!, image: String, feedUrl: String, lastSeen: AWSDateTime }`
 - `type Episode { id: ID!, showId: ID!, title: String!, audioUrl: String!, publishedAt: AWSDateTime!, durationSec: Int! }`
 - `type Subscription { showId: ID!, createdAt: AWSDateTime }`
-- `type Progress { episodeId: ID!, userId: ID!, positionSec: Int!, completed: Boolean! }`
+- `type Progress { episodeId: ID!, userId: ID!, completed: Boolean! }`
 
 ID Mapping
 
@@ -90,7 +90,7 @@ GraphQL (AppSync)
   - `episodes(showId: ID!, cursor: String, limit: Int = 50): [Episode!]!` → DDB direct resolver on `pk=show#<showId>`; `cursor` maps to `ExclusiveStartKey` when provided; `limit` maps to `Limit`
 - Mutations
   - `subscribe(showId: ID!): Subscription!` → DDB put (idempotent upsert) of `pk=user#<sub>`, `sk=sub#<showId>`; returns `Subscription`
-  - `markProgress(episodeId: ID!, positionSec: Int!, completed: Boolean): Progress!` → DDB put/update of `pk=user#<sub>`, `sk=ep#<episodeId>`; then publish `progressUpdated`
+  - `markProgress(episodeId: ID!, completed: Boolean): Progress!` → DDB put/update of `pk=user#<sub>`, `sk=ep#<episodeId>`; then publish `progressUpdated`
 - Subscriptions
   - `progressUpdated(userId: ID!): Progress!` → AppSync subscription filtered so only matching `userId` subscribers receive events
 
@@ -275,7 +275,6 @@ erDiagram
   PROGRESS {
     string pk
     string sk
-    int positionSec
     bool completed
   }
   SHOW {

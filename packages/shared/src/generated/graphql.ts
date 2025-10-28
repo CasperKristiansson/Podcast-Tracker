@@ -68,7 +68,6 @@ export type MutationMarkNextEpisodeCompleteArgs = {
 export type MutationMarkProgressArgs = {
   completed: Scalars['Boolean']['input'];
   episodeId: Scalars['ID']['input'];
-  positionSec: Scalars['Int']['input'];
   showId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -76,7 +75,6 @@ export type MutationMarkProgressArgs = {
 export type MutationPublishProgressArgs = {
   completed: Scalars['Boolean']['input'];
   episodeId: Scalars['ID']['input'];
-  positionSec: Scalars['Int']['input'];
 };
 
 
@@ -129,7 +127,6 @@ export type Progress = {
   __typename: 'Progress';
   completed: Scalars['Boolean']['output'];
   episodeId: Scalars['ID']['output'];
-  positionSec: Scalars['Int']['output'];
   showId?: Maybe<Scalars['ID']['output']>;
   updatedAt: Scalars['AWSDateTime']['output'];
 };
@@ -255,7 +252,7 @@ export type ShowDetailQueryVariables = Exact<{
 }>;
 
 
-export type ShowDetailQuery = { __typename: 'Query', showDetail: { __typename: 'ShowDetail', show: { __typename: 'Show', id: string, title: string, publisher: string, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, totalEpisodes: number, externalUrl?: string | null | undefined, categories: Array<string>, explicit?: boolean | null | undefined, languages?: Array<string> | null | undefined, availableMarkets?: Array<string> | null | undefined, mediaType?: string | null | undefined, isSubscribed?: boolean | null | undefined }, subscription?: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined, subscriptionSyncedAt?: any | null | undefined } | null | undefined, episodes: { __typename: 'EpisodeConnection', nextToken?: string | null | undefined, items: Array<{ __typename: 'Episode', episodeId: string, showId: string, title: string, audioUrl: string, publishedAt: any, durationSec: number, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, linkUrl?: string | null | undefined, explicit?: boolean | null | undefined, isExternallyHosted?: boolean | null | undefined, isPlayable?: boolean | null | undefined, releaseDatePrecision?: string | null | undefined, languages?: Array<string> | null | undefined }> }, progress: Array<{ __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any, showId?: string | null | undefined }> } };
+export type ShowDetailQuery = { __typename: 'Query', showDetail: { __typename: 'ShowDetail', show: { __typename: 'Show', id: string, title: string, publisher: string, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, totalEpisodes: number, externalUrl?: string | null | undefined, categories: Array<string>, explicit?: boolean | null | undefined, languages?: Array<string> | null | undefined, availableMarkets?: Array<string> | null | undefined, mediaType?: string | null | undefined, isSubscribed?: boolean | null | undefined }, subscription?: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined, subscriptionSyncedAt?: any | null | undefined } | null | undefined, episodes: { __typename: 'EpisodeConnection', nextToken?: string | null | undefined, items: Array<{ __typename: 'Episode', episodeId: string, showId: string, title: string, audioUrl: string, publishedAt: any, durationSec: number, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, linkUrl?: string | null | undefined, explicit?: boolean | null | undefined, isExternallyHosted?: boolean | null | undefined, isPlayable?: boolean | null | undefined, releaseDatePrecision?: string | null | undefined, languages?: Array<string> | null | undefined }> }, progress: Array<{ __typename: 'Progress', episodeId: string, completed: boolean, updatedAt: any, showId?: string | null | undefined }> } };
 
 export type EpisodeDetailsQueryVariables = Exact<{
   showId: Scalars['ID']['input'];
@@ -303,13 +300,12 @@ export type RateShowMutation = { __typename: 'Mutation', rateShow: { __typename:
 
 export type MarkEpisodeProgressMutationVariables = Exact<{
   episodeId: Scalars['ID']['input'];
-  positionSec: Scalars['Int']['input'];
   completed: Scalars['Boolean']['input'];
   showId?: InputMaybe<Scalars['ID']['input']>;
 }>;
 
 
-export type MarkEpisodeProgressMutation = { __typename: 'Mutation', markProgress: { __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any, showId?: string | null | undefined } };
+export type MarkEpisodeProgressMutation = { __typename: 'Mutation', markProgress: { __typename: 'Progress', episodeId: string, completed: boolean, updatedAt: any, showId?: string | null | undefined } };
 
 export type MarkNextEpisodeCompleteMutationVariables = Exact<{
   showId: Scalars['ID']['input'];
@@ -317,30 +313,29 @@ export type MarkNextEpisodeCompleteMutationVariables = Exact<{
 }>;
 
 
-export type MarkNextEpisodeCompleteMutation = { __typename: 'Mutation', markNextEpisodeComplete: { __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any, showId?: string | null | undefined } };
+export type MarkNextEpisodeCompleteMutation = { __typename: 'Mutation', markNextEpisodeComplete: { __typename: 'Progress', episodeId: string, completed: boolean, updatedAt: any, showId?: string | null | undefined } };
 
 export type MarkAllEpisodesCompleteMutationVariables = Exact<{
   showId: Scalars['ID']['input'];
 }>;
 
 
-export type MarkAllEpisodesCompleteMutation = { __typename: 'Mutation', markAllEpisodesComplete: Array<{ __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any, showId?: string | null | undefined }> };
+export type MarkAllEpisodesCompleteMutation = { __typename: 'Mutation', markAllEpisodesComplete: Array<{ __typename: 'Progress', episodeId: string, completed: boolean, updatedAt: any, showId?: string | null | undefined }> };
 
 export type PublishProgressUpdateMutationVariables = Exact<{
   episodeId: Scalars['ID']['input'];
-  positionSec: Scalars['Int']['input'];
   completed: Scalars['Boolean']['input'];
 }>;
 
 
-export type PublishProgressUpdateMutation = { __typename: 'Mutation', publishProgress: { __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any } };
+export type PublishProgressUpdateMutation = { __typename: 'Mutation', publishProgress: { __typename: 'Progress', episodeId: string, completed: boolean, updatedAt: any } };
 
 export type OnProgressSubscriptionVariables = Exact<{
   episodeId: Scalars['ID']['input'];
 }>;
 
 
-export type OnProgressSubscription = { __typename: 'Subscription', onProgress: { __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any } };
+export type OnProgressSubscription = { __typename: 'Subscription', onProgress: { __typename: 'Progress', episodeId: string, completed: boolean, updatedAt: any } };
 
 export type MyProfileQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -431,7 +426,6 @@ export const ShowDetailDocument = gql`
     }
     progress {
       episodeId
-      positionSec
       completed
       updatedAt
       showId
@@ -528,15 +522,9 @@ export const RateShowDocument = gql`
     `;
 export type RateShowMutationResult = ApolloReactCommon.MutationResult<RateShowMutation>;
 export const MarkEpisodeProgressDocument = gql`
-    mutation MarkEpisodeProgress($episodeId: ID!, $positionSec: Int!, $completed: Boolean!, $showId: ID) {
-  markProgress(
-    episodeId: $episodeId
-    positionSec: $positionSec
-    completed: $completed
-    showId: $showId
-  ) {
+    mutation MarkEpisodeProgress($episodeId: ID!, $completed: Boolean!, $showId: ID) {
+  markProgress(episodeId: $episodeId, completed: $completed, showId: $showId) {
     episodeId
-    positionSec
     completed
     updatedAt
     showId
@@ -548,7 +536,6 @@ export const MarkNextEpisodeCompleteDocument = gql`
     mutation MarkNextEpisodeComplete($showId: ID!, $limit: Int) {
   markNextEpisodeComplete(showId: $showId, limit: $limit) {
     episodeId
-    positionSec
     completed
     updatedAt
     showId
@@ -560,7 +547,6 @@ export const MarkAllEpisodesCompleteDocument = gql`
     mutation MarkAllEpisodesComplete($showId: ID!) {
   markAllEpisodesComplete(showId: $showId) {
     episodeId
-    positionSec
     completed
     updatedAt
     showId
@@ -569,14 +555,9 @@ export const MarkAllEpisodesCompleteDocument = gql`
     `;
 export type MarkAllEpisodesCompleteMutationResult = ApolloReactCommon.MutationResult<MarkAllEpisodesCompleteMutation>;
 export const PublishProgressUpdateDocument = gql`
-    mutation PublishProgressUpdate($episodeId: ID!, $positionSec: Int!, $completed: Boolean!) {
-  publishProgress(
-    episodeId: $episodeId
-    positionSec: $positionSec
-    completed: $completed
-  ) {
+    mutation PublishProgressUpdate($episodeId: ID!, $completed: Boolean!) {
+  publishProgress(episodeId: $episodeId, completed: $completed) {
     episodeId
-    positionSec
     completed
     updatedAt
   }
@@ -587,7 +568,6 @@ export const OnProgressDocument = gql`
     subscription OnProgress($episodeId: ID!) {
   onProgress(episodeId: $episodeId) {
     episodeId
-    positionSec
     completed
     updatedAt
   }

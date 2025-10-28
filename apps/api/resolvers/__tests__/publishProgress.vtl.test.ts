@@ -9,7 +9,6 @@ describe("Mutation.publishProgress mapping templates", () => {
     const runtime = createRuntime({
       args: {
         episodeId: "episode-55",
-        positionSec: 900,
         completed: true,
       },
       identitySub: "user-55",
@@ -24,7 +23,6 @@ describe("Mutation.publishProgress mapping templates", () => {
       payload: {
         userId: "user-55",
         episodeId: "episode-55",
-        positionSec: 900,
         completed: true,
         updatedAt: "2025-04-15T15:45:00.000Z",
       },
@@ -36,7 +34,6 @@ describe("Mutation.publishProgress mapping templates", () => {
     runtime.ctx.result = {
       userId: "user-55",
       episodeId: "episode-55",
-      positionSec: 900,
       completed: true,
       updatedAt: "2025-04-15T15:45:00.000Z",
     };
@@ -46,7 +43,6 @@ describe("Mutation.publishProgress mapping templates", () => {
 
     expect(response).toEqual({
       episodeId: "episode-55",
-      positionSec: 900,
       completed: true,
       updatedAt: "2025-04-15T15:45:00.000Z",
     });

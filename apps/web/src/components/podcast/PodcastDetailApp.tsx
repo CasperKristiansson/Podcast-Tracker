@@ -435,14 +435,9 @@ function PodcastDetailAppContent({
   ) => {
     setPendingEpisodeId(episode.episodeId);
     try {
-      const totalDuration = Number(episode.durationSec ?? 0);
-      const positionSec = completed
-        ? Math.max(1, Math.round(totalDuration))
-        : 0;
       await markProgress({
         variables: {
           episodeId: episode.episodeId,
-          positionSec,
           completed,
           showId,
         },
@@ -451,7 +446,6 @@ function PodcastDetailAppContent({
           markProgress: {
             __typename: "Progress",
             episodeId: episode.episodeId,
-            positionSec,
             completed,
             updatedAt: new Date().toISOString(),
             showId,

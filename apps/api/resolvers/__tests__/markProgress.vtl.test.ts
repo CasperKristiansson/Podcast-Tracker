@@ -9,7 +9,6 @@ describe("Mutation.markProgress mapping templates", () => {
     const runtime = createRuntime({
       args: {
         episodeId: "episode-1",
-        positionSec: 123,
         completed: false,
         showId: "show-99",
       },
@@ -28,7 +27,6 @@ describe("Mutation.markProgress mapping templates", () => {
     expect(request.attributeValues).toEqual({
       dataType: { S: "progress" },
       episodeId: { S: "episode-1" },
-      positionSec: { N: "123" },
       completed: { BOOL: false },
       updatedAt: { S: "2025-04-10T09:15:00.000Z" },
       showId: { S: "show-99" },
@@ -39,7 +37,6 @@ describe("Mutation.markProgress mapping templates", () => {
     const runtime = createRuntime({
       args: {
         episodeId: "episode-2",
-        positionSec: 45,
         completed: true,
       },
       identitySub: "user-6",
@@ -53,7 +50,6 @@ describe("Mutation.markProgress mapping templates", () => {
     expect(request.attributeValues).toEqual({
       dataType: { S: "progress" },
       episodeId: { S: "episode-2" },
-      positionSec: { N: "45" },
       completed: { BOOL: true },
       updatedAt: { S: "2025-04-11T12:00:00.000Z" },
     });
@@ -66,7 +62,6 @@ describe("Mutation.markProgress mapping templates", () => {
       sk: { S: "ep#episode-3" },
       dataType: { S: "progress" },
       episodeId: { S: "episode-3" },
-      positionSec: { N: "360" },
       completed: { BOOL: true },
       updatedAt: { S: "2025-04-12T08:00:00.000Z" },
     };
@@ -76,7 +71,6 @@ describe("Mutation.markProgress mapping templates", () => {
 
     expect(response).toMatchObject({
       episodeId: "episode-3",
-      positionSec: 360,
       completed: true,
       updatedAt: "2025-04-12T08:00:00.000Z",
     });
@@ -86,7 +80,6 @@ describe("Mutation.markProgress mapping templates", () => {
     const runtime = createRuntime({
       args: {
         episodeId: "episode-4",
-        positionSec: 200,
         completed: true,
         showId: "show-123",
       },
@@ -97,7 +90,6 @@ describe("Mutation.markProgress mapping templates", () => {
     renderTemplate(requestTemplate, runtime);
     expect(runtime.ctx.stash.get("progress")).toEqual({
       episodeId: "episode-4",
-      positionSec: 200,
       completed: true,
       updatedAt: "2025-04-13T10:00:00.000Z",
       showId: "show-123",
@@ -109,7 +101,6 @@ describe("Mutation.markProgress mapping templates", () => {
 
     expect(response).toEqual({
       episodeId: "episode-4",
-      positionSec: 200,
       completed: true,
       updatedAt: "2025-04-13T10:00:00.000Z",
       showId: "show-123",

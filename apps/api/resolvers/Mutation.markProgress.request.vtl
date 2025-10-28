@@ -5,7 +5,6 @@
 #set($attributes = {
   "dataType": "progress",
   "episodeId": $ctx.args.episodeId,
-  "positionSec": $ctx.args.positionSec,
   "completed": $ctx.args.completed,
   "updatedAt": $now
 })
@@ -15,7 +14,6 @@
 
 #set($progress = $util.map())
 $util.qr($progress.put("episodeId", $ctx.args.episodeId))
-$util.qr($progress.put("positionSec", $ctx.args.positionSec))
 $util.qr($progress.put("completed", $ctx.args.completed))
 $util.qr($progress.put("updatedAt", $now))
 #if($ctx.args.containsKey("showId") && !$util.isNull($ctx.args.showId))

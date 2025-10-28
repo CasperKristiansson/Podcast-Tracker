@@ -81,7 +81,6 @@ query ShowDetail(
     }
     progress {
       episodeId
-      positionSec
       completed
       updatedAt
       showId
@@ -174,18 +173,11 @@ mutation RateShow($showId: ID!, $stars: Int!, $review: String) {
 
 mutation MarkEpisodeProgress(
   $episodeId: ID!
-  $positionSec: Int!
   $completed: Boolean!
   $showId: ID
 ) {
-  markProgress(
-    episodeId: $episodeId
-    positionSec: $positionSec
-    completed: $completed
-    showId: $showId
-  ) {
+  markProgress(episodeId: $episodeId, completed: $completed, showId: $showId) {
     episodeId
-    positionSec
     completed
     updatedAt
     showId
@@ -195,7 +187,6 @@ mutation MarkEpisodeProgress(
 mutation MarkNextEpisodeComplete($showId: ID!, $limit: Int) {
   markNextEpisodeComplete(showId: $showId, limit: $limit) {
     episodeId
-    positionSec
     completed
     updatedAt
     showId
@@ -205,25 +196,15 @@ mutation MarkNextEpisodeComplete($showId: ID!, $limit: Int) {
 mutation MarkAllEpisodesComplete($showId: ID!) {
   markAllEpisodesComplete(showId: $showId) {
     episodeId
-    positionSec
     completed
     updatedAt
     showId
   }
 }
 
-mutation PublishProgressUpdate(
-  $episodeId: ID!
-  $positionSec: Int!
-  $completed: Boolean!
-) {
-  publishProgress(
-    episodeId: $episodeId
-    positionSec: $positionSec
-    completed: $completed
-  ) {
+mutation PublishProgressUpdate($episodeId: ID!, $completed: Boolean!) {
+  publishProgress(episodeId: $episodeId, completed: $completed) {
     episodeId
-    positionSec
     completed
     updatedAt
   }
@@ -232,7 +213,6 @@ mutation PublishProgressUpdate(
 subscription OnProgress($episodeId: ID!) {
   onProgress(episodeId: $episodeId) {
     episodeId
-    positionSec
     completed
     updatedAt
   }

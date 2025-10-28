@@ -250,7 +250,6 @@ function buildMarkProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   const attributes: Record<string, unknown> = {
     dataType: "progress",
     episodeId: String(ctx.args.episodeId),
-    positionSec: ctx.args.positionSec,
     completed: ctx.args.completed,
     updatedAt: now,
   };
@@ -267,7 +266,6 @@ function buildMarkProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   util.qr(
     ctx.stash.put("progress", {
       episodeId: attributes.episodeId,
-      positionSec: attributes.positionSec,
       completed: attributes.completed,
       updatedAt: attributes.updatedAt,
       ...(attributes.showId ? { showId: attributes.showId } : {}),
@@ -357,7 +355,6 @@ function buildPublishProgressRequest(ctx: RuntimeContext, util: AppSyncUtil) {
     payload: {
       userId: String(ctx.identity.sub),
       episodeId: ctx.args.episodeId,
-      positionSec: ctx.args.positionSec,
       completed: ctx.args.completed,
       updatedAt: util.time.nowISO8601(),
     },
