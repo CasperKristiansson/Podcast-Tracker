@@ -788,145 +788,146 @@ function PodcastDetailAppContent({
               </div>
 
               <div className="flex-1 space-y-8">
-                <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                  <div className="space-y-3">
-                    <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1 text-[11px] uppercase tracking-[0.4em] text-white/65">
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <span className="inline-flex items-center gap-2 self-start rounded-full border border-white/15 bg-white/10 px-4 py-1 text-[11px] uppercase tracking-[0.4em] text-white/65">
                       {show.publisher}
                       <span className="hidden h-1 w-1 rounded-full bg-white/50 sm:inline" />
                       <span className="text-white/45">
                         {show.mediaType ?? "Podcast"}
                       </span>
                     </span>
-                    <h1 className="text-4xl font-semibold text-white sm:text-5xl">
-                      {show.title}
-                    </h1>
-                    <div className="flex flex-wrap gap-3 text-sm text-white/70">
-                      <span className="rounded-2xl border border-white/12 bg-white/[0.05] px-3 py-1">
-                        {formatNumber(show.totalEpisodes ?? 0)} episodes
-                      </span>
-                      <span className="rounded-2xl border border-emerald-400/40 bg-emerald-400/15 px-3 py-1 text-emerald-100">
-                        {progressSyncing
-                          ? "Tracking progress…"
-                          : `${formatNumber(watchedCount)} watched`}
-                      </span>
-                      {subscriptionAddedAt ? (
-                        <span className="rounded-2xl border border-white/12 bg-white/[0.04] px-3 py-1 text-white/60">
-                          Added {formatRelative(subscriptionAddedAt)}
-                        </span>
+
+                    <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+                      {!isSubscribed ? (
+                        <InteractiveButton
+                          onClick={() => {
+                            void handleSubscribeToggle();
+                          }}
+                          variant="primary"
+                          isLoading={isMutatingSubscription}
+                          loadingLabel="Adding…"
+                          className="w-full rounded-full sm:w-auto transition-colors duration-200 hover:bg-[#7f4bff]/20 hover:text-white"
+                        >
+                          Add to my shows
+                        </InteractiveButton>
                       ) : null}
+                      <div className="relative w-full sm:w-auto">
+                        <button
+                          ref={actionsButtonRef}
+                          type="button"
+                          onClick={() => setActionsMenuOpen((prev) => !prev)}
+                          aria-haspopup="menu"
+                          aria-expanded={actionsMenuOpen}
+                          className="inline-flex w-full items-center justify-between gap-3 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white whitespace-nowrap transition hover:bg-white/[0.1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
+                        >
+                          <span>More actions</span>
+                          <svg
+                            aria-hidden
+                            viewBox="0 0 12 12"
+                            className={`h-3 w-3 text-white/70 transition-transform duration-200 ${
+                              actionsMenuOpen ? "rotate-180" : "rotate-0"
+                            }`}
+                            focusable="false"
+                          >
+                            <path
+                              d="M2 4.25L6 8l4-3.75"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </button>
+                        {actionsMenuOpen ? (
+                          <div
+                            ref={actionsMenuRef}
+                            role="menu"
+                            aria-label="Additional actions"
+                            className="absolute right-0 z-30 mt-2 w-56 rounded-2xl border border-white/12 bg-[#14072f]/95 p-2 text-sm text-white shadow-[0_26px_90px_rgba(10,4,32,0.6)] backdrop-blur"
+                          >
+                            {canRateShow ? (
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setActionsMenuOpen(false);
+                                  window.setTimeout(() => {
+                                    handleOpenRatingModal();
+                                  }, 0);
+                                }}
+                                className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
+                              >
+                                <span>
+                                  {ratingDisplayValue > 0
+                                    ? "Edit rating"
+                                    : "Add rating"}
+                                </span>
+                                <span aria-hidden>★</span>
+                              </button>
+                            ) : (
+                              <div className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-white/45">
+                                <span>Add to my shows to rate</span>
+                                <span aria-hidden>★</span>
+                              </div>
+                            )}
+                            {show.externalUrl ? (
+                              <a
+                                role="menuitem"
+                                onClick={() => {
+                                  setActionsMenuOpen(false);
+                                }}
+                                className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] no-underline"
+                                href={show.externalUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                <span>Listen on Spotify</span>
+                                <span aria-hidden>↗</span>
+                              </a>
+                            ) : null}
+                            {isSubscribed ? (
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setActionsMenuOpen(false);
+                                  window.setTimeout(() => {
+                                    void handleSubscribeToggle();
+                                  }, 0);
+                                }}
+                                className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-red-200 transition hover:bg-red-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
+                              >
+                                <span>Remove show</span>
+                                <span aria-hidden>✕</span>
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-3">
-                    {!isSubscribed ? (
-                      <InteractiveButton
-                        onClick={() => {
-                          void handleSubscribeToggle();
-                        }}
-                        variant="primary"
-                        isLoading={isMutatingSubscription}
-                        loadingLabel="Adding…"
-                        className="w-full rounded-full sm:w-auto transition-colors duration-200 hover:bg-[#7f4bff]/20 hover:text-white"
-                      >
-                        Add to my shows
-                      </InteractiveButton>
+                  <h1 className="text-4xl font-semibold text-white sm:text-5xl">
+                    {show.title}
+                  </h1>
+                  <div className="flex flex-wrap gap-3 text-sm text-white/70">
+                    <span className="rounded-2xl border border-white/12 bg-white/[0.05] px-3 py-1">
+                      {formatNumber(show.totalEpisodes ?? 0)} episodes
+                    </span>
+                    <span className="rounded-2xl border border-emerald-400/40 bg-emerald-400/15 px-3 py-1 text-emerald-100">
+                      {progressSyncing
+                        ? "Tracking progress…"
+                        : `${formatNumber(watchedCount)} watched`}
+                    </span>
+                    {subscriptionAddedAt ? (
+                      <span className="rounded-2xl border border-white/12 bg-white/[0.04] px-3 py-1 text-white/60">
+                        Added {formatRelative(subscriptionAddedAt)}
+                      </span>
                     ) : null}
-                    <div className="relative w-full sm:w-auto">
-                      <button
-                        ref={actionsButtonRef}
-                        type="button"
-                        onClick={() => setActionsMenuOpen((prev) => !prev)}
-                        aria-haspopup="menu"
-                        aria-expanded={actionsMenuOpen}
-                        className="inline-flex w-full items-center justify-between gap-3 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/[0.1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
-                      >
-                        <span>More actions</span>
-                        <svg
-                          aria-hidden
-                          viewBox="0 0 12 12"
-                          className={`h-3 w-3 text-white/70 transition-transform duration-200 ${
-                            actionsMenuOpen ? "rotate-180" : "rotate-0"
-                          }`}
-                          focusable="false"
-                        >
-                          <path
-                            d="M2 4.25L6 8l4-3.75"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
-                      {actionsMenuOpen ? (
-                        <div
-                          ref={actionsMenuRef}
-                          role="menu"
-                          aria-label="Additional actions"
-                          className="absolute right-0 z-30 mt-2 w-56 rounded-2xl border border-white/12 bg-[#14072f]/95 p-2 text-sm text-white shadow-[0_26px_90px_rgba(10,4,32,0.6)] backdrop-blur"
-                        >
-                          {canRateShow ? (
-                            <button
-                              type="button"
-                              role="menuitem"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setActionsMenuOpen(false);
-                                window.setTimeout(() => {
-                                  handleOpenRatingModal();
-                                }, 0);
-                              }}
-                              className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
-                            >
-                              <span>
-                                {ratingDisplayValue > 0
-                                  ? "Edit rating"
-                                  : "Add rating"}
-                              </span>
-                              <span aria-hidden>★</span>
-                            </button>
-                          ) : (
-                            <div className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-white/45">
-                              <span>Add to my shows to rate</span>
-                              <span aria-hidden>★</span>
-                            </div>
-                          )}
-                          {show.externalUrl ? (
-                            <a
-                              role="menuitem"
-                              onClick={() => {
-                                setActionsMenuOpen(false);
-                              }}
-                              className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] no-underline"
-                              href={show.externalUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              <span>Listen on Spotify</span>
-                              <span aria-hidden>↗</span>
-                            </a>
-                          ) : null}
-                          {isSubscribed ? (
-                            <button
-                              type="button"
-                              role="menuitem"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setActionsMenuOpen(false);
-                                window.setTimeout(() => {
-                                  void handleSubscribeToggle();
-                                }, 0);
-                              }}
-                              className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-red-200 transition hover:bg-red-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
-                            >
-                              <span>Remove show</span>
-                              <span aria-hidden>✕</span>
-                            </button>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
                   </div>
                 </div>
 
@@ -1156,50 +1157,55 @@ function PodcastDetailAppContent({
               );
               const isEpisodeUpdating =
                 pendingEpisodeId === episode.episodeId && markProgressLoading;
-              const cardClassName = isWatched
-                ? "group relative overflow-hidden rounded-3xl border border-emerald-400/35 bg-gradient-to-br from-emerald-500/15 via-[#12072d]/70 to-[#12072d]/90 p-6 shadow-[0_28px_80px_rgba(9,93,69,0.35)] transition duration-300 hover:border-emerald-300/60 hover:shadow-[0_32px_90px_rgba(9,93,69,0.45)]"
-                : "group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_24px_60px_rgba(29,16,65,0.35)] transition duration-300 hover:border-white/25 hover:bg-white/[0.09]";
-              const glowClassName = isWatched
-                ? "absolute -top-24 -right-20 h-48 w-48 rounded-full bg-emerald-400/25 blur-[110px] opacity-50"
-                : "absolute -top-24 -right-20 h-48 w-48 rounded-full bg-[#8f73ff]/20 blur-[110px] opacity-40";
+              const canTrackProgress = isSubscribed;
+              const cardClassName =
+                canTrackProgress && isWatched
+                  ? "group relative overflow-hidden rounded-3xl border border-emerald-400/35 bg-gradient-to-br from-emerald-500/15 via-[#12072d]/70 to-[#12072d]/90 p-6 shadow-[0_28px_80px_rgba(9,93,69,0.35)] transition duration-300 hover:border-emerald-300/60 hover:shadow-[0_32px_90px_rgba(9,93,69,0.45)]"
+                  : "group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_24px_60px_rgba(29,16,65,0.35)] transition duration-300 hover:border-white/25 hover:bg-white/[0.09]";
+              const glowClassName =
+                canTrackProgress && isWatched
+                  ? "absolute -top-24 -right-20 h-48 w-48 rounded-full bg-emerald-400/25 blur-[110px] opacity-50"
+                  : "absolute -top-24 -right-20 h-48 w-48 rounded-full bg-[#8f73ff]/20 blur-[110px] opacity-40";
 
               return (
                 <li key={episode.episodeId} className={cardClassName}>
                   <div className={glowClassName} />
                   <div className="relative flex flex-col gap-6">
-                    <div
-                      className={
-                        isWatched
-                          ? "absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-emerald-300/50 bg-emerald-400/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-emerald-100"
-                          : "absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-white/60"
-                      }
-                    >
-                      <span
+                    {canTrackProgress ? (
+                      <div
                         className={
                           isWatched
-                            ? "flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400/30 text-emerald-100"
-                            : "flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-white/70"
+                            ? "absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-emerald-300/50 bg-emerald-400/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-emerald-100"
+                            : "absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-white/60"
                         }
-                        aria-hidden
                       >
-                        {isWatched ? (
-                          <svg
-                            viewBox="0 0 16 16"
-                            className="h-3.5 w-3.5"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M4 8l2.5 2.5L12 5" />
-                          </svg>
-                        ) : (
-                          <span className="text-base leading-none">•</span>
-                        )}
-                      </span>
-                      <span>{isWatched ? "Watched" : "Queued"}</span>
-                    </div>
+                        <span
+                          className={
+                            isWatched
+                              ? "flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400/30 text-emerald-100"
+                              : "flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-white/70"
+                          }
+                          aria-hidden
+                        >
+                          {isWatched ? (
+                            <svg
+                              viewBox="0 0 16 16"
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M4 8l2.5 2.5L12 5" />
+                            </svg>
+                          ) : (
+                            <span className="text-base leading-none">•</span>
+                          )}
+                        </span>
+                        <span>{isWatched ? "Watched" : "Queued"}</span>
+                      </div>
+                    ) : null}
                     <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.35em] text-white/45">
                       <span>Episode {index + 1}</span>
                       <span className="h-1 w-1 rounded-full bg-white/35" />
@@ -1227,35 +1233,37 @@ function PodcastDetailAppContent({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3 text-xs text-white/65">
-                      <span
-                        className={
-                          isWatched
-                            ? "inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-400/20 px-3 py-1 text-emerald-100"
-                            : "inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-white/70"
-                        }
-                      >
-                        {isWatched ? (
-                          <>
-                            <span
-                              className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-400/40 text-[10px] text-emerald-50"
-                              aria-hidden
-                            >
-                              ✓
-                            </span>
-                            Watched
-                          </>
-                        ) : (
-                          <>
-                            <span
-                              className="flex h-4 w-4 items-center justify-center rounded-full bg-white/15 text-[10px] text-white/70"
-                              aria-hidden
-                            >
-                              ●
-                            </span>
-                            Not watched yet
-                          </>
-                        )}
-                      </span>
+                      {canTrackProgress ? (
+                        <span
+                          className={
+                            isWatched
+                              ? "inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-400/20 px-3 py-1 text-emerald-100"
+                              : "inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-white/70"
+                          }
+                        >
+                          {isWatched ? (
+                            <>
+                              <span
+                                className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-400/40 text-[10px] text-emerald-50"
+                                aria-hidden
+                              >
+                                ✓
+                              </span>
+                              Watched
+                            </>
+                          ) : (
+                            <>
+                              <span
+                                className="flex h-4 w-4 items-center justify-center rounded-full bg-white/15 text-[10px] text-white/70"
+                                aria-hidden
+                              >
+                                ●
+                              </span>
+                              Not watched yet
+                            </>
+                          )}
+                        </span>
+                      ) : null}
                       {episode.explicit ? (
                         <span className="rounded-full border border-red-400/40 bg-red-500/20 px-3 py-1 text-red-200">
                           Explicit
@@ -1284,23 +1292,25 @@ function PodcastDetailAppContent({
                       ) : null}
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
-                      <InteractiveButton
-                        variant={isWatched ? "outline" : "secondary"}
-                        onClick={() => {
-                          void handleEpisodeCompletion(episode, !isWatched);
-                        }}
-                        disabled={
-                          markProgressLoading &&
-                          pendingEpisodeId !== episode.episodeId
-                        }
-                        isLoading={isEpisodeUpdating}
-                        loadingLabel="Updating…"
-                        className="transform hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(29,16,65,0.45)]"
-                      >
-                        {isWatched ? "Mark as unwatched" : "Mark as watched"}
-                      </InteractiveButton>
-                    </div>
+                    {canTrackProgress ? (
+                      <div className="flex flex-wrap gap-3">
+                        <InteractiveButton
+                          variant={isWatched ? "outline" : "primaryBright"}
+                          onClick={() => {
+                            void handleEpisodeCompletion(episode, !isWatched);
+                          }}
+                          disabled={
+                            markProgressLoading &&
+                            pendingEpisodeId !== episode.episodeId
+                          }
+                          isLoading={isEpisodeUpdating}
+                          loadingLabel="Updating…"
+                          className="transform hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(29,16,65,0.45)]"
+                        >
+                          {isWatched ? "Mark as unwatched" : "Mark as watched"}
+                        </InteractiveButton>
+                      </div>
+                    ) : null}
                   </div>
                 </li>
               );
