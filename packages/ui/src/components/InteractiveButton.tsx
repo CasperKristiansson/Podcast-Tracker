@@ -84,20 +84,38 @@ export const InteractiveButton = forwardRef<
           compact ? "gap-0" : "gap-2"
         )}
       >
-        {icon && !isLoading ? (
-          <span className="flex h-4 w-4 items-center justify-center">
+        {icon ? (
+          <span
+            className={cn(
+              "flex h-4 w-4 items-center justify-center transition-opacity",
+              isLoading ? "opacity-0" : "opacity-100"
+            )}
+            aria-hidden={isLoading}
+          >
             {icon}
           </span>
         ) : null}
-        <span>
-          {isLoading ? (
+        <span className="relative inline-flex items-center">
+          <span
+            className={cn(
+              "transition-opacity",
+              isLoading ? "opacity-0" : "opacity-100"
+            )}
+          >
+            {children}
+          </span>
+          <span
+            className={cn(
+              "pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity",
+              isLoading ? "opacity-100" : "opacity-0"
+            )}
+            aria-hidden={!isLoading}
+          >
             <span className="flex h-4 w-4 items-center justify-center">
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              <span className="sr-only">{loadingLabel}</span>
             </span>
-          ) : (
-            children
-          )}
+          </span>
+          {isLoading ? <span className="sr-only">{loadingLabel}</span> : null}
         </span>
       </span>
     </button>

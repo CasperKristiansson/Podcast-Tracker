@@ -14,6 +14,8 @@ import {
   type ShowDetailQueryVariables,
   type Episode,
   MarkEpisodeProgressDocument,
+  type MarkEpisodeProgressMutation,
+  type MarkEpisodeProgressMutationVariables,
   RateShowDocument,
   SubscribeToShowDocument,
   UnsubscribeFromShowDocument,
@@ -93,15 +95,23 @@ const formatRelative = (iso: string | null | undefined): string => {
 function PodcastDetailAppContent({
   showId,
 }: PodcastDetailAppProps): JSX.Element {
+  const showDetailVariables = useMemo<ShowDetailQueryVariables>(
+    () => ({ showId, episodeLimit: 25 }),
+    [showId]
+  );
+
   const {
     data: showDetailData,
     loading: showDetailLoading,
     error: showDetailError,
     fetchMore,
     refetch: refetchShowDetail,
-  } = useQuery<ShowDetailQuery, ShowDetailQueryVariables>(ShowDetailDocument, {
-    variables: { showId, episodeLimit: 25 },
-  });
+  } = useQuery<ShowDetailQuery, ShowDetailQueryVariables>(
+    ShowDetailDocument,
+    {
+      variables: showDetailVariables,
+    }
+  );
 
   const [episodeFilter, setEpisodeFilter] = useState<EpisodeFilterValue>("all");
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
@@ -214,9 +224,10 @@ function PodcastDetailAppContent({
     };
   }, []);
 
-  const [markProgress, { loading: markProgressLoading }] = useMutation(
-    MarkEpisodeProgressDocument
-  );
+  const [markProgress, { loading: markProgressLoading }] = useMutation<
+    MarkEpisodeProgressMutation,
+    MarkEpisodeProgressMutationVariables
+  >(MarkEpisodeProgressDocument);
   const [subscribeToShow, { loading: subscribeLoading }] = useMutation(
     SubscribeToShowDocument
   );
@@ -408,8 +419,67 @@ function PodcastDetailAppContent({
           completed,
           showId,
         },
+        optimisticResponse: {
+          __typename: "Mutation",
+          markProgress: {
+            __typename: "Progress",
+            episodeId: episode.episodeId,
+            positionSec,
+            completed,
+            updatedAt: new Date().toISOString(),
+            showId,
+          },
+        },
+        update(cache, result: { data?: MarkEpisodeProgressMutation | null }) {
+          const progressEntry = result.data?.markProgress;
+          if (!progressEntry) {
+            return;
+          }
+
+          const existing = cache.readQuery<
+            ShowDetailQuery,
+            ShowDetailQueryVariables
+          >({
+            query: ShowDetailDocument,
+            variables: showDetailVariables,
+          });
+
+          if (!existing?.showDetail) {
+            return;
+          }
+
+          const currentProgress = existing.showDetail.progress ?? [];
+
+          let replaced = false;
+          const nextProgress: ShowDetailQuery["showDetail"]["progress"] = [];
+
+          for (const entry of currentProgress) {
+            if (!entry) continue;
+            if (entry.episodeId === progressEntry.episodeId) {
+              nextProgress.push(progressEntry);
+              replaced = true;
+            } else {
+              nextProgress.push(entry);
+            }
+          }
+
+          if (!replaced) {
+            nextProgress.push(progressEntry);
+          }
+
+          cache.writeQuery<ShowDetailQuery, ShowDetailQueryVariables>({
+            query: ShowDetailDocument,
+            variables: showDetailVariables,
+            data: {
+              ...existing,
+              showDetail: {
+                ...existing.showDetail,
+                progress: nextProgress,
+              },
+            },
+          });
+        },
       });
-      await refetchShowDetail();
     } catch (err) {
       console.error("Failed to update episode completion", err);
     } finally {
