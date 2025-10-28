@@ -27,7 +27,7 @@ interface EvaluateResult {
 }
 
 const defaultRegion =
-  process.env.APPSYNC_REGION ?? process.env.AWS_REGION ?? "us-east-1";
+  process.env.APPSYNC_REGION ?? process.env.AWS_REGION ?? "eu-north-1";
 const defaultProfile = process.env.APPSYNC_PROFILE ?? "Personal";
 
 let cachedClient: AppSyncClient | undefined;

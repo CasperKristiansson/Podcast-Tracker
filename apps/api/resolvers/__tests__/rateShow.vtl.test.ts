@@ -77,7 +77,7 @@ describe("Mutation.rateShow mapping templates", () => {
     expect(evaluated.raw).toContain(
       '"expression": "SET ratingStars = :stars, ratingUpdatedAt = :updated REMOVE ratingReview"'
     );
-    expect(evaluated.raw).not.toContain(':review={');
+    expect(evaluated.raw).not.toContain(":review={");
   });
 
   it("returns the data source payload when present", async () => {
