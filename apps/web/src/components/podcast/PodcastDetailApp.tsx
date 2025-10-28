@@ -790,7 +790,7 @@ function PodcastDetailAppContent({
               <div className="flex-1 space-y-8">
                 <div className="space-y-4">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <span className="inline-flex items-center gap-2 self-start rounded-full border border-white/15 bg-white/10 px-4 py-1 text-[11px] uppercase tracking-[0.4em] text-white/65">
+                    <span className="inline-flex items-center gap-2 self-start lg:self-center rounded-full border border-white/15 bg-white/10 px-4 py-1 text-[11px] uppercase tracking-[0.4em] text-white/65">
                       {show.publisher}
                       <span className="hidden h-1 w-1 rounded-full bg-white/50 sm:inline" />
                       <span className="text-white/45">
