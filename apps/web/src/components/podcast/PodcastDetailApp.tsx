@@ -1295,7 +1295,7 @@ function PodcastDetailAppContent({
                     {canTrackProgress ? (
                       <div className="flex flex-wrap gap-3">
                         <InteractiveButton
-                          variant={isWatched ? "outline" : "primaryBright"}
+                          variant={isWatched ? "outline" : "secondary"}
                           onClick={() => {
                             void handleEpisodeCompletion(episode, !isWatched);
                           }}
