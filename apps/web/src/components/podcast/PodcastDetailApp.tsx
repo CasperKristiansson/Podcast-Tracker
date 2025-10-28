@@ -686,13 +686,6 @@ function PodcastDetailAppContent({
             strokeWidth="2.2"
             strokeLinecap="round"
           />
-          <path
-            d="M12.5 2.5c-1.2 1.5-1.2 5.5 0 7s5.5 1.5 7 0"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeOpacity={0.6}
-          />
         </svg>
         <span className="transition-colors duration-200 group-hover:text-[#12072d]">
           Back to profile
