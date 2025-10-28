@@ -687,7 +687,7 @@ function PodcastDetailAppContent({
                       </span>
                       {subscriptionAddedAt ? (
                         <span className="rounded-2xl border border-white/12 bg-white/[0.04] px-3 py-1 text-white/60">
-                          In rotation {formatRelative(subscriptionAddedAt)}
+                          Added {formatRelative(subscriptionAddedAt)}
                         </span>
                       ) : null}
                     </div>
