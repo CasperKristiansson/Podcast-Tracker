@@ -20,8 +20,14 @@ import {
   type MarkAllEpisodesCompleteMutation,
   type MarkAllEpisodesCompleteMutationVariables,
   RateShowDocument,
+  type RateShowMutation,
+  type RateShowMutationVariables,
   SubscribeToShowDocument,
+  type SubscribeToShowMutation,
+  type SubscribeToShowMutationVariables,
   UnsubscribeFromShowDocument,
+  type UnsubscribeFromShowMutation,
+  type UnsubscribeFromShowMutationVariables,
 } from "@shared";
 import { AuroraBackground, GlowCard, InteractiveButton, StarRating } from "@ui";
 import { GraphQLProvider } from "../graphql/GraphQLProvider";
@@ -114,7 +120,6 @@ function PodcastDetailAppContent({
     loading: showDetailLoading,
     error: showDetailError,
     fetchMore,
-    refetch: refetchShowDetail,
   } = useQuery<ShowDetailQuery, ShowDetailQueryVariables>(ShowDetailDocument, {
     variables: showDetailVariables,
   });
@@ -240,13 +245,18 @@ function PodcastDetailAppContent({
     MarkAllEpisodesCompleteMutation,
     MarkAllEpisodesCompleteMutationVariables
   >(MarkAllEpisodesCompleteDocument);
-  const [subscribeToShow, { loading: subscribeLoading }] = useMutation(
-    SubscribeToShowDocument
-  );
-  const [unsubscribeFromShow, { loading: unsubscribeLoading }] = useMutation(
-    UnsubscribeFromShowDocument
-  );
-  const [rateShow, { loading: rateLoading }] = useMutation(RateShowDocument);
+  const [subscribeToShow, { loading: subscribeLoading }] = useMutation<
+    SubscribeToShowMutation,
+    SubscribeToShowMutationVariables
+  >(SubscribeToShowDocument);
+  const [unsubscribeFromShow, { loading: unsubscribeLoading }] = useMutation<
+    UnsubscribeFromShowMutation,
+    UnsubscribeFromShowMutationVariables
+  >(UnsubscribeFromShowDocument);
+  const [rateShow, { loading: rateLoading }] = useMutation<
+    RateShowMutation,
+    RateShowMutationVariables
+  >(RateShowDocument);
 
   const isSubscribed = Boolean(subscription) || Boolean(show?.isSubscribed);
   const isMutatingSubscription = subscribeLoading || unsubscribeLoading;
@@ -299,7 +309,35 @@ function PodcastDetailAppContent({
     if (!show) return;
     try {
       if (isSubscribed) {
-        await unsubscribeFromShow({ variables: { showId } });
+        await unsubscribeFromShow({
+          variables: { showId },
+          update: (cache) => {
+            cache.updateQuery<ShowDetailQuery, ShowDetailQueryVariables>(
+              {
+                query: ShowDetailDocument,
+                variables: showDetailVariables,
+              },
+              (existing) => {
+                if (!existing?.showDetail || !existing.showDetail.show) {
+                  return existing;
+                }
+                const showDetail = existing.showDetail;
+                const updated = {
+                  ...existing,
+                  showDetail: {
+                    ...showDetail,
+                    subscription: null,
+                    show: {
+                      ...showDetail.show,
+                      isSubscribed: false,
+                    },
+                  },
+                } satisfies ShowDetailQuery;
+                return updated;
+              }
+            );
+          },
+        });
       } else {
         await subscribeToShow({
           variables: {
@@ -310,9 +348,38 @@ function PodcastDetailAppContent({
             totalEpisodes:
               typeof show.totalEpisodes === "number" ? show.totalEpisodes : 0,
           },
+          update: (cache, result) => {
+            const subscriptionPayload = result.data?.subscribe;
+            if (!subscriptionPayload) {
+              return;
+            }
+            cache.updateQuery<ShowDetailQuery, ShowDetailQueryVariables>(
+              {
+                query: ShowDetailDocument,
+                variables: showDetailVariables,
+              },
+              (existing) => {
+                if (!existing?.showDetail || !existing.showDetail.show) {
+                  return existing;
+                }
+                const showDetail = existing.showDetail;
+                const updated = {
+                  ...existing,
+                  showDetail: {
+                    ...showDetail,
+                    subscription: subscriptionPayload,
+                    show: {
+                      ...showDetail.show,
+                      isSubscribed: true,
+                    },
+                  },
+                } satisfies ShowDetailQuery;
+                return updated;
+              }
+            );
+          },
         });
       }
-      await refetchShowDetail();
     } catch (err) {
       console.error("Subscription mutation failed", err);
     }
@@ -624,8 +691,32 @@ function PodcastDetailAppContent({
           stars: ratingDraft.stars,
           review: ratingDraft.review.trim() || null,
         },
+        update: (cache, result) => {
+          const updatedSubscription = result.data?.rateShow;
+          if (!updatedSubscription) {
+            return;
+          }
+          cache.updateQuery<ShowDetailQuery, ShowDetailQueryVariables>(
+            {
+              query: ShowDetailDocument,
+              variables: showDetailVariables,
+            },
+            (existing) => {
+              if (!existing?.showDetail) {
+                return existing;
+              }
+              const showDetail = existing.showDetail;
+              return {
+                ...existing,
+                showDetail: {
+                  ...showDetail,
+                  subscription: updatedSubscription,
+                },
+              } satisfies ShowDetailQuery;
+            }
+          );
+        },
       });
-      await refetchShowDetail();
       handleCloseRatingModal();
     } catch (err) {
       console.error("Failed to save rating", err);
@@ -640,8 +731,29 @@ function PodcastDetailAppContent({
           stars: 0,
           review: null,
         },
+        update: (cache, result) => {
+          const updatedSubscription = result.data?.rateShow;
+          cache.updateQuery<ShowDetailQuery, ShowDetailQueryVariables>(
+            {
+              query: ShowDetailDocument,
+              variables: showDetailVariables,
+            },
+            (existing) => {
+              if (!existing?.showDetail) {
+                return existing;
+              }
+              const showDetail = existing.showDetail;
+              return {
+                ...existing,
+                showDetail: {
+                  ...showDetail,
+                  subscription: updatedSubscription ?? null,
+                },
+              } satisfies ShowDetailQuery;
+            }
+          );
+        },
       });
-      await refetchShowDetail();
       handleCloseRatingModal();
     } catch (err) {
       console.error("Failed to clear rating", err);
