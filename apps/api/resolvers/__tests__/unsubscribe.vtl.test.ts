@@ -1,20 +1,24 @@
 import { describe, expect, it } from "vitest";
+import { evaluateTemplate } from "./evaluateTemplate";
 import { createRuntime, renderTemplate } from "./vtlHarness";
 
 const requestTemplate = "Mutation.unsubscribe.request.vtl";
 const responseTemplate = "Mutation.unsubscribe.response.vtl";
+const templateInfo = { fieldName: "unsubscribe", parentTypeName: "Mutation" };
 
 describe("Mutation.unsubscribe mapping templates", () => {
-  it("creates a DeleteItem request using the caller identity", () => {
-    const runtime = createRuntime({
+  it("creates a DeleteItem request using the caller identity", async () => {
+    const options = {
       args: { showId: "show-44" },
       identitySub: "user-44",
-    });
+    };
 
-    const rendered = renderTemplate(requestTemplate, runtime);
-    const request = JSON.parse(rendered);
+    const expectedRuntime = createRuntime(options);
+    const expectedRequest = JSON.parse(
+      renderTemplate(requestTemplate, expectedRuntime)
+    );
 
-    expect(request).toEqual({
+    expect(expectedRequest).toEqual({
       version: "2018-05-29",
       operation: "DeleteItem",
       key: {
@@ -22,24 +26,49 @@ describe("Mutation.unsubscribe mapping templates", () => {
         sk: { S: "sub#show-44" },
       },
     });
+
+    const evalRuntime = createRuntime(options);
+    const evaluated = await evaluateTemplate(
+      requestTemplate,
+      evalRuntime,
+      templateInfo
+    );
+    expect(evaluated.json).toEqual(expectedRequest);
   });
 
-  it("returns true when DynamoDB result is present", () => {
-    const runtime = createRuntime();
-    runtime.ctx.result = { deleted: true };
+  it("returns true when DynamoDB result is present", async () => {
+    const expectedRuntime = createRuntime();
+    expectedRuntime.ctx.result = { deleted: true };
 
-    const rendered = renderTemplate(responseTemplate, runtime);
-    const response = JSON.parse(rendered);
+    const expectedResponse = JSON.parse(
+      renderTemplate(responseTemplate, expectedRuntime)
+    );
+    expect(expectedResponse).toBe(true);
 
-    expect(response).toBe(true);
+    const evalRuntime = createRuntime();
+    evalRuntime.ctx.result = { deleted: true };
+    const evaluated = await evaluateTemplate(
+      responseTemplate,
+      evalRuntime,
+      templateInfo
+    );
+    expect(evaluated.json).toBe(true);
   });
 
-  it("propagates mapping template errors", () => {
+  it("propagates mapping template errors", async () => {
     const runtime = createRuntime();
     runtime.ctx.error = new Error("boom");
 
-    expect(() => renderTemplate(responseTemplate, runtime)).toThrowError(
-      /boom/
-    );
+    expect(() => renderTemplate(responseTemplate, runtime)).toThrow(/boom/);
+
+    const evalRuntime = createRuntime();
+    evalRuntime.ctx.error = {
+      message: "boom",
+      type: "MappingTemplate",
+    };
+
+    await expect(
+      evaluateTemplate(responseTemplate, evalRuntime, templateInfo)
+    ).rejects.toThrow(/boom/);
   });
 });
