@@ -114,6 +114,7 @@ function PodcastDetailAppContent({
   const [isDescriptionExpanded, setDescriptionExpanded] = useState(false);
   const [isDescriptionOverflowing, setDescriptionOverflowing] = useState(false);
   const [descriptionContentHeight, setDescriptionContentHeight] = useState(0);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
   const detail = showDetailData?.showDetail ?? null;
@@ -201,6 +202,17 @@ function PodcastDetailAppContent({
       resizeObserver.disconnect();
     };
   }, [descriptionHtml]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 600);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   const [markProgress, { loading: markProgressLoading }] = useMutation(
     MarkEpisodeProgressDocument
@@ -501,6 +513,13 @@ function PodcastDetailAppContent({
     }
   };
 
+  const handleScrollToTop = useCallback(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }, []);
+
   const handleSelectEpisodeFilter = (value: EpisodeFilterValue) => {
     setEpisodeFilter(value);
     setFilterMenuOpen(false);
@@ -611,6 +630,33 @@ function PodcastDetailAppContent({
     <div className="relative isolate w-full">
       {ratingModal}
       <AuroraBackground className="opacity-80" />
+      {showScrollTop && !episodesInitialLoading ? (
+        <div className="fixed bottom-16 right-8 z-50">
+          <InteractiveButton
+            variant="outline"
+            size="sm"
+            onClick={handleScrollToTop}
+            icon={
+              <svg
+                viewBox="0 0 16 16"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3.5 9.5L8 5l4.5 4.5" />
+                <path d="M8 5v8" />
+              </svg>
+            }
+            className="shadow-[0_20px_60px_rgba(47,24,86,0.45)] hover:-translate-y-0.5"
+            aria-label="Back to top"
+          >
+            Back to top
+          </InteractiveButton>
+        </div>
+      ) : null}
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-14 px-6 py-16">
         {heroLoading ? (
           <div className="relative overflow-hidden rounded-[40px] border border-white/10 bg-white/[0.05] px-6 py-10 sm:px-10 sm:py-12">
@@ -860,6 +906,23 @@ function PodcastDetailAppContent({
                               <span>Listen on Spotify</span>
                               <span aria-hidden>↗</span>
                             </a>
+                          ) : null}
+                          {isSubscribed ? (
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setActionsMenuOpen(false);
+                                window.setTimeout(() => {
+                                  void handleSubscribeToggle();
+                                }, 0);
+                              }}
+                              className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-red-200 transition hover:bg-red-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
+                            >
+                              <span>Remove show</span>
+                              <span aria-hidden>✕</span>
+                            </button>
                           ) : null}
                         </div>
                       ) : null}
@@ -1223,7 +1286,7 @@ function PodcastDetailAppContent({
 
                     <div className="flex flex-wrap gap-3">
                       <InteractiveButton
-                        variant={isWatched ? "outline" : "primaryBright"}
+                        variant={isWatched ? "outline" : "secondary"}
                         onClick={() => {
                           void handleEpisodeCompletion(episode, !isWatched);
                         }}

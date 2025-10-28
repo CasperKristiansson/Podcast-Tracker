@@ -24,7 +24,7 @@ const variantClasses: Record<InteractiveButtonVariant, string> = {
   primary:
     "bg-gradient-to-br from-[#8f73ff] via-[#745dd8] to-[#5635c7] text-white shadow-[0_18px_40px_rgba(104,80,200,0.35)] hover:bg-[#7f4bff] focus-visible:ring-[#c6b5ff]",
   primaryBright:
-    "bg-gradient-to-br from-[#9f8fff] via-[#8a7aff] to-[#5f3fff] text-[#0b031a] shadow-[0_24px_60px_rgba(122,103,255,0.45)] hover:from-[#b7a9ff] hover:via-[#988aff] hover:to-[#6d4dff] hover:text-[#12072d] focus-visible:ring-[#d8d0ff]",
+    "bg-gradient-to-br from-[#d4c7ff] via-[#bcaeff] to-[#8f73ff] text-[#12072d] shadow-[0_24px_60px_rgba(122,103,255,0.38)] hover:from-[#ffffff] hover:via-[#eee7ff] hover:to-[#d7caff] hover:text-[#12072d] hover:shadow-[0_32px_90px_rgba(122,103,255,0.55)] focus-visible:ring-[#e9e3ff]",
   secondary:
     "bg-white/10 text-white hover:bg-white/15 focus-visible:ring-white/60",
   outline:
