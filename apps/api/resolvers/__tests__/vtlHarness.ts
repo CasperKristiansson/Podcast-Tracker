@@ -345,8 +345,13 @@ function buildRateShowRequest(ctx: RuntimeContext, util: AppSyncUtil) {
 
 function buildRateShowResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   ensureNoError(ctx, util);
-  const record = asRecord(ctx.result) ?? {};
-  return util.dynamodb.fromMapValues(record);
+  const raw = asRecord(ctx.result);
+  if (!raw) {
+    return null;
+  }
+
+  const attributes = asRecord(raw.Attributes) ?? raw;
+  return util.dynamodb.fromMapValues(attributes);
 }
 
 function buildUnsubscribeRequest(ctx: RuntimeContext, util: AppSyncUtil) {

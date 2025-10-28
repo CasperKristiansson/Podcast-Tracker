@@ -70,4 +70,47 @@ describe("Mutation.rateShow mapping templates", () => {
       ratingReview: "Great insight",
     });
   });
+
+  it("unwraps results nested under the Attributes key", () => {
+    const runtime = createRuntime();
+    runtime.ctx.result = {
+      Attributes: {
+        pk: { S: "user#user-9" },
+        sk: { S: "sub#show-77" },
+        ratingStars: { N: "4" },
+        ratingUpdatedAt: { S: "2025-04-14T11:00:00.000Z" },
+      },
+      ConsumedCapacity: null,
+    };
+
+    const rendered = renderTemplate(responseTemplate, runtime);
+    const response = JSON.parse(rendered);
+
+    expect(response).toEqual({
+      pk: "user#user-9",
+      sk: "sub#show-77",
+      ratingStars: 4,
+      ratingUpdatedAt: "2025-04-14T11:00:00.000Z",
+    });
+  });
+
+  it("handles reviews that contain punctuation and extended text", () => {
+    const runtime = createRuntime({
+      args: {
+        showId: "show-55",
+        stars: 4,
+        review:
+          "Intressting story, really like the zombie story line. Benefit of this, extremly easy to follow the characters. Really liked it for being long,",
+      },
+      identitySub: "user-44",
+      now: "2026-05-01T16:10:00.000Z",
+    });
+
+    const rendered = renderTemplate(requestTemplate, runtime);
+    const request = JSON.parse(rendered);
+
+    expect(request.update.expressionValues[":review"]).toEqual({
+      S: "Intressting story, really like the zombie story line. Benefit of this, extremly easy to follow the characters. Really liked it for being long,",
+    });
+  });
 });
