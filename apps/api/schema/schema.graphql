@@ -137,6 +137,7 @@ type Mutation {
     showId: ID
   ): Progress!
   markNextEpisodeComplete(showId: ID!, limit: Int = 25): Progress!
+  markAllEpisodesComplete(showId: ID!): [Progress!]!
   publishProgress(
     episodeId: ID!
     positionSec: Int!

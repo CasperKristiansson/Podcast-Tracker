@@ -268,6 +268,13 @@ export class ApiDataStack extends cdk.Stack {
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
+    progressDataSource.createResolver("MarkAllEpisodesCompleteResolver", {
+      typeName: "Mutation",
+      fieldName: "markAllEpisodesComplete",
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
     progressDataSource.createResolver("UnsubscribeResolver", {
       typeName: "Mutation",
       fieldName: "unsubscribe",

@@ -16,6 +16,9 @@ import {
   MarkEpisodeProgressDocument,
   type MarkEpisodeProgressMutation,
   type MarkEpisodeProgressMutationVariables,
+  MarkAllEpisodesCompleteDocument,
+  type MarkAllEpisodesCompleteMutation,
+  type MarkAllEpisodesCompleteMutationVariables,
   RateShowDocument,
   SubscribeToShowDocument,
   UnsubscribeFromShowDocument,
@@ -106,12 +109,9 @@ function PodcastDetailAppContent({
     error: showDetailError,
     fetchMore,
     refetch: refetchShowDetail,
-  } = useQuery<ShowDetailQuery, ShowDetailQueryVariables>(
-    ShowDetailDocument,
-    {
-      variables: showDetailVariables,
-    }
-  );
+  } = useQuery<ShowDetailQuery, ShowDetailQueryVariables>(ShowDetailDocument, {
+    variables: showDetailVariables,
+  });
 
   const [episodeFilter, setEpisodeFilter] = useState<EpisodeFilterValue>("all");
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
@@ -228,6 +228,10 @@ function PodcastDetailAppContent({
     MarkEpisodeProgressMutation,
     MarkEpisodeProgressMutationVariables
   >(MarkEpisodeProgressDocument);
+  const [markAllEpisodesComplete, { loading: markAllLoading }] = useMutation<
+    MarkAllEpisodesCompleteMutation,
+    MarkAllEpisodesCompleteMutationVariables
+  >(MarkAllEpisodesCompleteDocument);
   const [subscribeToShow, { loading: subscribeLoading }] = useMutation(
     SubscribeToShowDocument
   );
@@ -486,6 +490,80 @@ function PodcastDetailAppContent({
       setPendingEpisodeId(null);
     }
   };
+
+  const handleMarkAllEpisodes = useCallback(async () => {
+    try {
+      await markAllEpisodesComplete({
+        variables: { showId },
+        update(cache, result) {
+          const updates =
+            result.data?.markAllEpisodesComplete?.filter(
+              (
+                entry
+              ): entry is NonNullable<
+                MarkAllEpisodesCompleteMutation["markAllEpisodesComplete"][number]
+              > => Boolean(entry?.episodeId)
+            ) ?? [];
+
+          if (updates.length === 0) {
+            return;
+          }
+
+          const existing = cache.readQuery<
+            ShowDetailQuery,
+            ShowDetailQueryVariables
+          >({
+            query: ShowDetailDocument,
+            variables: showDetailVariables,
+          });
+
+          if (!existing?.showDetail) {
+            return;
+          }
+
+          const updateMap = new Map(
+            updates.map((entry) => [entry.episodeId, entry])
+          );
+
+          const nextProgress: ShowDetailQuery["showDetail"]["progress"] = [];
+
+          for (const entry of existing.showDetail.progress ?? []) {
+            if (!entry?.episodeId) {
+              continue;
+            }
+            const updateEntry = updateMap.get(entry.episodeId);
+            if (updateEntry) {
+              nextProgress.push({
+                ...entry,
+                ...updateEntry,
+              });
+              updateMap.delete(entry.episodeId);
+            } else {
+              nextProgress.push(entry);
+            }
+          }
+
+          for (const updateEntry of updateMap.values()) {
+            nextProgress.push(updateEntry);
+          }
+
+          cache.writeQuery<ShowDetailQuery, ShowDetailQueryVariables>({
+            query: ShowDetailDocument,
+            variables: showDetailVariables,
+            data: {
+              ...existing,
+              showDetail: {
+                ...existing.showDetail,
+                progress: nextProgress,
+              },
+            },
+          });
+        },
+      });
+    } catch (err) {
+      console.error("Failed to mark all episodes complete", err);
+    }
+  }, [markAllEpisodesComplete, showDetailVariables, showId]);
 
   const handleRatingSave = async () => {
     if (!show) return;
@@ -957,6 +1035,34 @@ function PodcastDetailAppContent({
                                 <span>Listen on Spotify</span>
                                 <span aria-hidden>↗</span>
                               </a>
+                            ) : null}
+                            {isSubscribed ? (
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setActionsMenuOpen(false);
+                                  window.setTimeout(() => {
+                                    void handleMarkAllEpisodes();
+                                  }, 0);
+                                }}
+                                disabled={markAllLoading}
+                                className={`flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] ${
+                                  markAllLoading
+                                    ? "cursor-wait bg-white/12 text-white/60"
+                                    : "hover:bg-white/10"
+                                }`}
+                              >
+                                <span>
+                                  {markAllLoading
+                                    ? "Marking episodes…"
+                                    : "Mark all episodes as watched"}
+                                </span>
+                                <span aria-hidden>
+                                  {markAllLoading ? "…" : "✓"}
+                                </span>
+                              </button>
                             ) : null}
                             {isSubscribed ? (
                               <button

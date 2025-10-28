@@ -44,12 +44,18 @@ export type EpisodeConnection = PaginatedResult & {
 
 export type Mutation = {
   __typename: 'Mutation';
+  markAllEpisodesComplete: Array<Progress>;
   markNextEpisodeComplete: Progress;
   markProgress: Progress;
   publishProgress: Progress;
   rateShow: UserSubscription;
   subscribe: UserSubscription;
   unsubscribe: Scalars['Boolean']['output'];
+};
+
+
+export type MutationMarkAllEpisodesCompleteArgs = {
+  showId: Scalars['ID']['input'];
 };
 
 
@@ -313,6 +319,13 @@ export type MarkNextEpisodeCompleteMutationVariables = Exact<{
 
 export type MarkNextEpisodeCompleteMutation = { __typename: 'Mutation', markNextEpisodeComplete: { __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any, showId?: string | null | undefined } };
 
+export type MarkAllEpisodesCompleteMutationVariables = Exact<{
+  showId: Scalars['ID']['input'];
+}>;
+
+
+export type MarkAllEpisodesCompleteMutation = { __typename: 'Mutation', markAllEpisodesComplete: Array<{ __typename: 'Progress', episodeId: string, positionSec: number, completed: boolean, updatedAt: any, showId?: string | null | undefined }> };
+
 export type PublishProgressUpdateMutationVariables = Exact<{
   episodeId: Scalars['ID']['input'];
   positionSec: Scalars['Int']['input'];
@@ -543,6 +556,18 @@ export const MarkNextEpisodeCompleteDocument = gql`
 }
     `;
 export type MarkNextEpisodeCompleteMutationResult = ApolloReactCommon.MutationResult<MarkNextEpisodeCompleteMutation>;
+export const MarkAllEpisodesCompleteDocument = gql`
+    mutation MarkAllEpisodesComplete($showId: ID!) {
+  markAllEpisodesComplete(showId: $showId) {
+    episodeId
+    positionSec
+    completed
+    updatedAt
+    showId
+  }
+}
+    `;
+export type MarkAllEpisodesCompleteMutationResult = ApolloReactCommon.MutationResult<MarkAllEpisodesCompleteMutation>;
 export const PublishProgressUpdateDocument = gql`
     mutation PublishProgressUpdate($episodeId: ID!, $positionSec: Int!, $completed: Boolean!) {
   publishProgress(

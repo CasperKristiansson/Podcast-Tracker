@@ -23,6 +23,11 @@ interface Episode {
   durationSec?: number | null;
 }
 
+interface EpisodePage {
+  items: Episode[];
+  nextToken: string | null;
+}
+
 interface ProgressRecord {
   episodeId: string;
   completed: boolean;
@@ -47,7 +52,7 @@ const lambdaClient = new LambdaClient({});
 
 export const handler = async (
   event: AppSyncEvent
-): Promise<ProgressResponse | boolean> => {
+): Promise<ProgressResponse | ProgressResponse[] | boolean> => {
   const userSub = event.identity?.sub?.trim();
   if (!userSub) {
     throw new Error("Unauthorized");
@@ -60,17 +65,30 @@ export const handler = async (
 
   const fieldName = event.info?.fieldName ?? "markNextEpisodeComplete";
 
-  if (fieldName === "unsubscribe") {
-    await handleUnsubscribe(userSub, showId);
-    return true;
+  switch (fieldName) {
+    case "unsubscribe":
+      await handleUnsubscribe(userSub, showId);
+      return true;
+    case "markAllEpisodesComplete":
+      return handleMarkAllEpisodesComplete(userSub, showId);
+    case "markNextEpisodeComplete": {
+      const limitArgument = event.arguments.limit;
+      const limit =
+        typeof limitArgument === "number" && Number.isFinite(limitArgument)
+          ? Math.max(1, Math.trunc(limitArgument))
+          : 25;
+      return handleMarkNextEpisodeComplete(userSub, showId, limit);
+    }
+    default:
+      throw new Error(`Unsupported field ${fieldName}`);
   }
+};
 
-  const limitArgument = event.arguments.limit;
-  const limit =
-    typeof limitArgument === "number" && Number.isFinite(limitArgument)
-      ? Math.max(1, Math.trunc(limitArgument))
-      : 25;
-
+async function handleMarkNextEpisodeComplete(
+  userSub: string,
+  showId: string,
+  limit: number
+): Promise<ProgressResponse> {
   const episodes = await fetchEpisodes(showId, limit);
   if (episodes.length === 0) {
     throw new Error("No episodes available for this show.");
@@ -113,7 +131,88 @@ export const handler = async (
     updatedAt: nowIso,
     showId,
   };
-};
+}
+
+async function handleMarkAllEpisodesComplete(
+  userSub: string,
+  showId: string
+): Promise<ProgressResponse[]> {
+  const episodes = await fetchAllEpisodes(showId);
+  if (episodes.length === 0) {
+    throw new Error("No episodes available for this show.");
+  }
+
+  const completedEpisodes = await loadCompletedEpisodes(userSub, showId);
+  const completedSet = new Set(completedEpisodes.map((item) => item.episodeId));
+
+  const updates: ProgressResponse[] = [];
+  const writeRequests: Array<{
+    PutRequest: {
+      Item: {
+        pk: string;
+        sk: string;
+        dataType: string;
+        episodeId: string;
+        positionSec: number;
+        completed: boolean;
+        updatedAt: string;
+        showId: string;
+      };
+    };
+  }> = [];
+
+  for (const episode of episodes) {
+    if (completedSet.has(episode.episodeId)) {
+      continue;
+    }
+
+    const positionSec = normaliseDuration(episode.durationSec);
+    const updatedAt = new Date().toISOString();
+
+    updates.push({
+      episodeId: episode.episodeId,
+      positionSec,
+      completed: true,
+      updatedAt,
+      showId,
+    });
+
+    writeRequests.push({
+      PutRequest: {
+        Item: {
+          pk: `user#${userSub}`,
+          sk: `ep#${episode.episodeId}`,
+          dataType: "progress",
+          episodeId: episode.episodeId,
+          positionSec,
+          completed: true,
+          updatedAt,
+          showId,
+        },
+      },
+    });
+  }
+
+  if (writeRequests.length === 0) {
+    return [];
+  }
+
+  let index = 0;
+  while (index < writeRequests.length) {
+    const batch = writeRequests.slice(index, index + 25);
+    index += 25;
+
+    await dynamo.send(
+      new BatchWriteCommand({
+        RequestItems: {
+          [tableName]: batch,
+        },
+      })
+    );
+  }
+
+  return updates;
+}
 
 async function handleUnsubscribe(
   userSub: string,
@@ -162,9 +261,58 @@ async function fetchEpisodes(
   showId: string,
   limit: number
 ): Promise<Episode[]> {
+  const page = await fetchEpisodesPage(showId, limit);
+  return page.items;
+}
+
+async function fetchAllEpisodes(showId: string): Promise<Episode[]> {
+  const episodes: Episode[] = [];
+  const seenEpisodeIds = new Set<string>();
+  const seenTokens = new Set<string>();
+  let cursor: string | null = null;
+  let pageCount = 0;
+  const MAX_PAGES = 200;
+
+  while (pageCount < MAX_PAGES) {
+    pageCount += 1;
+    const { items, nextToken } = await fetchEpisodesPage(
+      showId,
+      50,
+      cursor ?? undefined
+    );
+
+    for (const episode of items) {
+      if (seenEpisodeIds.has(episode.episodeId)) {
+        continue;
+      }
+      seenEpisodeIds.add(episode.episodeId);
+      episodes.push(episode);
+    }
+
+    if (!nextToken || seenTokens.has(nextToken)) {
+      break;
+    }
+
+    seenTokens.add(nextToken);
+    cursor = nextToken;
+  }
+
+  return episodes;
+}
+
+async function fetchEpisodesPage(
+  showId: string,
+  limit: number,
+  cursor?: string
+): Promise<EpisodePage> {
+  const args: Record<string, unknown> = { showId, limit };
+  if (typeof cursor === "string" && cursor.length > 0) {
+    args.cursor = cursor;
+  }
+
   const payload = JSON.stringify({
     info: { fieldName: "episodes" },
-    arguments: { showId, limit },
+    arguments: args,
   });
 
   const response = await lambdaClient.send(
@@ -198,12 +346,23 @@ async function fetchEpisodes(
   }
 
   const items = (parsed as { items?: Episode[] | null } | null)?.items ?? [];
-  return items
+  const mappedItems = items
     .filter((episode): episode is Episode => Boolean(episode?.episodeId))
     .map((episode) => ({
       episodeId: episode.episodeId,
       durationSec: episode.durationSec ?? null,
     }));
+
+  const nextTokenRaw = (parsed as { nextToken?: unknown } | null)?.nextToken;
+  const nextToken =
+    typeof nextTokenRaw === "string" && nextTokenRaw.length > 0
+      ? nextTokenRaw
+      : null;
+
+  return {
+    items: mappedItems,
+    nextToken,
+  };
 }
 
 async function loadCompletedEpisodes(
