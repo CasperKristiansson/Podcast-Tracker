@@ -73,6 +73,52 @@ export class EdgeStack extends cdk.Stack {
 
     const originId = "SiteBucketOrigin";
 
+    const contentSecurityPolicy =
+      "default-src 'self'; connect-src 'self' https:; img-src 'self' data: https:; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests";
+
+    const securityHeadersPolicy = new cloudfront.ResponseHeadersPolicy(
+      this,
+      "SecurityHeadersPolicy",
+      {
+        comment: "Podcast Tracker security headers",
+        securityHeadersBehavior: {
+          contentSecurityPolicy: {
+            contentSecurityPolicy,
+            override: true,
+          },
+          strictTransportSecurity: {
+            accessControlMaxAge: cdk.Duration.days(365 * 2),
+            includeSubdomains: true,
+            preload: true,
+            override: true,
+          },
+          contentTypeOptions: { override: true },
+          frameOptions: {
+            frameOption: cloudfront.HeadersFrameOption.DENY,
+            override: true,
+          },
+          referrerPolicy: {
+            referrerPolicy: cloudfront.HeadersReferrerPolicy.NO_REFERRER,
+            override: true,
+          },
+          xssProtection: {
+            protection: true,
+            modeBlock: true,
+            override: true,
+          },
+        },
+        customHeadersBehavior: {
+          customHeaders: [
+            {
+              header: "Permissions-Policy",
+              value: "geolocation=(), microphone=(), camera=()",
+              override: true,
+            },
+          ],
+        },
+      }
+    );
+
     this.distribution = new cloudfront.CfnDistribution(
       this,
       "SiteDistribution",
@@ -97,6 +143,8 @@ export class EdgeStack extends cdk.Stack {
             cachedMethods: ["GET", "HEAD"],
             compress: true,
             targetOriginId: originId,
+            responseHeadersPolicyId:
+              securityHeadersPolicy.responseHeadersPolicyId,
             viewerProtocolPolicy: "redirect-to-https",
             cachePolicyId:
               cloudfront.CachePolicy.CACHING_OPTIMIZED.cachePolicyId,
