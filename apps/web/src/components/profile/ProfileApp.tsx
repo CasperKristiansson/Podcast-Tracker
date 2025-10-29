@@ -21,6 +21,45 @@ import { LibrarySection } from "./sections/LibrarySection";
 import type { CelebrationState } from "./types";
 import { ProfileSkeleton } from "./sections/ProfileSkeleton";
 
+const toFiniteNumber = (value: unknown): number => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+};
+
+const computeSpotlightList = (
+  shows: (ProfileShow | null | undefined)[] | null | undefined
+): ProfileShow[] => {
+  const validShows = (shows ?? []).filter((entry): entry is ProfileShow =>
+    Boolean(entry)
+  );
+
+  return validShows
+    .filter((show) => toFiniteNumber(show.unlistenedEpisodes) > 0)
+    .sort((a, b) => {
+      const aCompleted = toFiniteNumber(a.completedEpisodes);
+      const bCompleted = toFiniteNumber(b.completedEpisodes);
+      if (aCompleted > 0 !== bCompleted > 0) {
+        return aCompleted > 0 ? -1 : 1;
+      }
+      const unlistenedDelta =
+        toFiniteNumber(b.unlistenedEpisodes) -
+        toFiniteNumber(a.unlistenedEpisodes);
+      if (unlistenedDelta !== 0) {
+        return unlistenedDelta;
+      }
+      const titleA = typeof a.title === "string" ? a.title : "";
+      const titleB = typeof b.title === "string" ? b.title : "";
+      return titleA.localeCompare(titleB);
+    })
+    .slice(0, 4);
+};
+
 function ProfileAppContent(): JSX.Element {
   const {
     data,
@@ -63,14 +102,6 @@ function ProfileAppContent(): JSX.Element {
     episodesInProgress: 0,
   };
 
-  const spotlight = useMemo<ProfileShow[]>(
-    () =>
-      (data?.myProfile.spotlight ?? []).filter((entry): entry is ProfileShow =>
-        Boolean(entry)
-      ),
-    [data?.myProfile.spotlight]
-  );
-
   const shows = useMemo<ProfileShow[]>(
     () =>
       (data?.myProfile.shows ?? []).filter((entry): entry is ProfileShow =>
@@ -79,6 +110,10 @@ function ProfileAppContent(): JSX.Element {
     [data?.myProfile.shows]
   );
 
+  const spotlight = useMemo<ProfileShow[]>(
+    () => computeSpotlightList(shows),
+    [shows]
+  );
   const handleCelebrate = useCallback(
     async (show: ProfileShow) => {
       try {
@@ -100,8 +135,7 @@ function ProfileAppContent(): JSX.Element {
                 }
 
                 const updateShowList = (
-                  list: (ProfileShow | null | undefined)[] | null | undefined,
-                  removeZeroUnlistened = false
+                  list: (ProfileShow | null | undefined)[] | null | undefined
                 ): ProfileShow[] =>
                   (list ?? [])
                     .map((entry) => {
@@ -134,19 +168,10 @@ function ProfileAppContent(): JSX.Element {
                         subscriptionSyncedAt: subscriptionSyncedAt ?? null,
                       } satisfies ProfileShow;
                     })
-                    .filter((entry): entry is ProfileShow =>
-                      Boolean(
-                        entry &&
-                          (!removeZeroUnlistened ||
-                            entry.unlistenedEpisodes > 0)
-                      )
-                    );
+                    .filter((entry): entry is ProfileShow => Boolean(entry));
 
                 const updatedShows = updateShowList(profile.shows);
-                const updatedSpotlight = updateShowList(
-                  profile.spotlight,
-                  true
-                );
+                const updatedSpotlight = computeSpotlightList(updatedShows);
 
                 const currentStats =
                   profile.stats ??
@@ -227,7 +252,6 @@ function ProfileAppContent(): JSX.Element {
                 }
 
                 const showsList = currentProfile.shows ?? [];
-                const spotlightList = currentProfile.spotlight ?? [];
                 const showRemoved = showsList.some(
                   (profileShow) => profileShow?.showId === show.showId
                 );
@@ -239,9 +263,7 @@ function ProfileAppContent(): JSX.Element {
                 const filteredShows = showsList.filter(
                   (profileShow) => profileShow?.showId !== show.showId
                 );
-                const filteredSpotlight = spotlightList.filter(
-                  (profileShow) => profileShow?.showId !== show.showId
-                );
+                const updatedSpotlight = computeSpotlightList(filteredShows);
 
                 const currentStats = currentProfile.stats;
                 const updatedStats = {
@@ -256,7 +278,7 @@ function ProfileAppContent(): JSX.Element {
                   myProfile: {
                     __typename: currentProfile.__typename ?? "UserProfile",
                     stats: updatedStats,
-                    spotlight: filteredSpotlight,
+                    spotlight: updatedSpotlight,
                     shows: filteredShows,
                   },
                 } satisfies MyProfileQuery;
