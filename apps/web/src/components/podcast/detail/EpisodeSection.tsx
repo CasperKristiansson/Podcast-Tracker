@@ -307,12 +307,6 @@ export function EpisodeSection({
                               {episodeLanguages.join(" · ")}
                             </span>
                           ) : null}
-                          <a
-                            href={`/app/show/${showId}/episode/${episode.episodeId}`}
-                            className="inline-flex items-center gap-2 text-[#bcd9ff] transition hover:text-white"
-                          >
-                            Episode details ↗
-                          </a>
                           {episode.linkUrl ? (
                             <a
                               href={episode.linkUrl}
