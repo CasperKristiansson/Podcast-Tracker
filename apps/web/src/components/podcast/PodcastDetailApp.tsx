@@ -28,6 +28,7 @@ import { EpisodeSection } from "./detail/EpisodeSection";
 import { HeroSection } from "./detail/HeroSection";
 import { RatingModal } from "./detail/RatingModal";
 import { ActionToast, type ActionToastState } from "./detail/ActionToast";
+import { HeroSectionSkeleton } from "./detail/HeroSkeleton";
 
 interface PodcastDetailAppProps {
   showId: string;
@@ -738,80 +739,7 @@ function PodcastDetailAppContent({
         </div>
       ) : null}
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-14 px-6 py-16">
-        {heroLoading ? (
-          <div className="relative overflow-hidden rounded-[40px] border border-white/10 bg-white/[0.05] px-6 py-10 sm:px-10 sm:py-12">
-            <div
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(164,132,255,0.18),_transparent_75%)]"
-              aria-hidden
-            />
-            <div className="relative z-10 flex flex-col gap-10 lg:flex-row lg:items-start">
-              <div className="relative mx-auto w-44 shrink-0 sm:w-56 lg:mx-0 lg:w-64">
-                <div
-                  className="pointer-events-none absolute -inset-6 rounded-[36px] bg-gradient-to-br from-white/20 via-transparent to-white/10 opacity-60 blur-3xl"
-                  aria-hidden
-                />
-                <div className="aspect-square animate-pulse rounded-[32px] border border-white/10 bg-white/10" />
-              </div>
-              <div className="flex-1 space-y-8">
-                <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                  <div className="space-y-4">
-                    <div className="h-6 w-44 animate-pulse rounded-full bg-white/10" />
-                    <div className="h-10 w-3/4 animate-pulse rounded-full bg-white/12" />
-                    <div className="flex flex-wrap gap-3">
-                      {Array.from({ length: 3 }).map((_, idx) => (
-                        <div
-                          key={`hero-stat-pill-${idx}`}
-                          className="h-6 w-28 animate-pulse rounded-full bg-white/10"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex w-full max-w-xs flex-col gap-3">
-                    <div className="h-10 w-full animate-pulse rounded-full bg-white/10" />
-                    <div className="h-10 w-full animate-pulse rounded-full bg-white/10" />
-                    <div className="h-10 w-full animate-pulse rounded-full bg-white/10" />
-                  </div>
-                </div>
-                <div className="relative max-w-3xl">
-                  <div
-                    className="space-y-2"
-                    style={{
-                      WebkitMaskImage:
-                        "linear-gradient(180deg, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
-                      maskImage:
-                        "linear-gradient(180deg, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
-                    }}
-                  >
-                    {Array.from({ length: 6 }).map((_, idx) => (
-                      <div
-                        key={`hero-description-line-${idx}`}
-                        className="h-4 w-full animate-pulse rounded-full bg-white/10"
-                      />
-                    ))}
-                  </div>
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center translate-y-2 pb-4">
-                    <div
-                      className="h-7 w-28 animate-pulse rounded-full border border-white/15 bg-white/10"
-                      aria-hidden
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  {Array.from({ length: 4 }).map((_, idx) => (
-                    <div
-                      key={`hero-pill-${idx}`}
-                      className="h-6 w-24 animate-pulse rounded-full bg-white/10"
-                    />
-                  ))}
-                </div>
-                <div className="space-y-3">
-                  <div className="h-10 w-48 animate-pulse rounded-full bg-white/10" />
-                  <div className="h-12 w-full animate-pulse rounded-2xl bg-white/8" />
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
+        {heroLoading ? <HeroSectionSkeleton /> : null}
 
         {showDetailError ? (
           <div className="rounded-3xl border border-red-500/40 bg-red-500/20 p-6 text-sm text-red-100">

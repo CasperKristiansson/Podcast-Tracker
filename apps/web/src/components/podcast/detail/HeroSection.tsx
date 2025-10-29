@@ -212,7 +212,7 @@ export function HeroSection({
                     onClick={() => setMenuOpen((prev) => !prev)}
                     aria-haspopup="menu"
                     aria-expanded={menuOpen}
-                    className="inline-flex w-full items-center justify-between gap-3 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white whitespace-nowrap transition hover:bg-white/[0.1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
+                    className="inline-flex w-full cursor-pointer items-center justify-between gap-3 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white whitespace-nowrap transition hover:bg-white/[0.1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
                   >
                     <span>More actions</span>
                     <svg
@@ -253,7 +253,7 @@ export function HeroSection({
                             }, 0);
                           }}
                           disabled={item.disabled}
-                          className={`flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] ${
+                          className={`flex w-full cursor-pointer items-center justify-between rounded-2xl px-3 py-2 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff] ${
                             item.disabled
                               ? "cursor-not-allowed text-white/45"
                               : item.destructive
@@ -276,7 +276,7 @@ export function HeroSection({
                               onSubscribeToggle();
                             }, 0);
                           }}
-                          className="mt-1 flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-red-200 transition hover:bg-red-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
+                          className="mt-1 flex w-full cursor-pointer items-center justify-between rounded-2xl px-3 py-2 text-left text-red-200 transition hover:bg-red-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
                         >
                           <span>Remove show</span>
                           <span aria-hidden>✕</span>

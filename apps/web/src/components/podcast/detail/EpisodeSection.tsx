@@ -190,30 +190,6 @@ export function EpisodeSection({
         </div>
       </div>
 
-      {episodesInitialLoading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, idx) => (
-            <div
-              key={`episode-skeleton-${idx}`}
-              className="animate-pulse rounded-3xl border border-white/10 bg-white/[0.05] p-6"
-            >
-              <div className="h-3 w-1/3 rounded-full bg-white/10" />
-              <div className="mt-4 h-6 w-2/3 rounded-full bg-white/10" />
-              <div className="mt-3 h-4 w-full rounded-full bg-white/10" />
-              <div className="mt-2 h-4 w-5/6 rounded-full bg-white/10" />
-              <div className="mt-4 flex flex-wrap gap-3">
-                {Array.from({ length: 3 }).map((_, pillIdx) => (
-                  <div
-                    key={`episode-pill-${idx}-${pillIdx}`}
-                    className="h-6 w-24 rounded-full bg-white/10"
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
       {filteredEpisodes.length === 0 && !episodesInitialLoading ? (
         <div className="rounded-3xl border border-white/12 bg-white/[0.04] p-10 text-center text-sm text-white/70">
           No episodes match this filter yet.
@@ -221,23 +197,27 @@ export function EpisodeSection({
       ) : null}
 
       <ul className="space-y-5">
-        {filteredEpisodes.map((episode, index) => {
-          const progress = progressMap.get(episode.episodeId);
-          const isWatched = Boolean(progress?.completed);
-          const publishedAt = episode.publishedAt
-            ? formatDate(String(episode.publishedAt))
-            : "";
-          const episodeLanguages =
-            episode.languages?.filter(isNonEmptyString) ?? [];
-          const durationSeconds = Number(episode.durationSec ?? 0);
-          const durationLabel = formatDuration(durationSeconds);
-          const isEpisodeUpdating =
-            pendingEpisodeId === episode.episodeId && markProgressLoading;
-          const canTrack = canTrackProgress;
-          const cardClassName =
-            canTrack && isWatched
-              ? "group relative overflow-hidden rounded-3xl border border-emerald-400/35 bg-gradient-to-br from-emerald-500/15 via-[#12072d]/70 to-[#12072d]/90 p-6 shadow-[0_28px_80px_rgba(9,93,69,0.35)] transition duration-300 hover:border-emerald-300/60 hover:shadow-[0_32px_90px_rgba(9,93,69,0.45)]"
-              : "group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_24px_60px_rgba(29,16,65,0.35)] transition duration-300 hover:border-white/25 hover:bg-white/[0.09]";
+        {episodesInitialLoading
+          ? Array.from({ length: 3 }).map((_, idx) => (
+              <EpisodeCardSkeleton key={`episode-skeleton-${idx}`} />
+            ))
+          : filteredEpisodes.map((episode, index) => {
+            const progress = progressMap.get(episode.episodeId);
+            const isWatched = Boolean(progress?.completed);
+            const publishedAt = episode.publishedAt
+              ? formatDate(String(episode.publishedAt))
+              : "";
+            const episodeLanguages =
+              episode.languages?.filter(isNonEmptyString) ?? [];
+            const durationSeconds = Number(episode.durationSec ?? 0);
+            const durationLabel = formatDuration(durationSeconds);
+            const isEpisodeUpdating =
+              pendingEpisodeId === episode.episodeId && markProgressLoading;
+            const canTrack = canTrackProgress;
+            const cardClassName =
+              canTrack && isWatched
+                ? "group relative overflow-hidden rounded-3xl border border-emerald-400/35 bg-gradient-to-br from-emerald-500/15 via-[#12072d]/70 to-[#12072d]/90 p-6 shadow-[0_28px_80px_rgba(9,93,69,0.35)] transition duration-300 hover:border-emerald-300/60 hover:shadow-[0_32px_90px_rgba(9,93,69,0.45)]"
+                : "group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_24px_60px_rgba(29,16,65,0.35)] transition duration-300 hover:border-white/25 hover:bg-white/[0.09]";
 
           return (
             <li key={episode.episodeId} className={cardClassName}>
@@ -387,5 +367,66 @@ export function EpisodeSection({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function EpisodeCardSkeleton(): JSX.Element {
+  return (
+    <li className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_24px_60px_rgba(29,16,65,0.35)]">
+      <div
+        className="absolute -top-24 -right-20 h-48 w-48 rounded-full bg-[#8f73ff]/20 blur-[110px] opacity-40"
+        aria-hidden
+      />
+      <div className="relative flex flex-col gap-6">
+        <div className="absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.08] px-3 py-1 text-xs uppercase tracking-[0.35em] text-white/60">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10">
+            <span className="h-2 w-2 rounded-full bg-white/25" />
+          </span>
+          <span className="h-3 w-16 rounded-full bg-white/15" />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.35em] text-white/45">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div
+              key={`episode-meta-placeholder-${idx}`}
+              className={`h-3 rounded-full bg-white/12 ${
+                idx === 0
+                  ? "w-28"
+                  : idx === 1
+                    ? "w-20"
+                    : idx === 2
+                      ? "w-16"
+                      : "w-24"
+              } animate-pulse`}
+            />
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
+          <div className="flex flex-1 flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <div className="h-6 w-3/4 animate-pulse rounded-full bg-white/12" />
+              <div className="space-y-2">
+                <div className="h-4 w-full animate-pulse rounded-full bg-white/10" />
+                <div className="h-4 w-5/6 animate-pulse rounded-full bg-white/10" />
+                <div className="h-4 w-2/3 animate-pulse rounded-full bg-white/10" />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.3em] text-white/50">
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <div
+                  key={`episode-tag-placeholder-${idx}`}
+                  className="h-7 w-28 animate-pulse rounded-full bg-white/10"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <div className="h-10 w-48 animate-pulse rounded-full bg-white/12" />
+        </div>
+      </div>
+    </li>
   );
 }

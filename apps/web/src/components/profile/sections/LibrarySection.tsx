@@ -120,7 +120,7 @@ function LibraryCard({
 
   return (
     <div
-      className="group relative flex flex-col gap-5 overflow-hidden rounded-[28px] border border-white/12 bg-[#190b36]/85 p-6 shadow-[0_38px_100px_rgba(21,10,52,0.5)] transition duration-300 hover:-translate-y-1 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
+      className="group relative flex cursor-pointer flex-col gap-5 overflow-hidden rounded-[28px] border border-white/12 bg-[#190b36]/85 p-6 shadow-[0_38px_100px_rgba(21,10,52,0.5)] transition duration-300 hover:-translate-y-1 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
       role="link"
       tabIndex={0}
       aria-label={`View details for ${show.title ?? "podcast"}`}
