@@ -969,4 +969,55 @@ describe("internal helpers", () => {
       delete process.env.MISSING_ENV;
     }
   });
+
+  it("sanitizes HTML content returned for shows and episodes", () => {
+    const dirtyShow = {
+      id: "show-html",
+      name: "Show HTML",
+      publisher: "Publisher",
+      description: '<script>alert("boom")</script>Plain <b>text</b>',
+      html_description:
+        '<p onclick="evil()">Hi <img src="x" onerror="hack()" /> <a href="javascript:bad()">link</a></p>',
+      images: [],
+      total_episodes: 3,
+      external_urls: { spotify: "https://open.spotify.com/show-html" },
+      genres: [],
+      explicit: false,
+      languages: [],
+      available_markets: [],
+      media_type: "audio",
+    };
+
+    const mappedShow = __internal.mapShow(dirtyShow);
+    expect(mappedShow.htmlDescription).toBe("<p>Hi <span>link</span></p>");
+    expect(mappedShow.description).toBe("Plain text");
+    expect(mappedShow.htmlDescription?.includes("script")).toBe(false);
+    expect(mappedShow.htmlDescription?.includes("onerror")).toBe(false);
+    expect(mappedShow.htmlDescription?.includes("javascript:")).toBe(false);
+
+    const dirtyEpisode = {
+      id: "episode-html",
+      name: "Episode HTML",
+      description:
+        'Intro <img src="x" onerror="steal()" /> <a href="http://example.com">safe</a>',
+      html_description:
+        '<div><p>Line one</p><p><a href="mailto:test@example.com">mail</a></p></div>',
+      audio_preview_url: null,
+      external_urls: { spotify: "https://open.spotify.com/episode-html" },
+      images: [],
+      release_date: "2024-01-01",
+      release_date_precision: "day",
+      duration_ms: 1_000,
+      explicit: false,
+      languages: [],
+      show: { id: "show-html" },
+    };
+
+    const mappedEpisode = __internal.mapEpisode(dirtyEpisode);
+    expect(mappedEpisode.htmlDescription).toBe(
+      '<div><p>Line one</p><p><a href="mailto:test@example.com" rel="noopener noreferrer">mail</a></p></div>'
+    );
+    expect(mappedEpisode.description).toBe("Intro safe");
+    expect(mappedEpisode.htmlDescription?.includes("onerror")).toBe(false);
+  });
 });

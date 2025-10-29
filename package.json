@@ -35,7 +35,8 @@
     "@aws-sdk/client-ssm": "^3.918.0",
     "@aws-sdk/lib-dynamodb": "^3.918.0",
     "graphql-ws": "^6.0.6",
-    "lightningcss": "^1.30.2"
+    "lightningcss": "^1.30.2",
+    "sanitize-html": "^2.17.0"
   },
   "devDependencies": {
     "@astrojs/node": "^9.5.0",
@@ -47,6 +48,7 @@
     "@graphql-codegen/typescript-operations": "^5.0.2",
     "@graphql-codegen/typescript-react-apollo": "^4.3.3",
     "@types/node": "^24.9.2",
+    "@types/sanitize-html": "^2.16.0",
     "@vitest/coverage-v8": "^4.0.4",
     "aws-sdk-client-mock": "^4.1.0",
     "eslint": "^9.38.0",

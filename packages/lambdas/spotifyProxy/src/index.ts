@@ -7,6 +7,7 @@ import {
   PutCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
+import sanitizeHtml from "sanitize-html";
 import { createHash } from "node:crypto";
 
 interface AppSyncEvent {
@@ -30,6 +31,89 @@ const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
 
 const parameterCache = new Map<string, string>();
 let cachedToken: { token: string; expiresAt: number } | null = null;
+
+const SANITIZE_HTML_OPTIONS: sanitizeHtml.IOptions = {
+  allowedTags: [
+    "a",
+    "b",
+    "strong",
+    "i",
+    "em",
+    "u",
+    "p",
+    "br",
+    "ul",
+    "ol",
+    "li",
+    "blockquote",
+    "code",
+    "pre",
+  ],
+  allowedAttributes: {
+    a: ["href", "title", "rel"],
+  },
+  allowedSchemes: ["http", "https", "mailto"],
+  allowProtocolRelative: false,
+  transformTags: {
+    a: (tagName, attribs) => {
+      const href = typeof attribs.href === "string" ? attribs.href.trim() : "";
+      if (!href) {
+        return {
+          tagName: "span",
+          attribs: {},
+        };
+      }
+      const safeAttribs: sanitizeHtml.Attributes = {
+        href,
+        rel: "noopener noreferrer",
+      };
+      if (typeof attribs.title === "string") {
+        safeAttribs.title = attribs.title;
+      }
+      return {
+        tagName,
+        attribs: safeAttribs,
+      };
+    },
+  },
+};
+
+const SANITIZE_TEXT_OPTIONS: sanitizeHtml.IOptions = {
+  allowedTags: [],
+  allowedAttributes: {},
+};
+
+function sanitizeHtmlContent(value: string | null | undefined): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const sanitized = sanitizeHtml(value, SANITIZE_HTML_OPTIONS).trim();
+  return sanitized.length > 0 ? sanitized : null;
+}
+
+function sanitizePlainTextContent(
+  value: string | null | undefined
+): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const sanitized = sanitizeHtml(value, SANITIZE_TEXT_OPTIONS)
+    .replace(/\s+/g, " ")
+    .trim();
+  return sanitized.length > 0 ? sanitized : null;
+}
+
+function sanitizeDescriptionFields(
+  html: string | null | undefined,
+  text: string | null | undefined
+): { html: string | null; text: string | null } {
+  const sanitizedHtml = sanitizeHtmlContent(html);
+  const sanitizedText = sanitizePlainTextContent(text ?? html ?? null);
+  return {
+    html: sanitizedHtml,
+    text: sanitizedText,
+  };
+}
 
 const RATE_LIMIT_KEYS = {
   system: "system",
@@ -447,12 +531,16 @@ function delay(ms: number): Promise<void> {
 }
 
 function mapShow(show: SpotifyShow, overrides?: { isSubscribed?: boolean }) {
+  const sanitizedDescription = sanitizeDescriptionFields(
+    show.html_description,
+    show.description
+  );
   return {
     id: show.id,
     title: show.name,
     publisher: show.publisher,
-    description: show.description,
-    htmlDescription: show.html_description ?? null,
+    description: sanitizedDescription.text,
+    htmlDescription: sanitizedDescription.html,
     image: show.images?.[0]?.url ?? null,
     totalEpisodes: show.total_episodes ?? 0,
     externalUrl: show.external_urls?.spotify ?? null,
@@ -472,13 +560,17 @@ function mapEpisode(episode: SpotifyEpisode) {
     episode.release_date,
     episode.release_date_precision
   );
+  const sanitizedDescription = sanitizeDescriptionFields(
+    episode.html_description,
+    episode.description
+  );
   return {
     id: episode.id,
     episodeId: episode.id,
     showId: derivedShowId ?? /* c8 ignore next */ null,
     title: episode.name,
-    description: episode.description,
-    htmlDescription: episode.html_description ?? null,
+    description: sanitizedDescription.text,
+    htmlDescription: sanitizedDescription.html,
     audioUrl: episode.audio_preview_url ?? episode.external_urls?.spotify ?? "",
     image: episode.images?.[0]?.url ?? null,
     linkUrl: episode.external_urls?.spotify ?? null,
