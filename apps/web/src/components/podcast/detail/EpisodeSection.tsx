@@ -19,7 +19,6 @@ const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
 
 interface EpisodeSectionProps {
-  showId: string;
   episodesConnection: ShowDetailQuery["showDetail"]["episodes"] | null;
   progressMap: Map<string, ShowDetailQuery["showDetail"]["progress"][number]>;
   isSubscribed: boolean;
@@ -33,7 +32,6 @@ interface EpisodeSectionProps {
 }
 
 export function EpisodeSection({
-  showId,
   episodesConnection,
   progressMap,
   isSubscribed,

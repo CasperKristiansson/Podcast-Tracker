@@ -5,6 +5,7 @@ import {
   GetCommand,
   QueryCommand,
   PutCommand,
+  UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { createHash } from "node:crypto";
 
@@ -30,6 +31,29 @@ const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
 const parameterCache = new Map<string, string>();
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
+const RATE_LIMIT_KEYS = {
+  system: "system",
+} as const;
+
+const DEFAULT_RATE_LIMIT = {
+  windowSeconds: 60,
+  maxRequests: 120,
+} as const;
+
+const SYSTEM_RATE_LIMIT = {
+  windowSeconds: 60,
+  maxRequests: 1200,
+} as const;
+
+const FIELD_RATE_LIMITS: Record<
+  string,
+  { windowSeconds: number; maxRequests: number }
+> = {
+  search: { windowSeconds: 60, maxRequests: 60 },
+  searchShows: { windowSeconds: 60, maxRequests: 60 },
+  searchSpotify: { windowSeconds: 60, maxRequests: 60 },
+};
+
 const CACHE_TTLS = {
   searchShows: 300,
   getShow: 3600,
@@ -45,6 +69,9 @@ export const handler = async (
   event: AppSyncEvent & { identity?: { sub?: string } }
 ) => {
   const field = event.info.fieldName;
+
+  const identityKey = resolveRateLimitIdentity(event.identity?.sub);
+  await enforceRateLimit(identityKey, field);
 
   switch (field) {
     case "search":
@@ -579,6 +606,79 @@ export const __internal = {
   getCachedToken: () => cachedToken,
   requiredEnv,
 };
+
+function resolveRateLimitIdentity(sub: string | undefined): string {
+  const normalized = sub?.trim();
+  if (normalized) {
+    return `user#${normalized}`;
+  }
+  return RATE_LIMIT_KEYS.system;
+}
+
+function resolveRateLimitConfig(
+  identityKey: string,
+  field: string
+): { windowSeconds: number; maxRequests: number } {
+  if (identityKey === RATE_LIMIT_KEYS.system) {
+    return SYSTEM_RATE_LIMIT;
+  }
+  return FIELD_RATE_LIMITS[field] ?? DEFAULT_RATE_LIMIT;
+}
+
+async function enforceRateLimit(
+  identityKey: string,
+  field: string
+): Promise<void> {
+  const { windowSeconds, maxRequests } = resolveRateLimitConfig(
+    identityKey,
+    field
+  );
+  if (maxRequests <= 0 || windowSeconds <= 0) {
+    return;
+  }
+
+  const now = Date.now();
+  const windowBucket = Math.floor(now / (windowSeconds * 1000));
+  const pk = `rate#${identityKey}`;
+  const sk = `${field}#${windowBucket}`;
+  const expiresAt = Math.floor(now / 1000) + windowSeconds * 2;
+
+  const result = await dynamo.send(
+    new UpdateCommand({
+      TableName: tableName,
+      Key: { pk, sk },
+      UpdateExpression:
+        "ADD #count :increment SET #updatedAt = :updatedAt, expiresAt = :expiresAt",
+      ExpressionAttributeNames: {
+        "#count": "count",
+        "#updatedAt": "updatedAt",
+      },
+      ExpressionAttributeValues: {
+        ":increment": 1,
+        ":updatedAt": new Date(now).toISOString(),
+        ":expiresAt": expiresAt,
+      },
+      ReturnValues: "UPDATED_NEW",
+    })
+  );
+
+  const currentCountRaw =
+    (result.Attributes as { count?: unknown } | undefined)?.count ?? null;
+  const currentCount =
+    typeof currentCountRaw === "number"
+      ? currentCountRaw
+      : Number(currentCountRaw);
+
+  if (!Number.isFinite(currentCount)) {
+    return;
+  }
+
+  if (currentCount > maxRequests) {
+    throw new Error(
+      "Rate limit exceeded for Spotify proxy. Please wait a moment and try again."
+    );
+  }
+}
 
 function requiredEnv(name: string): string {
   const value = process.env[name];

@@ -771,7 +771,6 @@ function PodcastDetailAppContent({
         ) : null}
 
         <EpisodeSection
-          showId={showId}
           episodesConnection={episodesConnection}
           progressMap={progressMap}
           isSubscribed={isSubscribed}
