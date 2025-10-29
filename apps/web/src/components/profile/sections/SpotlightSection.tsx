@@ -28,26 +28,6 @@ export function SpotlightSection({
     return <></>;
   }
 
-  const getCompletedEpisodes = (show: ProfileShow): number => {
-    const raw = (show as { completedEpisodes?: unknown }).completedEpisodes;
-    if (typeof raw === "number") {
-      return raw;
-    }
-    if (typeof raw === "string") {
-      const parsed = Number(raw);
-      return Number.isFinite(parsed) ? parsed : 0;
-    }
-    return 0;
-  };
-
-  const hasProgress = (show: ProfileShow): boolean =>
-    getCompletedEpisodes(show) > 0;
-
-  const orderedSpotlight = [
-    ...spotlight.filter(hasProgress),
-    ...spotlight.filter((show) => !hasProgress(show)),
-  ];
-
   return (
     <section className="relative overflow-hidden rounded-[32px] border border-white/12 bg-[#1b0c3c]/85 p-4 md:p-7">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(143,109,255,0.22),_transparent_70%)]" />
@@ -67,7 +47,7 @@ export function SpotlightSection({
           </InteractiveButton>
         </div>
         <div className="grid gap-6 md:grid-cols-2">
-          {orderedSpotlight.map((show) => (
+          {spotlight.map((show) => (
             <SpotlightCard
               key={show.showId}
               show={show}

@@ -75,26 +75,21 @@ export const handler = async (event: AppSyncEvent): Promise<ProfilePayload> => {
   const { shows, stats } = buildProfile(subscriptions, progresses);
 
   const spotlight = shows
-    .filter((show) => show.unlistenedEpisodes > 0)
+    .filter(
+      (show) =>
+        show.unlistenedEpisodes > 0 &&
+        typeof show.completedEpisodes === "number" &&
+        show.completedEpisodes > 0
+    )
     .sort((a, b) => {
-      const aCompleted =
-        typeof a.completedEpisodes === "number" &&
-        Number.isFinite(a.completedEpisodes)
-          ? a.completedEpisodes
-          : 0;
-      const bCompleted =
-        typeof b.completedEpisodes === "number" &&
-        Number.isFinite(b.completedEpisodes)
-          ? b.completedEpisodes
-          : 0;
-      const aInProgress = aCompleted > 0;
-      const bInProgress = bCompleted > 0;
-      if (aInProgress !== bInProgress) {
-        return aInProgress ? -1 : 1;
-      }
       const unlistenedDelta = b.unlistenedEpisodes - a.unlistenedEpisodes;
       if (unlistenedDelta !== 0) {
         return unlistenedDelta;
+      }
+      const completedDelta =
+        (b.completedEpisodes ?? 0) - (a.completedEpisodes ?? 0);
+      if (completedDelta !== 0) {
+        return completedDelta;
       }
       return a.title.localeCompare(b.title);
     })

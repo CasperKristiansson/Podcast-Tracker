@@ -41,18 +41,23 @@ const computeSpotlightList = (
   );
 
   return validShows
-    .filter((show) => toFiniteNumber(show.unlistenedEpisodes) > 0)
+    .filter(
+      (show) =>
+        toFiniteNumber(show.unlistenedEpisodes) > 0 &&
+        toFiniteNumber(show.completedEpisodes) > 0
+    )
     .sort((a, b) => {
-      const aCompleted = toFiniteNumber(a.completedEpisodes);
-      const bCompleted = toFiniteNumber(b.completedEpisodes);
-      if (aCompleted > 0 !== bCompleted > 0) {
-        return aCompleted > 0 ? -1 : 1;
-      }
       const unlistenedDelta =
         toFiniteNumber(b.unlistenedEpisodes) -
         toFiniteNumber(a.unlistenedEpisodes);
       if (unlistenedDelta !== 0) {
         return unlistenedDelta;
+      }
+      const completedDelta =
+        toFiniteNumber(b.completedEpisodes) -
+        toFiniteNumber(a.completedEpisodes);
+      if (completedDelta !== 0) {
+        return completedDelta;
       }
       const titleA = typeof a.title === "string" ? a.title : "";
       const titleB = typeof b.title === "string" ? b.title : "";
