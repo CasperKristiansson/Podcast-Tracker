@@ -147,24 +147,25 @@ export function LibrarySection({
     <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#14072f]/85 p-2 backdrop-blur-2xl">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(128,94,255,0.18),_transparent_75%)]" />
       <div className="relative space-y-6">
-        <div className="flex flex-col gap-3 px-4 pt-4 md:flex-row md:items-center md:justify-between">
-          <h2 className="text-2xl font-semibold text-white md:text-left">
-            Your Entire Library
-          </h2>
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end md:gap-3">
-            <LibraryFilterDropdown
-              activeFilter={libraryFilter}
-              onChange={setLibraryFilter}
-            />
+        <div className="flex flex-col gap-2 px-4 pt-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2">
             <InteractiveButton
               variant="outline"
               onClick={handleDownloadPrompt}
               disabled={shows.length === 0}
-              className="w-full rounded-full px-4 py-2 text-xs font-semibold md:w-auto md:text-sm md:leading-tight"
+              size="custom"
+              className="self-start rounded-full px-2.5 py-1 text-[11px] font-medium text-white/60 transition hover:text-white"
             >
-              Download LLM prompt
+              Download prompt
             </InteractiveButton>
+            <h2 className="text-2xl font-semibold text-white md:text-left">
+              Your Entire Library
+            </h2>
           </div>
+          <LibraryFilterDropdown
+            activeFilter={libraryFilter}
+            onChange={setLibraryFilter}
+          />
         </div>
         <div className="flex flex-col gap-4">
           {filteredShows.length === 0 ? (
