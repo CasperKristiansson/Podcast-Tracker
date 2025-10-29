@@ -16,6 +16,15 @@ interface ApolloResources {
   client: ApolloClient;
 }
 
+const GRAPHQL_LOGS_ENABLED = (() => {
+  const flag = import.meta.env.PUBLIC_ENABLE_GRAPHQL_LOGS;
+  if (typeof flag === "string") {
+    const normalized = flag.trim().toLowerCase();
+    return ["true", "1", "yes", "on"].includes(normalized);
+  }
+  return import.meta.env.DEV;
+})();
+
 const createApolloResources = (idToken: string): ApolloResources => {
   const formatDebugPayload = (payload: unknown) => {
     try {
@@ -32,7 +41,7 @@ const createApolloResources = (idToken: string): ApolloResources => {
         return () => undefined;
       }
 
-      if (process.env.NODE_ENV !== "production") {
+      if (GRAPHQL_LOGS_ENABLED) {
         console.debug(
           "[GraphQL] Request",
           formatDebugPayload({
@@ -44,7 +53,7 @@ const createApolloResources = (idToken: string): ApolloResources => {
 
       const subscription = forward(operation).subscribe({
         next: (result) => {
-          if (process.env.NODE_ENV !== "production") {
+          if (GRAPHQL_LOGS_ENABLED) {
             console.debug(
               "[GraphQL] Response",
               formatDebugPayload({
@@ -57,7 +66,7 @@ const createApolloResources = (idToken: string): ApolloResources => {
           observer.next(result);
         },
         error: (networkError: unknown) => {
-          if (process.env.NODE_ENV !== "production") {
+          if (GRAPHQL_LOGS_ENABLED) {
             console.debug(
               "[GraphQL] Error",
               formatDebugPayload({
@@ -86,8 +95,12 @@ const createApolloResources = (idToken: string): ApolloResources => {
     },
   });
 
+  const link = GRAPHQL_LOGS_ENABLED
+    ? from([debugLink, httpLink])
+    : from([httpLink]);
+
   const client = new ApolloClient({
-    link: from([debugLink, httpLink]),
+    link,
     cache: new InMemoryCache(),
   });
 
