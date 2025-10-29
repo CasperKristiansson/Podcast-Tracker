@@ -43,9 +43,7 @@ describe("Mutation.rateShow mapping templates", () => {
     expect(evaluated.raw).toContain(
       '"expression": "SET ratingStars = :stars, ratingUpdatedAt = :updated, ratingReview = :review"'
     );
-    expect(evaluated.raw).toMatch(
-      /":review":\s*\{"S":"Great insight"\}/
-    );
+    expect(evaluated.raw).toMatch(/":review":\s*\{"S":"Great insight"\}/);
   });
 
   it("sets review to NULL when omitted", async () => {
@@ -159,8 +157,6 @@ describe("Mutation.rateShow mapping templates", () => {
       evalRuntime,
       templateInfo
     );
-    expect(evaluated.raw).toMatch(
-      /":review":\s*\{"S":"Intressting story/
-    );
+    expect(evaluated.raw).toMatch(/":review":\s*\{"S":"Intressting story/);
   });
 });

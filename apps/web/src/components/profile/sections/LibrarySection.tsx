@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProfileShow } from "@shared";
 import { InteractiveButton } from "@ui";
 import { cn } from "@ui/lib/cn";
@@ -18,11 +18,7 @@ interface LibrarySectionProps {
   unsubscribingId: string | null;
 }
 
-type LibraryFilterValue =
-  | "all"
-  | "in-progress"
-  | "completed"
-  | "not-reviewed";
+type LibraryFilterValue = "all" | "in-progress" | "completed" | "not-reviewed";
 
 const LIBRARY_FILTERS: { value: LibraryFilterValue; label: string }[] = [
   { value: "all", label: "All started" },
@@ -30,6 +26,7 @@ const LIBRARY_FILTERS: { value: LibraryFilterValue; label: string }[] = [
   { value: "completed", label: "Completed" },
   { value: "not-reviewed", label: "Not reviewed" },
 ];
+const LISTENING_ATLAS_FILE_NAME = "listening-atlas-prompt.md";
 
 export function LibrarySection({
   shows,
@@ -40,8 +37,7 @@ export function LibrarySection({
   isMutating,
   unsubscribingId,
 }: LibrarySectionProps): JSX.Element {
-  const [libraryFilter, setLibraryFilter] =
-    useState<LibraryFilterValue>("all");
+  const [libraryFilter, setLibraryFilter] = useState<LibraryFilterValue>("all");
 
   const startedShows = useMemo(() => {
     return shows.filter((show) => {
@@ -56,11 +52,10 @@ export function LibrarySection({
       startedShows.filter(predicate);
 
     const hasReview = (show: ProfileShow) => {
-      const rating = typeof show.ratingStars === "number" ? show.ratingStars : 0;
+      const rating =
+        typeof show.ratingStars === "number" ? show.ratingStars : 0;
       const review =
-        typeof show.ratingReview === "string"
-          ? show.ratingReview.trim()
-          : "";
+        typeof show.ratingReview === "string" ? show.ratingReview.trim() : "";
       return rating > 0 || review.length > 0;
     };
 
@@ -103,6 +98,24 @@ export function LibrarySection({
     }
   }, [hasStartedShows, libraryFilter]);
 
+  const handleDownloadPrompt = useCallback(() => {
+    if (typeof window === "undefined" || shows.length === 0) {
+      return;
+    }
+    const promptMarkdown = buildListeningAtlasPrompt(shows);
+    const file = new Blob([promptMarkdown], {
+      type: "text/markdown;charset=utf-8",
+    });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = LISTENING_ATLAS_FILE_NAME;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [shows]);
+
   if (shows.length === 0) {
     return (
       <section className="flex flex-col items-center gap-6 rounded-[32px] border border-white/10 bg-[#14072f]/85 p-10 text-center backdrop-blur-2xl">
@@ -134,35 +147,24 @@ export function LibrarySection({
     <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#14072f]/85 p-2 backdrop-blur-2xl">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(128,94,255,0.18),_transparent_75%)]" />
       <div className="relative space-y-6">
-        <div className="flex flex-col gap-3 text-center md:flex-row md:items-end md:justify-between md:text-left px-4 pt-4">
+        <div className="flex flex-col gap-3 px-4 pt-4 md:flex-row md:items-center md:justify-between">
           <h2 className="text-2xl font-semibold text-white md:text-left">
             Your Entire Library
           </h2>
-          <p className="text-sm text-white/70 md:max-w-md md:text-right md:text-white/60">
-            Browse everything you&apos;ve saved—mark progress, celebrate
-            completions, or jump back into a show you love.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-2 px-4 md:justify-end">
-          {LIBRARY_FILTERS.map(({ value, label }) => {
-            const isActive = libraryFilter === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setLibraryFilter(value)}
-                aria-pressed={isActive}
-                className={cn(
-                  "inline-flex items-center rounded-full px-4 py-1.5 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]",
-                  isActive
-                    ? "bg-white text-[#12072d] shadow-[0_8px_20px_rgba(255,255,255,0.25)]"
-                    : "border border-white/15 bg-white/[0.05] text-white/65 hover:bg-white/[0.12]"
-                )}
-              >
-                {label}
-              </button>
-            );
-          })}
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end md:gap-3">
+            <LibraryFilterDropdown
+              activeFilter={libraryFilter}
+              onChange={setLibraryFilter}
+            />
+            <InteractiveButton
+              variant="outline"
+              onClick={handleDownloadPrompt}
+              disabled={shows.length === 0}
+              className="w-full rounded-full px-4 py-2 text-xs font-semibold md:w-auto md:text-sm md:leading-tight"
+            >
+              Download LLM prompt
+            </InteractiveButton>
+          </div>
         </div>
         <div className="flex flex-col gap-4">
           {filteredShows.length === 0 ? (
@@ -187,6 +189,123 @@ export function LibrarySection({
         </div>
       </div>
     </section>
+  );
+}
+
+interface LibraryFilterDropdownProps {
+  activeFilter: LibraryFilterValue;
+  onChange: (value: LibraryFilterValue) => void;
+}
+
+function LibraryFilterDropdown({
+  activeFilter,
+  onChange,
+}: LibraryFilterDropdownProps): JSX.Element {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return undefined;
+    }
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (
+        buttonRef.current?.contains(target) ||
+        menuRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setMenuOpen(false);
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [menuOpen]);
+
+  const activeLabel =
+    LIBRARY_FILTERS.find((filter) => filter.value === activeFilter)?.label ??
+    "All started";
+
+  const handleSelect = (value: LibraryFilterValue) => {
+    onChange(value);
+    setMenuOpen(false);
+  };
+
+  return (
+    <div className="relative inline-flex w-full max-w-xs flex-col md:w-auto md:max-w-none">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => setMenuOpen((prev) => !prev)}
+        aria-haspopup="listbox"
+        aria-expanded={menuOpen}
+        className="inline-flex w-full items-center justify-between gap-3 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/[0.1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
+      >
+        <div className="flex flex-col text-left">
+          <span className="text-[10px] uppercase tracking-[0.4em] text-white/50">
+            Filter shows
+          </span>
+          <span>{activeLabel}</span>
+        </div>
+        <svg
+          aria-hidden
+          viewBox="0 0 12 12"
+          className={`h-3 w-3 text-white/70 transition-transform duration-200 ${
+            menuOpen ? "rotate-180" : "rotate-0"
+          }`}
+          focusable="false"
+        >
+          <path
+            d="M2 4.25L6 8l4-3.75"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {menuOpen ? (
+        <div
+          ref={menuRef}
+          role="listbox"
+          aria-label="Library filters"
+          className="absolute right-0 z-30 mt-2 w-full min-w-[230px] rounded-2xl border border-white/12 bg-[#14072f]/95 p-2 text-sm text-white shadow-[0_24px_80px_rgba(10,4,32,0.55)] backdrop-blur"
+        >
+          {LIBRARY_FILTERS.map(({ value, label }) => {
+            const isActive = activeFilter === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                role="option"
+                aria-selected={isActive}
+                onClick={() => handleSelect(value)}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]",
+                  isActive
+                    ? "bg-white/12 text-white"
+                    : "text-white/70 hover:bg-white/10"
+                )}
+              >
+                <span>{label}</span>
+                {isActive ? <span aria-hidden>✓</span> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -331,6 +450,95 @@ function LibraryCard({
       <CelebrationOverlay active={Boolean(celebrating)} seed={celebrating} />
     </div>
   );
+}
+
+function buildListeningAtlasPrompt(shows: ProfileShow[]): string {
+  const seedShows = shows.map((show) => ({
+    podcast_name: show.title ?? "",
+    publisher: show.publisher ?? "",
+    stats: {
+      user_rating_stars:
+        typeof show.ratingStars === "number" ? show.ratingStars : null,
+      user_review:
+        typeof show.ratingReview === "string" ? show.ratingReview : "",
+    },
+  }));
+  const seedJson = JSON.stringify(seedShows, null, 2);
+
+  return `
+You have web access. Your job: find new **scripted audio drama** podcasts available **on Spotify** only. No talk shows, interviews, news, education, true-crime documentary, recap, comedy chat, RPG actual-play, or non-fiction. Scripted fiction only.
+
+GOAL
+Return {{MAX_RESULTS}} high-quality Spotify audio dramas I have not logged below, ranked by fit to my tastes inferred from my seed list and reviews.
+
+REGION
+Assume availability in {{COUNTRY}}. If uncertain, prefer global availability.
+
+INPUT — SEED PODCASTS I’VE HEARD
+Paste JSON between the tags. Keep names exactly as shown on Spotify. “publisher” is the studio/network behind the show. “stats.user_rating_stars” and “stats.user_review” are my own ratings and notes.
+
+<SEED_SHOWS_JSON>
+${seedJson}
+</SEED_SHOWS_JSON>
+
+RESEARCH RULES
+1) Search and cite only Spotify show pages. If a candidate lacks a valid Spotify show URL, exclude it.
+2) Verify it is scripted fiction. Look for Spotify category tags, descriptions, cast, season labeling, and production notes that indicate drama/fiction. If uncertain, exclude.
+3) Diversity: include a spread across subgenres when possible (mystery, thriller, sci-fi, horror, fantasy, noir).
+4) Freshness: prefer series with recent releases or complete, acclaimed mini-series.
+5) No duplicates of seed shows. No regional dead ends if {{COUNTRY}} cannot access.
+
+RANKING
+Compute:
+- match_score [0–100]: textual similarity between seed reviews and candidate themes, tone, pacing, sound design.
+- novelty_score [0–100]: how different it is from the largest clusters in my seed set while still aligned.
+Final rank = round(0.7*match_score + 0.3*novelty_score).
+
+OUTPUT FORMAT — JSON ONLY
+Return a single JSON object with this shape:
+
+{
+  "summary": {
+    "seed_count": <int>,
+    "key_themes": ["<theme>", "..."],         // inferred from my reviews
+    "method_note": "Spotify-only, scripted fiction verified"
+  },
+  "recommendations": [
+    {
+      "title": "<Spotify show title>",
+      "publisher": "<studio/network>",
+      "spotify_url": "https://open.spotify.com/show/....",
+      "is_audio_drama": true,
+      "status": "<ongoing|completed|miniseries>",
+      "years": "YYYY–YYYY or YYYY–present",
+      "typical_episode_length_min": <int|null>,
+      "subgenres": ["mystery","thriller"],
+      "why_it_matches": "One sentence that references my seed reviews directly.",
+      "similar_to_seeds": ["<seed match 1>", "<seed match 2>"],
+      "content_notes": ["violence","language"],     // if applicable
+      "last_release_date": "YYYY-MM-DD",
+      "match_score": <0-100>,
+      "novelty_score": <0-100>,
+      "rank": <1-based int>
+    }
+  ],
+  "excluded_candidates": [
+    {
+      "title": "<name>",
+      "reason": "<not on Spotify|not scripted fiction|region-locked|duplicate>"
+    }
+  ]
+}
+
+CONSTRAINTS
+- Output must be valid JSON. No commentary before or after.
+- Every recommendation must include a working Spotify show URL.
+- If fewer than {{MAX_RESULTS}} valid scripted audio dramas are found, return the maximum valid number and explain shortage in summary.method_note.
+
+VARIABLES TO SET BEFORE RUN
+- {{MAX_RESULTS}} = 10
+- {{COUNTRY}} = "Sweden"
+`;
 }
 
 function TrashIcon({ className }: { className?: string }): JSX.Element {

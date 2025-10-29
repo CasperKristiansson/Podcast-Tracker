@@ -202,154 +202,154 @@ export function EpisodeSection({
               <EpisodeCardSkeleton key={`episode-skeleton-${idx}`} />
             ))
           : filteredEpisodes.map((episode, index) => {
-            const progress = progressMap.get(episode.episodeId);
-            const isWatched = Boolean(progress?.completed);
-            const publishedAt = episode.publishedAt
-              ? formatDate(String(episode.publishedAt))
-              : "";
-            const episodeLanguages =
-              episode.languages?.filter(isNonEmptyString) ?? [];
-            const durationSeconds = Number(episode.durationSec ?? 0);
-            const durationLabel = formatDuration(durationSeconds);
-            const isEpisodeUpdating =
-              pendingEpisodeId === episode.episodeId && markProgressLoading;
-            const canTrack = canTrackProgress;
-            const cardClassName =
-              canTrack && isWatched
-                ? "group relative overflow-hidden rounded-3xl border border-emerald-400/35 bg-gradient-to-br from-emerald-500/15 via-[#12072d]/70 to-[#12072d]/90 p-6 shadow-[0_28px_80px_rgba(9,93,69,0.35)] transition duration-300 hover:border-emerald-300/60 hover:shadow-[0_32px_90px_rgba(9,93,69,0.45)]"
-                : "group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_24px_60px_rgba(29,16,65,0.35)] transition duration-300 hover:border-white/25 hover:bg-white/[0.09]";
+              const progress = progressMap.get(episode.episodeId);
+              const isWatched = Boolean(progress?.completed);
+              const publishedAt = episode.publishedAt
+                ? formatDate(String(episode.publishedAt))
+                : "";
+              const episodeLanguages =
+                episode.languages?.filter(isNonEmptyString) ?? [];
+              const durationSeconds = Number(episode.durationSec ?? 0);
+              const durationLabel = formatDuration(durationSeconds);
+              const isEpisodeUpdating =
+                pendingEpisodeId === episode.episodeId && markProgressLoading;
+              const canTrack = canTrackProgress;
+              const cardClassName =
+                canTrack && isWatched
+                  ? "group relative overflow-hidden rounded-3xl border border-emerald-400/35 bg-gradient-to-br from-emerald-500/15 via-[#12072d]/70 to-[#12072d]/90 p-6 shadow-[0_28px_80px_rgba(9,93,69,0.35)] transition duration-300 hover:border-emerald-300/60 hover:shadow-[0_32px_90px_rgba(9,93,69,0.45)]"
+                  : "group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_24px_60px_rgba(29,16,65,0.35)] transition duration-300 hover:border-white/25 hover:bg-white/[0.09]";
 
-          return (
-            <li key={episode.episodeId} className={cardClassName}>
-              <div
-                className={
-                  canTrack && isWatched
-                    ? "absolute -top-24 -right-20 h-48 w-48 rounded-full bg-emerald-400/25 blur-[110px] opacity-50"
-                    : "absolute -top-24 -right-20 h-48 w-48 rounded-full bg-[#8f73ff]/20 blur-[110px] opacity-40"
-                }
-              />
-              <div className="relative flex flex-col gap-6">
-                {canTrack ? (
+              return (
+                <li key={episode.episodeId} className={cardClassName}>
                   <div
                     className={
-                      isWatched
-                        ? "absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-emerald-300/50 bg-emerald-400/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-emerald-100"
-                        : "absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-white/60"
+                      canTrack && isWatched
+                        ? "absolute -top-24 -right-20 h-48 w-48 rounded-full bg-emerald-400/25 blur-[110px] opacity-50"
+                        : "absolute -top-24 -right-20 h-48 w-48 rounded-full bg-[#8f73ff]/20 blur-[110px] opacity-40"
                     }
-                  >
-                    <span
-                      className={
-                        isWatched
-                          ? "flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400/30 text-emerald-100"
-                          : "flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-white/70"
-                      }
-                      aria-hidden
-                    >
-                      {isWatched ? (
-                        <svg
-                          viewBox="0 0 16 16"
-                          className="h-3.5 w-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M4 8l2.5 2.5L12 5" />
-                        </svg>
-                      ) : (
-                        <span className="text-base leading-none">•</span>
-                      )}
-                    </span>
-                    <span>{isWatched ? "Watched" : "Queued"}</span>
-                  </div>
-                ) : null}
-
-                <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.35em] text-white/45">
-                  <span>{`Episode ${index + 1}`}</span>
-                  <span className="hidden h-1 w-1 rounded-full bg-white/25 sm:block" />
-                  {publishedAt ? <span>{publishedAt}</span> : null}
-                  <span className="hidden h-1 w-1 rounded-full bg-white/25 sm:block" />
-                  <span>{durationLabel}</span>
-                  {progress?.updatedAt ? (
-                    <>
-                      <span className="hidden h-1 w-1 rounded-full bg-white/25 sm:block" />
-                      <span>
-                        Updated{" "}
-                        {formatRelative(
-                          typeof progress.updatedAt === "string"
-                            ? progress.updatedAt
-                            : null
-                        )}
-                      </span>
-                    </>
-                  ) : null}
-                </div>
-
-                <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
-                  <div className="flex flex-1 flex-col gap-4">
-                    <div className="flex flex-col gap-2">
-                      <h3 className="text-xl font-semibold text-white">
-                        {episode.title}
-                      </h3>
-                      <p className="text-sm text-white/65">
-                        {episode.description}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.3em] text-white/50">
-                      {episode.explicit ? (
-                        <span className="rounded-full border border-red-400/40 bg-red-500/20 px-3 py-1 text-red-200">
-                          Explicit
-                        </span>
-                      ) : null}
-                      {episodeLanguages.length ? (
-                        <span className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-white/55">
-                          {episodeLanguages.join(" · ")}
-                        </span>
-                      ) : null}
-                      <a
-                        href={`/app/show/${showId}/episode/${episode.episodeId}`}
-                        className="inline-flex items-center gap-2 text-[#bcd9ff] transition hover:text-white"
+                  />
+                  <div className="relative flex flex-col gap-6">
+                    {canTrack ? (
+                      <div
+                        className={
+                          isWatched
+                            ? "absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-emerald-300/50 bg-emerald-400/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-emerald-100"
+                            : "absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-white/60"
+                        }
                       >
-                        Episode details ↗
-                      </a>
-                      {episode.linkUrl ? (
-                        <a
-                          href={episode.linkUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#12072d] transition hover:-translate-y-0.5 hover:bg-white/90"
+                        <span
+                          className={
+                            isWatched
+                              ? "flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400/30 text-emerald-100"
+                              : "flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-white/70"
+                          }
+                          aria-hidden
                         >
-                          Play on Spotify ↗
-                        </a>
+                          {isWatched ? (
+                            <svg
+                              viewBox="0 0 16 16"
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M4 8l2.5 2.5L12 5" />
+                            </svg>
+                          ) : (
+                            <span className="text-base leading-none">•</span>
+                          )}
+                        </span>
+                        <span>{isWatched ? "Watched" : "Queued"}</span>
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.35em] text-white/45">
+                      <span>{`Episode ${index + 1}`}</span>
+                      <span className="hidden h-1 w-1 rounded-full bg-white/25 sm:block" />
+                      {publishedAt ? <span>{publishedAt}</span> : null}
+                      <span className="hidden h-1 w-1 rounded-full bg-white/25 sm:block" />
+                      <span>{durationLabel}</span>
+                      {progress?.updatedAt ? (
+                        <>
+                          <span className="hidden h-1 w-1 rounded-full bg-white/25 sm:block" />
+                          <span>
+                            Updated{" "}
+                            {formatRelative(
+                              typeof progress.updatedAt === "string"
+                                ? progress.updatedAt
+                                : null
+                            )}
+                          </span>
+                        </>
                       ) : null}
                     </div>
-                  </div>
-                </div>
 
-                {canTrack ? (
-                  <div className="flex flex-wrap gap-3">
-                    <InteractiveButton
-                      variant={isWatched ? "outline" : "secondary"}
-                      onClick={() => {
-                        void onEpisodeCompletion(episode, !isWatched);
-                      }}
-                      disabled={
-                        markProgressLoading &&
-                        pendingEpisodeId !== episode.episodeId
-                      }
-                      isLoading={isEpisodeUpdating}
-                      loadingLabel="Updating…"
-                      className="transform hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(29,16,65,0.45)]"
-                    >
-                      {isWatched ? "Mark as unwatched" : "Mark as watched"}
-                    </InteractiveButton>
+                    <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
+                      <div className="flex flex-1 flex-col gap-4">
+                        <div className="flex flex-col gap-2">
+                          <h3 className="text-xl font-semibold text-white">
+                            {episode.title}
+                          </h3>
+                          <p className="text-sm text-white/65">
+                            {episode.description}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.3em] text-white/50">
+                          {episode.explicit ? (
+                            <span className="rounded-full border border-red-400/40 bg-red-500/20 px-3 py-1 text-red-200">
+                              Explicit
+                            </span>
+                          ) : null}
+                          {episodeLanguages.length ? (
+                            <span className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-white/55">
+                              {episodeLanguages.join(" · ")}
+                            </span>
+                          ) : null}
+                          <a
+                            href={`/app/show/${showId}/episode/${episode.episodeId}`}
+                            className="inline-flex items-center gap-2 text-[#bcd9ff] transition hover:text-white"
+                          >
+                            Episode details ↗
+                          </a>
+                          {episode.linkUrl ? (
+                            <a
+                              href={episode.linkUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#12072d] transition hover:-translate-y-0.5 hover:bg-white/90"
+                            >
+                              Play on Spotify ↗
+                            </a>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+
+                    {canTrack ? (
+                      <div className="flex flex-wrap gap-3">
+                        <InteractiveButton
+                          variant={isWatched ? "outline" : "secondary"}
+                          onClick={() => {
+                            void onEpisodeCompletion(episode, !isWatched);
+                          }}
+                          disabled={
+                            markProgressLoading &&
+                            pendingEpisodeId !== episode.episodeId
+                          }
+                          isLoading={isEpisodeUpdating}
+                          loadingLabel="Updating…"
+                          className="transform hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(29,16,65,0.45)]"
+                        >
+                          {isWatched ? "Mark as unwatched" : "Mark as watched"}
+                        </InteractiveButton>
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
-            </li>
-          );
-        })}
+                </li>
+              );
+            })}
       </ul>
 
       {episodesConnection?.nextToken ? (
