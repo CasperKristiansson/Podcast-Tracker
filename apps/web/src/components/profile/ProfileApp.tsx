@@ -20,6 +20,7 @@ import { SpotlightSection } from "./sections/SpotlightSection";
 import { LibrarySection } from "./sections/LibrarySection";
 import type { CelebrationState } from "./types";
 import { ProfileSkeleton } from "./sections/ProfileSkeleton";
+import { NotStartedSection } from "./sections/NotStartedSection";
 
 const toFiniteNumber = (value: unknown): number => {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -59,6 +60,8 @@ const computeSpotlightList = (
     })
     .slice(0, 4);
 };
+
+const MAX_NOT_STARTED = 12;
 
 function ProfileAppContent(): JSX.Element {
   const {
@@ -114,6 +117,37 @@ function ProfileAppContent(): JSX.Element {
     () => computeSpotlightList(shows),
     [shows]
   );
+
+  const notStartedShows = useMemo<ProfileShow[]>(() => {
+    if (shows.length === 0) {
+      return [];
+    }
+    const spotlightIds = new Set(
+      spotlight.map((show) => show.showId).filter(Boolean)
+    );
+    return shows
+      .filter((show) => {
+        if (spotlightIds.has(show.showId)) {
+          return false;
+        }
+        return (
+          toFiniteNumber(show.completedEpisodes) === 0 &&
+          toFiniteNumber(show.unlistenedEpisodes) > 0
+        );
+      })
+      .sort((a, b) => {
+        const unlistenedDelta =
+          toFiniteNumber(b.unlistenedEpisodes) -
+          toFiniteNumber(a.unlistenedEpisodes);
+        if (unlistenedDelta !== 0) {
+          return unlistenedDelta;
+        }
+        const titleA = typeof a.title === "string" ? a.title : "";
+        const titleB = typeof b.title === "string" ? b.title : "";
+        return titleA.localeCompare(titleB);
+      })
+      .slice(0, MAX_NOT_STARTED);
+  }, [shows, spotlight]);
   const handleCelebrate = useCallback(
     async (show: ProfileShow) => {
       try {
@@ -376,6 +410,8 @@ function ProfileAppContent(): JSX.Element {
             pendingShowId={pendingShowId}
             isMutating={progressMutating}
           />
+
+          <NotStartedSection shows={notStartedShows} />
 
           <LibrarySection
             shows={shows}
