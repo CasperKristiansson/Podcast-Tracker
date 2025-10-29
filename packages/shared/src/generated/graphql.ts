@@ -273,7 +273,7 @@ export type RateShowMutationVariables = Exact<{
 }>;
 
 
-export type RateShowMutation = { __typename: 'Mutation', rateShow: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined } };
+export type RateShowMutation = { __typename: 'Mutation', rateShow: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, subscriptionSyncedAt?: any | null | undefined, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined } };
 
 export type MarkEpisodeProgressMutationVariables = Exact<{
   episodeId: Scalars['ID']['input'];
@@ -470,6 +470,7 @@ export const RateShowDocument = gql`
     image
     addedAt
     totalEpisodes
+    subscriptionSyncedAt
     ratingStars
     ratingReview
     ratingUpdatedAt

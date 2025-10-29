@@ -161,6 +161,7 @@ mutation RateShow($showId: ID!, $stars: Int!, $review: String) {
     image
     addedAt
     totalEpisodes
+    subscriptionSyncedAt
     ratingStars
     ratingReview
     ratingUpdatedAt
