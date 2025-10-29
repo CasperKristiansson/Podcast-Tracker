@@ -217,6 +217,9 @@ query MyProfile {
       inProgressEpisodes
       unlistenedEpisodes
       subscriptionSyncedAt
+      ratingStars
+      ratingReview
+      ratingUpdatedAt
     }
     shows {
       showId
@@ -229,6 +232,9 @@ query MyProfile {
       inProgressEpisodes
       unlistenedEpisodes
       subscriptionSyncedAt
+      ratingStars
+      ratingReview
+      ratingUpdatedAt
     }
   }
 }

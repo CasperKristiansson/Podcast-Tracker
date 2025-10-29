@@ -102,6 +102,9 @@ export type ProfileShow = {
   image: Scalars['String']['output'];
   inProgressEpisodes: Scalars['Int']['output'];
   publisher: Scalars['String']['output'];
+  ratingReview?: Maybe<Scalars['String']['output']>;
+  ratingStars?: Maybe<Scalars['Int']['output']>;
+  ratingUpdatedAt?: Maybe<Scalars['AWSDateTime']['output']>;
   showId: Scalars['ID']['output'];
   subscriptionSyncedAt?: Maybe<Scalars['AWSDateTime']['output']>;
   title: Scalars['String']['output'];
@@ -302,7 +305,7 @@ export type MarkAllEpisodesCompleteMutation = { __typename: 'Mutation', markAllE
 export type MyProfileQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MyProfileQuery = { __typename: 'Query', myProfile: { __typename: 'UserProfile', stats: { __typename: 'ProfileStats', totalShows: number, episodesCompleted: number, episodesInProgress: number }, spotlight: Array<{ __typename: 'ProfileShow', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, completedEpisodes: number, inProgressEpisodes: number, unlistenedEpisodes: number, subscriptionSyncedAt?: any | null | undefined }>, shows: Array<{ __typename: 'ProfileShow', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, completedEpisodes: number, inProgressEpisodes: number, unlistenedEpisodes: number, subscriptionSyncedAt?: any | null | undefined }> } };
+export type MyProfileQuery = { __typename: 'Query', myProfile: { __typename: 'UserProfile', stats: { __typename: 'ProfileStats', totalShows: number, episodesCompleted: number, episodesInProgress: number }, spotlight: Array<{ __typename: 'ProfileShow', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, completedEpisodes: number, inProgressEpisodes: number, unlistenedEpisodes: number, subscriptionSyncedAt?: any | null | undefined, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined }>, shows: Array<{ __typename: 'ProfileShow', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, completedEpisodes: number, inProgressEpisodes: number, unlistenedEpisodes: number, subscriptionSyncedAt?: any | null | undefined, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined }> } };
 
 
 export const MySubscriptionsDocument = gql`
@@ -530,6 +533,9 @@ export const MyProfileDocument = gql`
       inProgressEpisodes
       unlistenedEpisodes
       subscriptionSyncedAt
+      ratingStars
+      ratingReview
+      ratingUpdatedAt
     }
     shows {
       showId
@@ -542,6 +548,9 @@ export const MyProfileDocument = gql`
       inProgressEpisodes
       unlistenedEpisodes
       subscriptionSyncedAt
+      ratingStars
+      ratingReview
+      ratingUpdatedAt
     }
   }
 }

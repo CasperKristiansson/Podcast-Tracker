@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import type { ProfileShow } from "@shared";
 import { InteractiveButton } from "@ui";
 import { cn } from "@ui/lib/cn";
@@ -17,6 +18,19 @@ interface LibrarySectionProps {
   unsubscribingId: string | null;
 }
 
+type LibraryFilterValue =
+  | "all"
+  | "in-progress"
+  | "completed"
+  | "not-reviewed";
+
+const LIBRARY_FILTERS: { value: LibraryFilterValue; label: string }[] = [
+  { value: "all", label: "All started" },
+  { value: "in-progress", label: "In progress" },
+  { value: "completed", label: "Completed" },
+  { value: "not-reviewed", label: "Not reviewed" },
+];
+
 export function LibrarySection({
   shows,
   onCelebrate,
@@ -26,6 +40,69 @@ export function LibrarySection({
   isMutating,
   unsubscribingId,
 }: LibrarySectionProps): JSX.Element {
+  const [libraryFilter, setLibraryFilter] =
+    useState<LibraryFilterValue>("all");
+
+  const startedShows = useMemo(() => {
+    return shows.filter((show) => {
+      const completed = show.completedEpisodes ?? 0;
+      const inProgress = show.inProgressEpisodes ?? 0;
+      return completed > 0 || inProgress > 0;
+    });
+  }, [shows]);
+
+  const filteredShows = useMemo(() => {
+    const filterShows = (predicate: (show: ProfileShow) => boolean) =>
+      startedShows.filter(predicate);
+
+    const hasReview = (show: ProfileShow) => {
+      const rating = typeof show.ratingStars === "number" ? show.ratingStars : 0;
+      const review =
+        typeof show.ratingReview === "string"
+          ? show.ratingReview.trim()
+          : "";
+      return rating > 0 || review.length > 0;
+    };
+
+    switch (libraryFilter) {
+      case "in-progress":
+        return filterShows((show) => {
+          const inProgress = show.inProgressEpisodes ?? 0;
+          const completed = show.completedEpisodes ?? 0;
+          const unlistened = show.unlistenedEpisodes ?? 0;
+          return inProgress > 0 || (completed > 0 && unlistened > 0);
+        });
+      case "completed":
+        return filterShows((show) => {
+          const completed = show.completedEpisodes ?? 0;
+          const unlistened = show.unlistenedEpisodes ?? 0;
+          return completed > 0 && unlistened === 0;
+        });
+      case "not-reviewed":
+        return filterShows((show) => !hasReview(show));
+      case "all":
+      default:
+        return startedShows;
+    }
+  }, [libraryFilter, startedShows]);
+  const hasStartedShows = startedShows.length > 0;
+  const emptyStateMessage = useMemo(() => {
+    if (!hasStartedShows) {
+      return "Start listening to a show to see it here.";
+    }
+    switch (libraryFilter) {
+      case "not-reviewed":
+        return "No shows waiting for a review right now.";
+      case "completed":
+        return "No completed shows to highlight yet.";
+      case "in-progress":
+        return "No shows currently in progress.";
+      case "all":
+      default:
+        return "No shows to display yet.";
+    }
+  }, [hasStartedShows, libraryFilter]);
+
   if (shows.length === 0) {
     return (
       <section className="flex flex-col items-center gap-6 rounded-[32px] border border-white/10 bg-[#14072f]/85 p-10 text-center backdrop-blur-2xl">
@@ -66,8 +143,34 @@ export function LibrarySection({
             completions, or jump back into a show you love.
           </p>
         </div>
+        <div className="flex flex-wrap items-center justify-center gap-2 px-4 md:justify-end">
+          {LIBRARY_FILTERS.map(({ value, label }) => {
+            const isActive = libraryFilter === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setLibraryFilter(value)}
+                aria-pressed={isActive}
+                className={cn(
+                  "inline-flex items-center rounded-full px-4 py-1.5 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]",
+                  isActive
+                    ? "bg-white text-[#12072d] shadow-[0_8px_20px_rgba(255,255,255,0.25)]"
+                    : "border border-white/15 bg-white/[0.05] text-white/65 hover:bg-white/[0.12]"
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
         <div className="flex flex-col gap-4">
-          {shows.map((show) => (
+          {filteredShows.length === 0 ? (
+            <div className="mx-4 rounded-3xl border border-white/12 bg-white/[0.04] p-10 text-center text-sm text-white/70">
+              {emptyStateMessage}
+            </div>
+          ) : null}
+          {filteredShows.map((show) => (
             <LibraryCard
               key={show.showId}
               show={show}

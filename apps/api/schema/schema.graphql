@@ -111,6 +111,9 @@ type ProfileShow {
   inProgressEpisodes: Int!
   unlistenedEpisodes: Int!
   subscriptionSyncedAt: AWSDateTime
+  ratingStars: Int
+  ratingReview: String
+  ratingUpdatedAt: AWSDateTime
 }
 
 type UserProfile {

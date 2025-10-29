@@ -18,6 +18,9 @@ interface SubscriptionRecord {
   addedAt: string;
   totalEpisodes: number;
   subscriptionSyncedAt?: string | null;
+  ratingStars?: number | null;
+  ratingReview?: string | null;
+  ratingUpdatedAt?: string | null;
 }
 
 interface ProgressRecord {
@@ -36,6 +39,9 @@ interface ProfileShow {
   inProgressEpisodes: number;
   unlistenedEpisodes: number;
   subscriptionSyncedAt?: string | null;
+  ratingStars?: number | null;
+  ratingReview?: string | null;
+  ratingUpdatedAt?: string | null;
 }
 
 interface ProfileStats {
@@ -105,13 +111,16 @@ async function loadSubscriptions(
           "#totalEpisodes": "totalEpisodes",
           "#syncedAt": "subscriptionSyncedAt",
           "#showId": "showId",
+          "#ratingStars": "ratingStars",
+          "#ratingReview": "ratingReview",
+          "#ratingUpdatedAt": "ratingUpdatedAt",
         },
         ExpressionAttributeValues: {
           ":pk": userPk,
           ":prefix": "sub#",
         },
         ProjectionExpression:
-          "#showId, #title, #publisher, #image, #addedAt, #totalEpisodes, #syncedAt",
+          "#showId, #title, #publisher, #image, #addedAt, #totalEpisodes, #syncedAt, #ratingStars, #ratingReview, #ratingUpdatedAt",
         ExclusiveStartKey: exclusiveStartKey,
       })
     );
@@ -196,6 +205,14 @@ function toSubscriptionRecord(
     typeof item.subscriptionSyncedAt === "string"
       ? item.subscriptionSyncedAt
       : null;
+  const ratingStars =
+    typeof item.ratingStars === "number" && Number.isFinite(item.ratingStars)
+      ? Math.trunc(item.ratingStars)
+      : null;
+  const ratingReview =
+    typeof item.ratingReview === "string" ? item.ratingReview : null;
+  const ratingUpdatedAt =
+    typeof item.ratingUpdatedAt === "string" ? item.ratingUpdatedAt : null;
 
   if (!showId) {
     return null;
@@ -209,6 +226,9 @@ function toSubscriptionRecord(
     addedAt,
     totalEpisodes,
     subscriptionSyncedAt,
+    ratingStars,
+    ratingReview,
+    ratingUpdatedAt,
   };
 }
 
@@ -269,6 +289,9 @@ function buildProfile(
         inProgressEpisodes: progress.inProgress,
         unlistenedEpisodes: unlistened,
         subscriptionSyncedAt: subscription.subscriptionSyncedAt ?? null,
+        ratingStars: subscription.ratingStars ?? null,
+        ratingReview: subscription.ratingReview ?? null,
+        ratingUpdatedAt: subscription.ratingUpdatedAt ?? null,
       };
     })
     .sort((a, b) => {
