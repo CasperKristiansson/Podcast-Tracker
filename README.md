@@ -14,7 +14,13 @@ Podcast Tracker keeps tabs on every show you follow by syncing with the Spotify 
 
 Below are a few interface captures from the latest build. They highlight the profile dashboard, podcast search flow, listening library, and show detail experience.
 
-![Profile dashboard](docs/assets/app-profile-dashboard.png)
-![Podcast search](docs/assets/app-podcast-search.png)
-![Library overview](docs/assets/app-library-overview.png)
-![Show detail](docs/assets/app-show-detail.png)
+<table>
+  <tr>
+    <td><img src="docs/assets/app-profile-dashboard.png" alt="Profile dashboard" /></td>
+    <td><img src="docs/assets/app-podcast-search.png" alt="Podcast search" /></td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/app-library-overview.png" alt="Library overview" /></td>
+    <td><img src="docs/assets/app-show-detail.png" alt="Show detail" /></td>
+  </tr>
+</table>
