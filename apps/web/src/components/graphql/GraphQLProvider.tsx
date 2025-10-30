@@ -9,7 +9,7 @@ import { Observable } from "@apollo/client/utilities";
 import { ApolloProvider } from "@apollo/client/react";
 import type { ComponentProps, ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { beginLogin, getTokens, signOut } from "../../lib/auth/flow";
+import { beginLogin, getTokens } from "../../lib/auth/flow";
 import { appsyncUrl } from "../../lib/graphql/config";
 
 interface ApolloResources {
@@ -115,29 +115,48 @@ function useApolloClient(): {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const tokens = getTokens();
-    if (!tokens || tokens.expiresAt <= Date.now()) {
-      signOut();
-      beginLogin().catch((err) => {
+    let cancelled = false;
+
+    const initialize = async (): Promise<void> => {
+      try {
+        const tokens = await getTokens();
+        if (!tokens) {
+          beginLogin().catch((err) => {
+            if (cancelled) {
+              return;
+            }
+            const message =
+              err instanceof Error
+                ? err.message
+                : "Unable to start Google sign-in.";
+            setError(message);
+          });
+          return;
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        const resources = createApolloResources(tokens.idToken);
+        setResource(resources);
+      } catch (err) {
+        if (cancelled) {
+          return;
+        }
         const message =
           err instanceof Error
             ? err.message
-            : "Unable to start Google sign-in.";
+            : "Failed to create GraphQL client.";
         setError(message);
-      });
-      return undefined;
-    }
+      }
+    };
 
-    try {
-      const resources = createApolloResources(tokens.idToken);
-      setResource(resources);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create GraphQL client.";
-      setError(message);
-    }
+    void initialize();
 
-    return undefined;
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { resource, error };
