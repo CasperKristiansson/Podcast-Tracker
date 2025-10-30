@@ -112,7 +112,7 @@ export default function SubscriptionsView(): JSX.Element {
                 </div>
                 <a
                   className="inline-flex w-max items-center gap-2 text-sm font-medium text-brand-primary transition hover:text-brand-accent"
-                  href={`/app/show/${showPath}`}
+                  href={`/show?id=${showPath}`}
                 >
                   View episodes
                   <span aria-hidden>&rarr;</span>

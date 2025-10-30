@@ -297,7 +297,8 @@ export default function PodcastSearchBar({
   const navigateToShow = (showId: string) => {
     closePalette();
     if (typeof window !== "undefined") {
-      window.location.href = `/app/show/${showId}`;
+      const encoded = encodeURIComponent(showId);
+      window.location.href = `/show?id=${encoded}`;
     }
   };
 

@@ -1,0 +1,13 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PodcastSearchBarWithProvider from "../../components/search/PodcastSearchBarWithProvider";
+import ShowShell from "../../components/app/ShowShell";
+---
+
+<BaseLayout
+  title="Podcast"
+  description="Deep dive into a single podcast with progress, rating, and episode controls."
+>
+  <PodcastSearchBarWithProvider slot="search" client:only="react" />
+  <ShowShell client:only="react" />
+</BaseLayout>

@@ -80,7 +80,7 @@ export default function AuthCallback(): JSX.Element {
           setStatus("success");
           setMessage("Signed in successfully. Redirecting…");
           window.setTimeout(() => {
-            window.location.replace("/app/profile");
+            window.location.replace("/profile");
           }, 1200);
           return;
         }
