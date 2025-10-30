@@ -58,6 +58,30 @@ export class EdgeStack extends cdk.Stack {
       autoDeleteObjects: false,
     });
 
+    const directoryIndexFunction = new cloudfront.Function(
+      this,
+      "DirectoryIndexFunction",
+      {
+        functionName: `${this.stackName}-directory-index`,
+        code: cloudfront.FunctionCode.fromInline(
+          [
+            "function handler(event) {",
+            "  var request = event.request;",
+            "  var uri = request.uri;",
+            "",
+            "  if (uri.endsWith('/')) {",
+            "    request.uri = uri + 'index.html';",
+            "  } else if (!uri.includes('.')) {",
+            "    request.uri = uri + '/index.html';",
+            "  }",
+            "",
+            "  return request;",
+            "}",
+          ].join("\n")
+        ),
+      }
+    );
+
     const originAccessControl = new cloudfront.CfnOriginAccessControl(
       this,
       "SiteBucketOAC",
@@ -143,6 +167,12 @@ export class EdgeStack extends cdk.Stack {
             cachedMethods: ["GET", "HEAD"],
             compress: true,
             targetOriginId: originId,
+            functionAssociations: [
+              {
+                eventType: "viewer-request",
+                functionArn: directoryIndexFunction.functionArn,
+              },
+            ],
             responseHeadersPolicyId:
               securityHeadersPolicy.responseHeadersPolicyId,
             viewerProtocolPolicy: "redirect-to-https",
@@ -156,12 +186,12 @@ export class EdgeStack extends cdk.Stack {
             {
               errorCode: 403,
               responseCode: 200,
-              responsePagePath: "/app/index.html",
+              responsePagePath: "/index.html",
             },
             {
               errorCode: 404,
               responseCode: 200,
-              responsePagePath: "/app/index.html",
+              responsePagePath: "/index.html",
             },
           ],
           priceClass: "PriceClass_100",
