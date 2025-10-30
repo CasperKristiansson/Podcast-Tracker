@@ -8,6 +8,13 @@ import ShowShell from "../../components/app/ShowShell";
   title="Podcast"
   description="Deep dive into a single podcast with progress, rating, and episode controls."
 >
-  <PodcastSearchBarWithProvider slot="search" client:only="react" />
+  <div slot="search">
+    <div class="mx-auto flex w-full max-w-6xl justify-center">
+      <PodcastSearchBarWithProvider
+        className="w-full max-w-[420px]"
+        client:only="react"
+      />
+    </div>
+  </div>
   <ShowShell client:only="react" />
 </BaseLayout>
