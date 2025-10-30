@@ -64,11 +64,6 @@ type Show {
   isSubscribed: Boolean
 }
 
-type SubscriptionConnection implements PaginatedResult {
-  items: [UserSubscription!]!
-  nextToken: String
-}
-
 type EpisodeConnection implements PaginatedResult {
   items: [Episode!]!
   nextToken: String
@@ -82,7 +77,6 @@ type ShowDetail {
 }
 
 type Query {
-  mySubscriptions(limit: Int, nextToken: String): SubscriptionConnection!
   search(term: String!, limit: Int, offset: Int): [Show!]!
   episode(showId: ID!, episodeId: ID!): Episode
   myProfile: UserProfile!

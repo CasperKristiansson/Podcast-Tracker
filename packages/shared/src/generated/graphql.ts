@@ -131,7 +131,6 @@ export type Query = {
   __typename: 'Query';
   episode?: Maybe<Episode>;
   myProfile: UserProfile;
-  mySubscriptions: SubscriptionConnection;
   search: Array<Show>;
   showDetail: ShowDetail;
 };
@@ -140,12 +139,6 @@ export type Query = {
 export type QueryEpisodeArgs = {
   episodeId: Scalars['ID']['input'];
   showId: Scalars['ID']['input'];
-};
-
-
-export type QueryMySubscriptionsArgs = {
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  nextToken?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -187,12 +180,6 @@ export type ShowDetail = {
   progress: Array<Progress>;
   show: Show;
   subscription?: Maybe<UserSubscription>;
-};
-
-export type SubscriptionConnection = PaginatedResult & {
-  __typename: 'SubscriptionConnection';
-  items: Array<UserSubscription>;
-  nextToken?: Maybe<Scalars['String']['output']>;
 };
 
 export type UserProfile = {
