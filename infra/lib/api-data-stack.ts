@@ -214,17 +214,6 @@ export class ApiDataStack extends cdk.Stack {
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
-    tableDataSource.createResolver("MySubscriptionsResolver", {
-      typeName: "Query",
-      fieldName: "mySubscriptions",
-      requestMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.mySubscriptions.request.vtl")
-      ),
-      responseMappingTemplate: appsync.MappingTemplate.fromFile(
-        path.join(resolverDir, "Query.mySubscriptions.response.vtl")
-      ),
-    });
-
     spotifyLambdaDataSource.createResolver("EpisodeResolver", {
       typeName: "Query",
       fieldName: "episode",

@@ -568,44 +568,6 @@ function buildUnsubscribeResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   return Boolean(ctx.result);
 }
 
-function buildMySubscriptionsRequest(ctx: RuntimeContext, util: AppSyncUtil) {
-  return {
-    version: "2018-05-29",
-    operation: "Query",
-    query: {
-      expression: "pk = :pk",
-      expressionValues: {
-        ":pk": toAttribute(util, `user#${String(ctx.identity.sub)}`),
-      },
-    },
-    nextToken: ctx.args.nextToken ?? null,
-    limit:
-      ctx.args.limit === null || ctx.args.limit === undefined
-        ? 20
-        : Number(ctx.args.limit),
-  };
-}
-
-function buildMySubscriptionsResponse(ctx: RuntimeContext, util: AppSyncUtil) {
-  const result = asRecord(ctx.result) ?? {};
-  const items = Array.isArray(result.items) ? (result.items as unknown[]) : [];
-
-  const parsed = items.map((item) => {
-    const map = util.dynamodb.fromMapValues(
-      asRecord(item) ?? (item as Record<string, unknown>)
-    );
-    delete map.pk;
-    delete map.sk;
-    delete map.dataType;
-    return map;
-  });
-
-  return {
-    items: parsed,
-    nextToken: result.nextToken ?? null,
-  };
-}
-
 const templateBuilders: Record<
   string,
   (ctx: RuntimeContext, util: AppSyncUtil) => unknown
@@ -626,10 +588,6 @@ const templateBuilders: Record<
     buildUnsubscribeRequest(ctx, util),
   "Mutation.unsubscribe.response.vtl": (ctx, util) =>
     buildUnsubscribeResponse(ctx, util),
-  "Query.mySubscriptions.request.vtl": (ctx, util) =>
-    buildMySubscriptionsRequest(ctx, util),
-  "Query.mySubscriptions.response.vtl": (ctx, util) =>
-    buildMySubscriptionsResponse(ctx, util),
 };
 
 export function renderTemplate(
