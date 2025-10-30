@@ -1,21 +1,10 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import PodcastSearchBarWithProvider from '../../components/search/PodcastSearchBarWithProvider';
-import SubscriptionsApp from '../../components/graphql/SubscriptionsApp';
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PodcastSearchBarWithProvider from "../../components/search/PodcastSearchBarWithProvider";
+import AppShell from "../../components/app/AppShell";
 ---
 
-<BaseLayout title="Subscriptions" description="Your podcast subscriptions.">
+<BaseLayout title="Podcast Tracker" description="Manage your podcasts in one place.">
   <PodcastSearchBarWithProvider slot="search" client:only="react" />
-  <section class="mx-auto flex max-w-5xl flex-col gap-10 px-6 py-16 md:py-24">
-    <div class="space-y-3 text-center md:text-left">
-      <p class="text-xs uppercase tracking-[0.4em] text-brand-muted">Dashboard</p>
-      <h1 class="text-3xl font-semibold text-brand-text">Your Subscriptions</h1>
-      <p class="text-sm text-brand-muted">
-        Data loads directly from AppSync using your Cognito session. Subscriptions update in near real-time when
-        refresh jobs run.
-      </p>
-    </div>
-
-    <SubscriptionsApp client:only="react" />
-  </section>
+  <AppShell client:only="react" />
 </BaseLayout>

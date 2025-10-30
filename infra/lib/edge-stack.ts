@@ -74,7 +74,7 @@ export class EdgeStack extends cdk.Stack {
     const originId = "SiteBucketOrigin";
 
     const contentSecurityPolicy =
-      "default-src 'self'; connect-src 'self' https:; img-src 'self' data: https:; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests";
+      "default-src 'self'; connect-src 'self' https:; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests";
 
     const securityHeadersPolicy = new cloudfront.ResponseHeadersPolicy(
       this,
@@ -156,12 +156,12 @@ export class EdgeStack extends cdk.Stack {
             {
               errorCode: 403,
               responseCode: 200,
-              responsePagePath: "/index.html",
+              responsePagePath: "/app/index.html",
             },
             {
               errorCode: 404,
               responseCode: 200,
-              responsePagePath: "/index.html",
+              responsePagePath: "/app/index.html",
             },
           ],
           priceClass: "PriceClass_100",
