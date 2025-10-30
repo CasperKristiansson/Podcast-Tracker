@@ -32,9 +32,13 @@ const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
 const parameterCache = new Map<string, string>();
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
+const ALLOWED_LINK_SCHEMES = new Set(["http", "https", "mailto"]);
+
 const SANITIZE_HTML_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [
     "a",
+    "span",
+    "div",
     "b",
     "strong",
     "i",
@@ -56,19 +60,23 @@ const SANITIZE_HTML_OPTIONS: sanitizeHtml.IOptions = {
   allowProtocolRelative: false,
   transformTags: {
     a: (tagName, attribs) => {
-      const href = typeof attribs.href === "string" ? attribs.href.trim() : "";
-      if (!href) {
+      const rawHref =
+        typeof attribs.href === "string" ? attribs.href.trim() : "";
+      if (!isAllowedLinkHref(rawHref)) {
         return {
           tagName: "span",
           attribs: {},
         };
       }
       const safeAttribs: sanitizeHtml.Attributes = {
-        href,
+        href: rawHref,
         rel: "noopener noreferrer",
       };
       if (typeof attribs.title === "string") {
-        safeAttribs.title = attribs.title;
+        const trimmedTitle = attribs.title.trim();
+        if (trimmedTitle.length > 0) {
+          safeAttribs.title = trimmedTitle;
+        }
       }
       return {
         tagName,
@@ -76,12 +84,34 @@ const SANITIZE_HTML_OPTIONS: sanitizeHtml.IOptions = {
       };
     },
   },
+  textFilter: (text, tagName) => {
+    if (tagName === "pre" || tagName === "code") {
+      return text;
+    }
+    const collapsed = text.replace(/\s+/g, " ");
+    return collapsed.trim().length === 0 ? "" : collapsed;
+  },
 };
 
 const SANITIZE_TEXT_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [],
   allowedAttributes: {},
 };
+
+function isAllowedLinkHref(href: string): boolean {
+  if (href.length === 0) {
+    return false;
+  }
+  if (href.startsWith("/") || href.startsWith("./") || href.startsWith("../")) {
+    return true;
+  }
+  const schemeMatch = /^([a-z0-9+.-]+):/.exec(href.toLowerCase());
+  const scheme = schemeMatch?.[1];
+  if (!scheme) {
+    return false;
+  }
+  return ALLOWED_LINK_SCHEMES.has(scheme);
+}
 
 function sanitizeHtmlContent(value: string | null | undefined): string | null {
   if (typeof value !== "string") {
@@ -755,7 +785,7 @@ async function enforceRateLimit(
   );
 
   const currentCountRaw =
-    (result.Attributes as { count?: unknown } | undefined)?.count ?? null;
+    (result?.Attributes as { count?: unknown } | undefined)?.count ?? null;
   const currentCount =
     typeof currentCountRaw === "number"
       ? currentCountRaw
