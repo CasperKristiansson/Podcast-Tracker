@@ -216,14 +216,6 @@ export type UserSubscription = {
   totalEpisodes: Scalars['Int']['output'];
 };
 
-export type MySubscriptionsQueryVariables = Exact<{
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  nextToken?: InputMaybe<Scalars['String']['input']>;
-}>;
-
-
-export type MySubscriptionsQuery = { __typename: 'Query', mySubscriptions: { __typename: 'SubscriptionConnection', nextToken?: string | null | undefined, items: Array<{ __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined }> } };
-
 export type ShowDetailQueryVariables = Exact<{
   showId: Scalars['ID']['input'];
   episodeLimit?: InputMaybe<Scalars['Int']['input']>;
@@ -308,25 +300,6 @@ export type MyProfileQueryVariables = Exact<{ [key: string]: never; }>;
 export type MyProfileQuery = { __typename: 'Query', myProfile: { __typename: 'UserProfile', stats: { __typename: 'ProfileStats', totalShows: number, episodesCompleted: number, episodesInProgress: number }, spotlight: Array<{ __typename: 'ProfileShow', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, completedEpisodes: number, inProgressEpisodes: number, unlistenedEpisodes: number, subscriptionSyncedAt?: any | null | undefined, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined }>, shows: Array<{ __typename: 'ProfileShow', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, completedEpisodes: number, inProgressEpisodes: number, unlistenedEpisodes: number, subscriptionSyncedAt?: any | null | undefined, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined }> } };
 
 
-export const MySubscriptionsDocument = gql`
-    query MySubscriptions($limit: Int, $nextToken: String) {
-  mySubscriptions(limit: $limit, nextToken: $nextToken) {
-    items {
-      showId
-      title
-      publisher
-      image
-      addedAt
-      totalEpisodes
-      ratingStars
-      ratingReview
-      ratingUpdatedAt
-    }
-    nextToken
-  }
-}
-    `;
-export type MySubscriptionsQueryResult = ApolloReactCommon.QueryResult<MySubscriptionsQuery, MySubscriptionsQueryVariables>;
 export const ShowDetailDocument = gql`
     query ShowDetail($showId: ID!, $episodeLimit: Int, $episodeCursor: String, $progressEpisodeIds: [ID!]) {
   showDetail(

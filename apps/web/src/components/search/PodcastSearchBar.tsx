@@ -21,8 +21,6 @@ import {
   UnsubscribeFromShowDocument,
   type UnsubscribeFromShowMutation,
   type UnsubscribeFromShowMutationVariables,
-  MySubscriptionsDocument,
-  type MySubscriptionsQuery,
   MyProfileDocument,
   type MyProfileQuery,
 } from "@shared";
@@ -64,8 +62,6 @@ const pickDescription = (
 
   return { value: "", isHtml: false };
 };
-
-const MY_SUBSCRIPTIONS_VARS = { limit: 200 } as const;
 
 export default function PodcastSearchBar({
   limit = 10,
@@ -322,43 +318,6 @@ export default function PodcastSearchBar({
             return;
           }
 
-          cache.updateQuery<MySubscriptionsQuery>(
-            {
-              query: MySubscriptionsDocument,
-              variables: MY_SUBSCRIPTIONS_VARS,
-            },
-            (existing) => {
-              if (!existing?.mySubscriptions) {
-                return {
-                  __typename: "Query",
-                  mySubscriptions: {
-                    __typename: "SubscriptionConnection",
-                    items: [newSubscription],
-                    nextToken: null,
-                  },
-                } satisfies MySubscriptionsQuery;
-              }
-
-              const items = existing.mySubscriptions.items ?? [];
-              if (
-                items.some(
-                  (subscription) =>
-                    subscription?.showId === newSubscription.showId
-                )
-              ) {
-                return existing;
-              }
-
-              return {
-                __typename: existing.__typename ?? "Query",
-                mySubscriptions: {
-                  ...existing.mySubscriptions,
-                  items: [newSubscription, ...items],
-                },
-              } satisfies MySubscriptionsQuery;
-            }
-          );
-
           cache.updateQuery<MyProfileQuery>(
             {
               query: MyProfileDocument,
@@ -460,29 +419,6 @@ export default function PodcastSearchBar({
           showId: show.id,
         },
         update: (cache) => {
-          cache.updateQuery<MySubscriptionsQuery>(
-            {
-              query: MySubscriptionsDocument,
-              variables: MY_SUBSCRIPTIONS_VARS,
-            },
-            (existing) => {
-              if (!existing?.mySubscriptions) {
-                return existing;
-              }
-
-              return {
-                __typename: existing.__typename ?? "Query",
-                mySubscriptions: {
-                  ...existing.mySubscriptions,
-                  items:
-                    existing.mySubscriptions.items?.filter(
-                      (subscription) => subscription?.showId !== show.id
-                    ) ?? [],
-                },
-              } satisfies MySubscriptionsQuery;
-            }
-          );
-
           cache.updateQuery<MyProfileQuery>(
             {
               query: MyProfileDocument,
