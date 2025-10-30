@@ -11,3 +11,10 @@ Podcast Tracker keeps tabs on every show you follow by syncing with the Spotify 
 - [AWS Lambda](https://aws.amazon.com/lambda/) and [DynamoDB](https://aws.amazon.com/dynamodb/) store and serve podcast data through lightweight serverless functions.
 - [AWS CDK](https://aws.amazon.com/cdk/) defines repeatable cloud infrastructure for the web, API, and supporting services.
 - [Vitest](https://vitest.dev/), [ESLint](https://eslint.org/), and [Prettier](https://prettier.io/) keep the codebase tested, linted, and consistently formatted.
+
+Below are a few interface captures from the latest build. They highlight the profile dashboard, podcast search flow, listening library, and show detail experience.
+
+![Profile dashboard](docs/assets/app-profile-dashboard.png)
+![Podcast search](docs/assets/app-podcast-search.png)
+![Library overview](docs/assets/app-library-overview.png)
+![Show detail](docs/assets/app-show-detail.png)
