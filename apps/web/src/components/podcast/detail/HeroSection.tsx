@@ -134,7 +134,8 @@ export function HeroSection({
   return (
     <GlowCard
       variant={glowVariant}
-      className="relative overflow-hidden w-full max-w-none px-6 py-10 sm:px-10 sm:py-12"
+      paddingClassName="px-0 py-10 sm:px-10 sm:py-12"
+      className="relative w-full max-w-none overflow-hidden"
     >
       <div className="pointer-events-none absolute inset-0" aria-hidden />
       {show.image ? (

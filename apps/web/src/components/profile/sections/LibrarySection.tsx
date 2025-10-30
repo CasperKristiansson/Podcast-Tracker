@@ -433,16 +433,16 @@ function LibraryCard({
               disabled={unsubscribing}
               isLoading={unsubscribing}
               loadingLabel="Removing…"
-              compact
+              aria-label="Remove show"
               className={cn(
-                "h-10 w-10 rounded-full border border-white/10 bg-white/[0.05] p-0 text-white/60 transition duration-300",
+                "flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-semibold text-white/85 transition duration-300 sm:h-10 sm:w-10 sm:rounded-full sm:px-0 sm:py-0 sm:text-white/60",
                 unsubscribing
                   ? "opacity-60"
                   : "hover:-translate-y-0.5 hover:bg-red-500/10 hover:text-red-200 focus-visible:ring-red-200/40"
               )}
-              icon={<TrashIcon className="text-current" />}
             >
-              <span className="sr-only">Remove show</span>
+              <span className="sm:hidden">Show Delete</span>
+              <TrashIcon className="hidden sm:block text-current" />
             </InteractiveButton>
           </div>
         </div>

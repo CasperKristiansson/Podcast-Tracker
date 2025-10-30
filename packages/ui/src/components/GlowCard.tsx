@@ -6,10 +6,11 @@ export interface GlowCardProps {
   children: ReactNode;
   className?: ClassValue;
   variant?: "default" | "untracked" | "completed";
+  paddingClassName?: ClassValue;
 }
 
 const containerBase =
-  "relative mx-auto w-full max-w-lg overflow-hidden rounded-3xl px-10 py-12 backdrop-blur-2xl";
+  "relative mx-auto w-full max-w-lg overflow-hidden rounded-3xl backdrop-blur-2xl";
 
 const pseudoBase =
   "before:absolute before:inset-x-1/3 before:-top-32 before:h-64 before:rounded-full before:bg-gradient-to-b before:blur-3xl before:content-[''] after:absolute after:-bottom-24 after:left-1/2 after:h-48 after:w-48 after:-translate-x-1/2 after:rounded-full after:blur-3xl after:content-['']";
@@ -27,10 +28,12 @@ export const GlowCard = ({
   children,
   className,
   variant = "default",
+  paddingClassName = "px-10 py-12",
 }: GlowCardProps): JSX.Element => (
   <div
     className={cn(
       containerBase,
+      paddingClassName,
       pseudoBase,
       variantClasses[variant],
       className

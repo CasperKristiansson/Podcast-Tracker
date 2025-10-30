@@ -231,8 +231,8 @@ export function EpisodeSection({
                       <div
                         className={
                           isWatched
-                            ? "absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-emerald-300/50 bg-emerald-400/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-emerald-100"
-                            : "absolute right-6 top-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-white/60"
+                            ? "absolute right-6 top-6 hidden items-center gap-2 rounded-full border border-emerald-300/50 bg-emerald-400/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-emerald-100 sm:inline-flex"
+                            : "absolute right-6 top-6 hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-white/60 sm:inline-flex"
                         }
                       >
                         <span
