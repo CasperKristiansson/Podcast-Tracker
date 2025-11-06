@@ -21,6 +21,7 @@ interface SubscriptionRecord {
   ratingStars?: number | null;
   ratingReview?: string | null;
   ratingUpdatedAt?: string | null;
+  droppedAt?: string | null;
 }
 
 interface ProgressRecord {
@@ -42,6 +43,7 @@ interface ProfileShow {
   ratingStars?: number | null;
   ratingReview?: string | null;
   ratingUpdatedAt?: string | null;
+  droppedAt?: string | null;
 }
 
 interface ProfileStats {
@@ -79,7 +81,8 @@ export const handler = async (event: AppSyncEvent): Promise<ProfilePayload> => {
       (show) =>
         show.unlistenedEpisodes > 0 &&
         typeof show.completedEpisodes === "number" &&
-        show.completedEpisodes > 0
+        show.completedEpisodes > 0 &&
+        !show.droppedAt
     )
     .sort((a, b) => {
       const unlistenedDelta = b.unlistenedEpisodes - a.unlistenedEpisodes;
@@ -126,13 +129,14 @@ async function loadSubscriptions(
           "#ratingStars": "ratingStars",
           "#ratingReview": "ratingReview",
           "#ratingUpdatedAt": "ratingUpdatedAt",
+          "#droppedAt": "droppedAt",
         },
         ExpressionAttributeValues: {
           ":pk": userPk,
           ":prefix": "sub#",
         },
         ProjectionExpression:
-          "#showId, #title, #publisher, #image, #addedAt, #totalEpisodes, #syncedAt, #ratingStars, #ratingReview, #ratingUpdatedAt",
+          "#showId, #title, #publisher, #image, #addedAt, #totalEpisodes, #syncedAt, #ratingStars, #ratingReview, #ratingUpdatedAt, #droppedAt",
         ExclusiveStartKey: exclusiveStartKey,
       })
     );
@@ -225,6 +229,7 @@ function toSubscriptionRecord(
     typeof item.ratingReview === "string" ? item.ratingReview : null;
   const ratingUpdatedAt =
     typeof item.ratingUpdatedAt === "string" ? item.ratingUpdatedAt : null;
+  const droppedAt = typeof item.droppedAt === "string" ? item.droppedAt : null;
 
   if (!showId) {
     return null;
@@ -241,6 +246,7 @@ function toSubscriptionRecord(
     ratingStars,
     ratingReview,
     ratingUpdatedAt,
+    droppedAt,
   };
 }
 
@@ -248,8 +254,12 @@ function buildProfile(
   subscriptions: SubscriptionRecord[],
   progresses: ProgressRecord[]
 ): { shows: ProfileShow[]; stats: ProfileStats } {
+  const activeSubscriptions = subscriptions.filter(
+    (subscription) => !subscription.droppedAt
+  );
+
   const stats: ProfileStats = {
-    totalShows: subscriptions.length,
+    totalShows: activeSubscriptions.length,
     episodesCompleted: 0,
     episodesInProgress: 0,
   };
@@ -260,6 +270,9 @@ function buildProfile(
   >();
   const subscribedShows = new Set(
     subscriptions.map((subscription) => subscription.showId)
+  );
+  const activeShowIds = new Set(
+    activeSubscriptions.map((subscription) => subscription.showId)
   );
 
   for (const item of progresses) {
@@ -272,10 +285,14 @@ function buildProfile(
     };
     if (item.completed) {
       bucket.completed += 1;
-      stats.episodesCompleted += 1;
+      if (activeShowIds.has(item.showId)) {
+        stats.episodesCompleted += 1;
+      }
     } else if (item.completed === false) {
       bucket.inProgress += 1;
-      stats.episodesInProgress += 1;
+      if (activeShowIds.has(item.showId)) {
+        stats.episodesInProgress += 1;
+      }
     }
     progressMap.set(item.showId, bucket);
   }
@@ -304,9 +321,18 @@ function buildProfile(
         ratingStars: subscription.ratingStars ?? null,
         ratingReview: subscription.ratingReview ?? null,
         ratingUpdatedAt: subscription.ratingUpdatedAt ?? null,
+        droppedAt: subscription.droppedAt ?? null,
       };
     })
     .sort((a, b) => {
+      const aDropped = Boolean(a.droppedAt);
+      const bDropped = Boolean(b.droppedAt);
+      if (aDropped && !bDropped) {
+        return 1;
+      }
+      if (bDropped && !aDropped) {
+        return -1;
+      }
       if (a.unlistenedEpisodes !== b.unlistenedEpisodes) {
         return b.unlistenedEpisodes - a.unlistenedEpisodes;
       }

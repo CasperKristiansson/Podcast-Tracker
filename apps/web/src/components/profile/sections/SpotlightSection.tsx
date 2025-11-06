@@ -156,7 +156,6 @@ function SpotlightCard({
             }}
             disabled={pending || (globalMutating && !pending)}
             isLoading={pending}
-            loadingLabel="Logging…"
             className="overflow-hidden transition-colors duration-300 hover:bg-[#bcaeff]/80 hover:shadow-[0_24px_60px_rgba(140,105,255,0.45)]"
           >
             <span className="relative z-10">Log a new listen</span>

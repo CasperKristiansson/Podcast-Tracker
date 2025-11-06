@@ -76,6 +76,7 @@ interface SubscriptionRecord {
   ratingStars: number | null;
   ratingReview: string | null;
   ratingUpdatedAt: string | null;
+  droppedAt: string | null;
 }
 
 interface ProgressRecord {
@@ -134,7 +135,7 @@ export const handler = async (
   return {
     show: {
       ...show,
-      isSubscribed: Boolean(subscription),
+      isSubscribed: Boolean(subscription && !subscription.droppedAt),
     },
     subscription,
     episodes,
@@ -251,6 +252,7 @@ async function loadSubscription(
     ratingStars: nullableNumber(item.ratingStars),
     ratingReview: nullableString(item.ratingReview),
     ratingUpdatedAt: nullableString(item.ratingUpdatedAt),
+    droppedAt: nullableString(item.droppedAt),
   };
 }
 

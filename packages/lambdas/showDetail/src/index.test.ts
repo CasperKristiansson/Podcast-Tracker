@@ -134,6 +134,7 @@ describe("show detail lambda", () => {
       ratingStars: 4,
       ratingReview: "Great",
     });
+    expect(result.subscription?.droppedAt).toBeNull();
 
     expect(result.episodes.items).toHaveLength(1);
     expect(result.episodes.items[0]).toMatchObject({
@@ -150,6 +151,64 @@ describe("show detail lambda", () => {
         showId: "show-42",
       },
     ]);
+  });
+
+  it("marks the show as unsubscribed when the subscription was dropped", async () => {
+    lambdaMock
+      .on(InvokeCommand)
+      .resolvesOnce({
+        Payload: encodePayload({
+          id: "show-77",
+          title: "Another Show",
+          publisher: "Studio",
+          description: "Desc",
+          htmlDescription: "<p>Desc</p>",
+          image: "https://image",
+          totalEpisodes: 10,
+          externalUrl: null,
+          categories: [],
+          explicit: false,
+          languages: ["en"],
+          availableMarkets: ["US"],
+          mediaType: "audio",
+          isSubscribed: false,
+        }),
+      })
+      .resolvesOnce({
+        Payload: encodePayload({ items: [], nextToken: null }),
+      });
+
+    dynamoMock.on(GetCommand).resolves({
+      Item: {
+        pk: "user#user-2",
+        sk: "sub#show-77",
+        showId: "show-77",
+        title: "Another Show",
+        publisher: "Studio",
+        image: "https://image",
+        addedAt: "2024-02-05T00:00:00.000Z",
+        totalEpisodes: 10,
+        droppedAt: "2024-03-01T00:00:00.000Z",
+      },
+    });
+
+    dynamoMock.on(QueryCommand).resolves({ Items: [] });
+
+    const result = await handler({
+      identity: { sub: "user-2" },
+      arguments: {
+        showId: "show-77",
+      },
+    });
+
+    expect(result.show).toMatchObject({
+      id: "show-77",
+      isSubscribed: false,
+    });
+    expect(result.subscription).toMatchObject({
+      showId: "show-77",
+      droppedAt: "2024-03-01T00:00:00.000Z",
+    });
   });
 
   it("falls back to batch loading progress for requested episodes", async () => {

@@ -44,12 +44,18 @@ export type EpisodeConnection = PaginatedResult & {
 
 export type Mutation = {
   __typename: 'Mutation';
+  dropShow: UserSubscription;
   markAllEpisodesComplete: Array<Progress>;
   markNextEpisodeComplete: Progress;
   markProgress: Progress;
   rateShow: UserSubscription;
   subscribe: UserSubscription;
   unsubscribe: Scalars['Boolean']['output'];
+};
+
+
+export type MutationDropShowArgs = {
+  showId: Scalars['ID']['input'];
 };
 
 
@@ -99,6 +105,7 @@ export type ProfileShow = {
   __typename: 'ProfileShow';
   addedAt: Scalars['AWSDateTime']['output'];
   completedEpisodes: Scalars['Int']['output'];
+  droppedAt?: Maybe<Scalars['AWSDateTime']['output']>;
   image: Scalars['String']['output'];
   inProgressEpisodes: Scalars['Int']['output'];
   publisher: Scalars['String']['output'];
@@ -192,6 +199,7 @@ export type UserProfile = {
 export type UserSubscription = {
   __typename: 'UserSubscription';
   addedAt: Scalars['AWSDateTime']['output'];
+  droppedAt?: Maybe<Scalars['AWSDateTime']['output']>;
   image: Scalars['String']['output'];
   publisher: Scalars['String']['output'];
   ratingReview?: Maybe<Scalars['String']['output']>;
@@ -211,7 +219,7 @@ export type ShowDetailQueryVariables = Exact<{
 }>;
 
 
-export type ShowDetailQuery = { __typename: 'Query', showDetail: { __typename: 'ShowDetail', show: { __typename: 'Show', id: string, title: string, publisher: string, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, totalEpisodes: number, externalUrl?: string | null | undefined, categories: Array<string>, explicit?: boolean | null | undefined, languages?: Array<string> | null | undefined, availableMarkets?: Array<string> | null | undefined, mediaType?: string | null | undefined, isSubscribed?: boolean | null | undefined }, subscription?: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined, subscriptionSyncedAt?: any | null | undefined } | null | undefined, episodes: { __typename: 'EpisodeConnection', nextToken?: string | null | undefined, items: Array<{ __typename: 'Episode', episodeId: string, showId: string, title: string, audioUrl: string, publishedAt: any, durationSec: number, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, linkUrl?: string | null | undefined, explicit?: boolean | null | undefined, isExternallyHosted?: boolean | null | undefined, isPlayable?: boolean | null | undefined, releaseDatePrecision?: string | null | undefined, languages?: Array<string> | null | undefined }> }, progress: Array<{ __typename: 'Progress', episodeId: string, completed: boolean, updatedAt: any, showId?: string | null | undefined }> } };
+export type ShowDetailQuery = { __typename: 'Query', showDetail: { __typename: 'ShowDetail', show: { __typename: 'Show', id: string, title: string, publisher: string, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, totalEpisodes: number, externalUrl?: string | null | undefined, categories: Array<string>, explicit?: boolean | null | undefined, languages?: Array<string> | null | undefined, availableMarkets?: Array<string> | null | undefined, mediaType?: string | null | undefined, isSubscribed?: boolean | null | undefined }, subscription?: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined, subscriptionSyncedAt?: any | null | undefined, droppedAt?: any | null | undefined } | null | undefined, episodes: { __typename: 'EpisodeConnection', nextToken?: string | null | undefined, items: Array<{ __typename: 'Episode', episodeId: string, showId: string, title: string, audioUrl: string, publishedAt: any, durationSec: number, description?: string | null | undefined, htmlDescription?: string | null | undefined, image?: string | null | undefined, linkUrl?: string | null | undefined, explicit?: boolean | null | undefined, isExternallyHosted?: boolean | null | undefined, isPlayable?: boolean | null | undefined, releaseDatePrecision?: string | null | undefined, languages?: Array<string> | null | undefined }> }, progress: Array<{ __typename: 'Progress', episodeId: string, completed: boolean, updatedAt: any, showId?: string | null | undefined }> } };
 
 export type EpisodeDetailsQueryVariables = Exact<{
   showId: Scalars['ID']['input'];
@@ -239,7 +247,7 @@ export type SubscribeToShowMutationVariables = Exact<{
 }>;
 
 
-export type SubscribeToShowMutation = { __typename: 'Mutation', subscribe: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined } };
+export type SubscribeToShowMutation = { __typename: 'Mutation', subscribe: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, subscriptionSyncedAt?: any | null | undefined, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined, droppedAt?: any | null | undefined } };
 
 export type UnsubscribeFromShowMutationVariables = Exact<{
   showId: Scalars['ID']['input'];
@@ -248,6 +256,13 @@ export type UnsubscribeFromShowMutationVariables = Exact<{
 
 export type UnsubscribeFromShowMutation = { __typename: 'Mutation', unsubscribe: boolean };
 
+export type DropShowMutationVariables = Exact<{
+  showId: Scalars['ID']['input'];
+}>;
+
+
+export type DropShowMutation = { __typename: 'Mutation', dropShow: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, subscriptionSyncedAt?: any | null | undefined, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined, droppedAt?: any | null | undefined } };
+
 export type RateShowMutationVariables = Exact<{
   showId: Scalars['ID']['input'];
   stars: Scalars['Int']['input'];
@@ -255,7 +270,7 @@ export type RateShowMutationVariables = Exact<{
 }>;
 
 
-export type RateShowMutation = { __typename: 'Mutation', rateShow: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, subscriptionSyncedAt?: any | null | undefined, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined } };
+export type RateShowMutation = { __typename: 'Mutation', rateShow: { __typename: 'UserSubscription', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, subscriptionSyncedAt?: any | null | undefined, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined, droppedAt?: any | null | undefined } };
 
 export type MarkEpisodeProgressMutationVariables = Exact<{
   episodeId: Scalars['ID']['input'];
@@ -284,7 +299,7 @@ export type MarkAllEpisodesCompleteMutation = { __typename: 'Mutation', markAllE
 export type MyProfileQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MyProfileQuery = { __typename: 'Query', myProfile: { __typename: 'UserProfile', stats: { __typename: 'ProfileStats', totalShows: number, episodesCompleted: number, episodesInProgress: number }, spotlight: Array<{ __typename: 'ProfileShow', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, completedEpisodes: number, inProgressEpisodes: number, unlistenedEpisodes: number, subscriptionSyncedAt?: any | null | undefined, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined }>, shows: Array<{ __typename: 'ProfileShow', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, completedEpisodes: number, inProgressEpisodes: number, unlistenedEpisodes: number, subscriptionSyncedAt?: any | null | undefined, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined }> } };
+export type MyProfileQuery = { __typename: 'Query', myProfile: { __typename: 'UserProfile', stats: { __typename: 'ProfileStats', totalShows: number, episodesCompleted: number, episodesInProgress: number }, spotlight: Array<{ __typename: 'ProfileShow', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, completedEpisodes: number, inProgressEpisodes: number, unlistenedEpisodes: number, subscriptionSyncedAt?: any | null | undefined, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined, droppedAt?: any | null | undefined }>, shows: Array<{ __typename: 'ProfileShow', showId: string, title: string, publisher: string, image: string, addedAt: any, totalEpisodes: number, completedEpisodes: number, inProgressEpisodes: number, unlistenedEpisodes: number, subscriptionSyncedAt?: any | null | undefined, ratingStars?: number | null | undefined, ratingReview?: string | null | undefined, ratingUpdatedAt?: any | null | undefined, droppedAt?: any | null | undefined }> } };
 
 
 export const ShowDetailDocument = gql`
@@ -322,6 +337,7 @@ export const ShowDetailDocument = gql`
       ratingReview
       ratingUpdatedAt
       subscriptionSyncedAt
+      droppedAt
     }
     episodes {
       items {
@@ -411,9 +427,11 @@ export const SubscribeToShowDocument = gql`
     image
     addedAt
     totalEpisodes
+    subscriptionSyncedAt
     ratingStars
     ratingReview
     ratingUpdatedAt
+    droppedAt
   }
 }
     `;
@@ -424,6 +442,24 @@ export const UnsubscribeFromShowDocument = gql`
 }
     `;
 export type UnsubscribeFromShowMutationResult = ApolloReactCommon.MutationResult<UnsubscribeFromShowMutation>;
+export const DropShowDocument = gql`
+    mutation DropShow($showId: ID!) {
+  dropShow(showId: $showId) {
+    showId
+    title
+    publisher
+    image
+    addedAt
+    totalEpisodes
+    subscriptionSyncedAt
+    ratingStars
+    ratingReview
+    ratingUpdatedAt
+    droppedAt
+  }
+}
+    `;
+export type DropShowMutationResult = ApolloReactCommon.MutationResult<DropShowMutation>;
 export const RateShowDocument = gql`
     mutation RateShow($showId: ID!, $stars: Int!, $review: String) {
   rateShow(showId: $showId, stars: $stars, review: $review) {
@@ -437,6 +473,7 @@ export const RateShowDocument = gql`
     ratingStars
     ratingReview
     ratingUpdatedAt
+    droppedAt
   }
 }
     `;
@@ -496,6 +533,7 @@ export const MyProfileDocument = gql`
       ratingStars
       ratingReview
       ratingUpdatedAt
+      droppedAt
     }
     shows {
       showId
@@ -511,6 +549,7 @@ export const MyProfileDocument = gql`
       ratingStars
       ratingReview
       ratingUpdatedAt
+      droppedAt
     }
   }
 }

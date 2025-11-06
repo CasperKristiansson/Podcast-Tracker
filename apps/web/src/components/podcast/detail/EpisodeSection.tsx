@@ -331,8 +331,7 @@ export function EpisodeSection({
                             pendingEpisodeId !== episode.episodeId
                           }
                           isLoading={isEpisodeUpdating}
-                          loadingLabel="Updating…"
-                          className="transform hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(29,16,65,0.45)]"
+                          className="min-w-[220px] transform hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(29,16,65,0.45)]"
                         >
                           {isWatched ? "Mark as unwatched" : "Mark as watched"}
                         </InteractiveButton>
@@ -352,7 +351,6 @@ export function EpisodeSection({
               void onLoadMore();
             }}
             isLoading={loadingMore}
-            loadingLabel="Loading…"
           >
             Load more episodes
           </InteractiveButton>

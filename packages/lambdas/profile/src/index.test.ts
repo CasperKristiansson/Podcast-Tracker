@@ -137,6 +137,7 @@ describe("profile lambda", () => {
       image: "",
       totalEpisodes: 0,
     });
+    expect(record?.droppedAt).toBeNull();
 
     const missing = __internal.toSubscriptionRecord({ title: "Missing" });
     expect(missing).toBeNull();
@@ -298,6 +299,60 @@ describe("profile lambda", () => {
       "show-a",
       "show-b",
     ]);
+  });
+
+  it("keeps dropped shows listed but excludes them from spotlight and stats", () => {
+    const subs = [
+      {
+        showId: "active",
+        title: "Active",
+        publisher: "Pub",
+        image: "",
+        addedAt: "2024-01-01T00:00:00.000Z",
+        totalEpisodes: 8,
+        subscriptionSyncedAt: null,
+      },
+      {
+        showId: "dropped",
+        title: "Dropped",
+        publisher: "Pub",
+        image: "",
+        addedAt: "2024-01-02T00:00:00.000Z",
+        totalEpisodes: 7,
+        subscriptionSyncedAt: null,
+        droppedAt: "2024-02-01T00:00:00.000Z",
+      },
+    ];
+
+    const progresses = [
+      { showId: "active", completed: true },
+      { showId: "dropped", completed: true },
+      { showId: "dropped", completed: false },
+    ];
+
+    const profile = __internal.buildProfile(subs, progresses);
+    const spotlight = profile.shows
+      .filter(
+        (show) =>
+          show.unlistenedEpisodes > 0 &&
+          show.completedEpisodes > 0 &&
+          !show.droppedAt
+      )
+      .slice(0, 4);
+
+    expect(profile.stats).toEqual({
+      totalShows: 1,
+      episodesCompleted: 1,
+      episodesInProgress: 0,
+    });
+    expect(spotlight.map((show) => show.showId)).toEqual(["active"]);
+    expect(profile.shows.map((show) => show.showId)).toEqual([
+      "active",
+      "dropped",
+    ]);
+    expect(
+      profile.shows.find((show) => show.showId === "dropped")?.droppedAt
+    ).toBe("2024-02-01T00:00:00.000Z");
   });
 
   it("requiredEnv throws for missing variables", () => {

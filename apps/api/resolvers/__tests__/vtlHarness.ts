@@ -552,6 +552,39 @@ function buildRateShowResponse(ctx: RuntimeContext, util: AppSyncUtil) {
   return ctx.result ?? null;
 }
 
+function buildDropShowRequest(ctx: RuntimeContext, util: AppSyncUtil) {
+  const now = util.time.nowISO8601();
+  const pk = `user#${String(ctx.identity.sub)}`;
+  const sk = `sub#${String(ctx.args.showId)}`;
+
+  return {
+    version: "2018-05-29",
+    operation: "UpdateItem",
+    key: {
+      pk: toAttribute(util, pk),
+      sk: toAttribute(util, sk),
+    },
+    update: {
+      expression: "SET #droppedAt = :droppedAt",
+      expressionNames: {
+        "#droppedAt": "droppedAt",
+      },
+      expressionValues: {
+        ":droppedAt": toAttribute(util, now),
+      },
+    },
+    condition: {
+      expression: "attribute_exists(pk) AND attribute_exists(sk)",
+    },
+    returnValues: "ALL_NEW",
+  };
+}
+
+function buildDropShowResponse(ctx: RuntimeContext, util: AppSyncUtil) {
+  ensureNoError(ctx, util);
+  return ctx.result ?? null;
+}
+
 function buildUnsubscribeRequest(ctx: RuntimeContext, util: AppSyncUtil) {
   return {
     version: "2018-05-29",
@@ -584,6 +617,10 @@ const templateBuilders: Record<
     buildRateShowRequest(ctx, util),
   "Mutation.rateShow.response.vtl": (ctx, util) =>
     buildRateShowResponse(ctx, util),
+  "Mutation.dropShow.request.vtl": (ctx, util) =>
+    buildDropShowRequest(ctx, util),
+  "Mutation.dropShow.response.vtl": (ctx, util) =>
+    buildDropShowResponse(ctx, util),
   "Mutation.unsubscribe.request.vtl": (ctx, util) =>
     buildUnsubscribeRequest(ctx, util),
   "Mutation.unsubscribe.response.vtl": (ctx, util) =>

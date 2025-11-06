@@ -828,7 +828,6 @@ const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
                   void onUnsubscribe(show);
                 }}
                 isLoading={isRemoving}
-                loadingLabel="Removing…"
                 className="ml-auto flex-shrink-0 transition-transform duration-200 hover:scale-[1.04] focus-visible:scale-[1.04]"
               >
                 Remove
@@ -841,7 +840,6 @@ const ResultList = forwardRef<HTMLUListElement, ResultListProps>(
                   void onSubscribe(show);
                 }}
                 isLoading={isAdding}
-                loadingLabel="Adding…"
                 className="ml-auto flex-shrink-0 transition-transform duration-200 hover:scale-[1.04] focus-visible:scale-[1.04]"
               >
                 Add

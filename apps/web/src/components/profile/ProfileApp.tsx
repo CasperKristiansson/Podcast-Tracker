@@ -33,7 +33,7 @@ const toFiniteNumber = (value: unknown): number => {
   return 0;
 };
 
-const computeSpotlightList = (
+const deriveSpotlightFromShows = (
   shows: (ProfileShow | null | undefined)[] | null | undefined
 ): ProfileShow[] => {
   const validShows = (shows ?? []).filter((entry): entry is ProfileShow =>
@@ -44,7 +44,8 @@ const computeSpotlightList = (
     .filter(
       (show) =>
         toFiniteNumber(show.unlistenedEpisodes) > 0 &&
-        toFiniteNumber(show.completedEpisodes) > 0
+        toFiniteNumber(show.completedEpisodes) > 0 &&
+        !show.droppedAt
     )
     .sort((a, b) => {
       const unlistenedDelta =
@@ -119,8 +120,11 @@ function ProfileAppContent(): JSX.Element {
   );
 
   const spotlight = useMemo<ProfileShow[]>(
-    () => computeSpotlightList(shows),
-    [shows]
+    () =>
+      (data?.myProfile.spotlight ?? []).filter((entry): entry is ProfileShow =>
+        Boolean(entry)
+      ),
+    [data?.myProfile.spotlight]
   );
 
   const notStartedShows = useMemo<ProfileShow[]>(() => {
@@ -132,6 +136,9 @@ function ProfileAppContent(): JSX.Element {
     );
     return shows
       .filter((show) => {
+        if (show.droppedAt) {
+          return false;
+        }
         if (spotlightIds.has(show.showId)) {
           return false;
         }
@@ -155,6 +162,9 @@ function ProfileAppContent(): JSX.Element {
   }, [shows, spotlight]);
   const handleCelebrate = useCallback(
     async (show: ProfileShow) => {
+      if (show.droppedAt) {
+        return;
+      }
       try {
         setPendingShowId(show.showId);
         const { data: progressData } = await markNextEpisodeComplete({
@@ -210,7 +220,7 @@ function ProfileAppContent(): JSX.Element {
                     .filter((entry): entry is ProfileShow => Boolean(entry));
 
                 const updatedShows = updateShowList(profile.shows);
-                const updatedSpotlight = computeSpotlightList(updatedShows);
+                const updatedSpotlight = deriveSpotlightFromShows(updatedShows);
 
                 const currentStats =
                   profile.stats ??
@@ -302,7 +312,8 @@ function ProfileAppContent(): JSX.Element {
                 const filteredShows = showsList.filter(
                   (profileShow) => profileShow?.showId !== show.showId
                 );
-                const updatedSpotlight = computeSpotlightList(filteredShows);
+                const updatedSpotlight =
+                  deriveSpotlightFromShows(filteredShows);
 
                 const currentStats = currentProfile.stats;
                 const updatedStats = {

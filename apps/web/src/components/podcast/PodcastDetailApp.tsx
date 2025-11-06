@@ -21,6 +21,9 @@ import {
   UnsubscribeFromShowDocument,
   type UnsubscribeFromShowMutation,
   type UnsubscribeFromShowMutationVariables,
+  DropShowDocument,
+  type DropShowMutation,
+  type DropShowMutationVariables,
 } from "@shared";
 import { AuroraBackground, InteractiveButton } from "@ui";
 import { GraphQLProvider } from "../graphql/GraphQLProvider";
@@ -140,13 +143,20 @@ function PodcastDetailAppContent({
     UnsubscribeFromShowMutation,
     UnsubscribeFromShowMutationVariables
   >(UnsubscribeFromShowDocument);
+  const [dropShowMutation, { loading: dropLoading }] = useMutation<
+    DropShowMutation,
+    DropShowMutationVariables
+  >(DropShowDocument);
   const [rateShow, { loading: rateLoading }] = useMutation<
     RateShowMutation,
     RateShowMutationVariables
   >(RateShowDocument);
 
-  const isSubscribed = Boolean(subscription) || Boolean(show?.isSubscribed);
-  const isMutatingSubscription = subscribeLoading || unsubscribeLoading;
+  const isDropped = Boolean(subscription?.droppedAt);
+  const isActiveSubscription = Boolean(subscription) && !isDropped;
+  const isSubscribed = isActiveSubscription || Boolean(show?.isSubscribed);
+  const isMutatingSubscription =
+    subscribeLoading || unsubscribeLoading || dropLoading;
   const ratingDisplayValue = subscription?.ratingStars ?? 0;
   const canRateShow = Boolean(subscription);
   const handleDraftStarChange = (stars: number) => {
@@ -157,13 +167,14 @@ function PodcastDetailAppContent({
   };
   const subscriptionAddedAt = toOptionalString(subscription?.addedAt);
   const ratingUpdatedAt = toOptionalString(subscription?.ratingUpdatedAt);
+  const subscriptionDroppedAt = toOptionalString(subscription?.droppedAt);
 
   const watchedCount = useMemo(() => {
     return (detail?.progress ?? []).filter((entry) => entry?.completed).length;
   }, [detail?.progress]);
 
   const hasEpisodesToMark = useMemo(() => {
-    if (!isSubscribed) {
+    if (!isActiveSubscription) {
       return false;
     }
 
@@ -196,7 +207,7 @@ function PodcastDetailAppContent({
     });
   }, [
     episodesConnection?.items,
-    isSubscribed,
+    isActiveSubscription,
     progressMap,
     show?.totalEpisodes,
     subscription?.totalEpisodes,
@@ -211,7 +222,7 @@ function PodcastDetailAppContent({
   const handleSubscribeToggle = async () => {
     if (!show) return;
     try {
-      if (isSubscribed) {
+      if (isActiveSubscription) {
         setToastStatus({
           state: "loading",
           message: "Removing from your library…",
@@ -296,12 +307,69 @@ function PodcastDetailAppContent({
       }
     } catch (err) {
       console.error("Subscription mutation failed", err);
-      if (isSubscribed) {
+      if (isActiveSubscription) {
         setToastStatus({
           state: "error",
           message: "We couldn’t remove the show. Please try again.",
         });
       }
+    }
+  };
+
+  const handleDropShow = async () => {
+    if (!show) return;
+    try {
+      setToastStatus({
+        state: "loading",
+        message: "Marking as dropped…",
+      });
+      await dropShowMutation({
+        variables: { showId },
+        update: (cache, result) => {
+          const droppedPayload = result.data?.dropShow;
+          if (!droppedPayload) {
+            return;
+          }
+
+          cache.updateQuery<ShowDetailQuery, ShowDetailQueryVariables>(
+            {
+              query: ShowDetailDocument,
+              variables: showDetailVariables,
+            },
+            (existing) => {
+              if (!existing?.showDetail?.show) {
+                return existing;
+              }
+              const showDetail = existing.showDetail;
+              const updated = {
+                ...existing,
+                showDetail: {
+                  ...showDetail,
+                  subscription: droppedPayload,
+                  show: {
+                    ...showDetail.show,
+                    isSubscribed: false,
+                  },
+                },
+              } satisfies ShowDetailQuery;
+              return updated;
+            }
+          );
+        },
+      });
+      const title = show.title?.trim();
+      setToastStatus({
+        state: "success",
+        message: title
+          ? `Dropped “${title}”. We’ll keep it in your history.`
+          : "Dropped the show.",
+      });
+    } catch (err) {
+      console.error("Drop mutation failed", err);
+      setToastStatus({
+        state: "error",
+        message: "We couldn’t drop the show. Please try again.",
+      });
     }
   };
 
@@ -752,9 +820,13 @@ function PodcastDetailAppContent({
             show={show}
             subscription={subscription}
             isSubscribed={isSubscribed}
+            isDropped={isDropped}
             isMutatingSubscription={isMutatingSubscription}
             onSubscribeToggle={() => {
               void handleSubscribeToggle();
+            }}
+            onDropShow={() => {
+              void handleDropShow();
             }}
             onOpenRatingModal={handleOpenRatingModal}
             onMarkAllEpisodes={() => {
@@ -765,15 +837,17 @@ function PodcastDetailAppContent({
             canRateShow={canRateShow}
             ratingDisplayValue={ratingDisplayValue}
             subscriptionAddedAt={subscriptionAddedAt}
+            subscriptionDroppedAt={subscriptionDroppedAt}
             ratingUpdatedAt={ratingUpdatedAt}
             watchedCount={watchedCount}
+            dropLoading={dropLoading}
           />
         ) : null}
 
         <EpisodeSection
           episodesConnection={episodesConnection}
           progressMap={progressMap}
-          isSubscribed={isSubscribed}
+          isSubscribed={isActiveSubscription}
           episodesInitialLoading={episodesInitialLoading}
           progressSyncing={progressSyncing}
           onEpisodeCompletion={handleEpisodeCompletion}

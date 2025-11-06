@@ -88,11 +88,7 @@ export function RatingModal({
             className="w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[#8f73ff]"
           />
           <div className="flex flex-wrap gap-3">
-            <InteractiveButton
-              onClick={onSave}
-              isLoading={loading}
-              loadingLabel="Saving…"
-            >
+            <InteractiveButton onClick={onSave} isLoading={loading}>
               Save rating
             </InteractiveButton>
             {canClear ? (
@@ -100,7 +96,6 @@ export function RatingModal({
                 variant="outline"
                 onClick={onClear}
                 isLoading={loading}
-                loadingLabel="Clearing…"
               >
                 Clear rating
               </InteractiveButton>

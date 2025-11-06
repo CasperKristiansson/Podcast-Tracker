@@ -1,0 +1,24 @@
+#set($now = $util.time.nowISO8601())
+#set($userPk = "user#" + $ctx.identity.sub)
+#set($subscriptionSk = "sub#" + $ctx.args.showId)
+{
+  "version": "2018-05-29",
+  "operation": "UpdateItem",
+  "key": {
+    "pk": $util.dynamodb.toDynamoDBJson($userPk),
+    "sk": $util.dynamodb.toDynamoDBJson($subscriptionSk)
+  },
+  "update": {
+    "expression": "SET #droppedAt = :droppedAt",
+    "expressionNames": {
+      "#droppedAt": "droppedAt"
+    },
+    "expressionValues": {
+      ":droppedAt": $util.dynamodb.toDynamoDBJson($now)
+    }
+  },
+  "condition": {
+    "expression": "attribute_exists(pk) AND attribute_exists(sk)"
+  },
+  "returnValues": "ALL_NEW"
+}

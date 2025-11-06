@@ -51,6 +51,18 @@ export function LibrarySection({
     const filterShows = (predicate: (show: ProfileShow) => boolean) =>
       startedShows.filter(predicate);
 
+    const sortLibrary = (list: ProfileShow[]) =>
+      [...list].sort((a, b) => {
+        const aDropped = Boolean(a.droppedAt);
+        const bDropped = Boolean(b.droppedAt);
+        if (aDropped !== bDropped) {
+          return aDropped ? 1 : -1;
+        }
+        const titleA = typeof a.title === "string" ? a.title : "";
+        const titleB = typeof b.title === "string" ? b.title : "";
+        return titleA.localeCompare(titleB);
+      });
+
     const hasReview = (show: ProfileShow) => {
       const rating =
         typeof show.ratingStars === "number" ? show.ratingStars : 0;
@@ -61,23 +73,27 @@ export function LibrarySection({
 
     switch (libraryFilter) {
       case "in-progress":
-        return filterShows((show) => {
-          const inProgress = show.inProgressEpisodes ?? 0;
-          const completed = show.completedEpisodes ?? 0;
-          const unlistened = show.unlistenedEpisodes ?? 0;
-          return inProgress > 0 || (completed > 0 && unlistened > 0);
-        });
+        return sortLibrary(
+          filterShows((show) => {
+            const inProgress = show.inProgressEpisodes ?? 0;
+            const completed = show.completedEpisodes ?? 0;
+            const unlistened = show.unlistenedEpisodes ?? 0;
+            return inProgress > 0 || (completed > 0 && unlistened > 0);
+          })
+        );
       case "completed":
-        return filterShows((show) => {
-          const completed = show.completedEpisodes ?? 0;
-          const unlistened = show.unlistenedEpisodes ?? 0;
-          return completed > 0 && unlistened === 0;
-        });
+        return sortLibrary(
+          filterShows((show) => {
+            const completed = show.completedEpisodes ?? 0;
+            const unlistened = show.unlistenedEpisodes ?? 0;
+            return completed > 0 && unlistened === 0;
+          })
+        );
       case "not-reviewed":
-        return filterShows((show) => !hasReview(show));
+        return sortLibrary(filterShows((show) => !hasReview(show)));
       case "all":
       default:
-        return startedShows;
+        return sortLibrary(startedShows);
     }
   }, [libraryFilter, startedShows]);
   const hasStartedShows = startedShows.length > 0;
@@ -102,7 +118,9 @@ export function LibrarySection({
     if (typeof window === "undefined" || shows.length === 0) {
       return;
     }
-    const promptMarkdown = buildListeningAtlasPrompt(shows);
+    const promptMarkdown = buildListeningAtlasPrompt(
+      shows.filter((show) => !show.droppedAt)
+    );
     const file = new Blob([promptMarkdown], {
       type: "text/markdown;charset=utf-8",
     });
@@ -333,9 +351,16 @@ function LibraryCard({
   const hasImage = typeof show.image === "string" && show.image.length > 0;
   const addedAtValue = normalizeDateInput(show.addedAt);
 
-  const celebrateLoading = pending && hasUnlistened;
+  const isDropped = Boolean(show.droppedAt);
+  const droppedAtValue = normalizeDateInput(show.droppedAt);
+
+  const celebrateLoading = pending && hasUnlistened && !isDropped;
   const celebrateDisabled =
-    !hasUnlistened || unsubscribing || pending || (globalMutating && !pending);
+    isDropped ||
+    !hasUnlistened ||
+    unsubscribing ||
+    pending ||
+    (globalMutating && !pending);
 
   const handleNavigate = () => {
     navigateToShow(show.showId);
@@ -343,7 +368,12 @@ function LibraryCard({
 
   return (
     <div
-      className="group relative flex cursor-pointer flex-col gap-5 overflow-hidden rounded-[28px] border border-white/12 bg-[#190b36]/85 p-6 shadow-[0_38px_100px_rgba(21,10,52,0.5)] transition duration-300 hover:-translate-y-1 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]"
+      className={cn(
+        "group relative flex cursor-pointer flex-col gap-5 overflow-hidden rounded-[28px] border p-6 shadow-[0_38px_100px_rgba(21,10,52,0.5)] transition duration-300 hover:-translate-y-1 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f73ff]",
+        isDropped
+          ? "border-red-300/40 bg-[#1a0d35]/70"
+          : "border-white/12 bg-[#190b36]/85"
+      )}
       role="link"
       tabIndex={0}
       aria-label={`View details for ${show.title ?? "podcast"}`}
@@ -389,6 +419,16 @@ function LibraryCard({
               <p className="text-xs uppercase tracking-[0.35em] text-white/45">
                 {show.publisher}
               </p>
+              {isDropped ? (
+                <span className="inline-flex items-center gap-2 rounded-full border border-red-300/35 bg-red-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-red-100">
+                  Dropped
+                  {droppedAtValue ? (
+                    <span className="text-[9px] font-medium normal-case tracking-[0.08em] text-red-200/80">
+                      · {formatDate(droppedAtValue)}
+                    </span>
+                  ) : null}
+                </span>
+              ) : null}
             </div>
             <p className="text-sm font-medium text-white/85 sm:text-base">
               Listened {formatNumber(show.completedEpisodes)} /{" "}
@@ -402,14 +442,17 @@ function LibraryCard({
 
         <div className="flex flex-col items-start gap-3 text-xs text-white/55 sm:text-sm md:items-end md:text-right">
           <p className="text-white/60">
-            Subscribed since{" "}
-            {addedAtValue ? formatDate(addedAtValue) : "Unknown"}
+            Added {addedAtValue ? formatDate(addedAtValue) : "Unknown"}
+            {droppedAtValue ? ` · Dropped ${formatDate(droppedAtValue)}` : ""}
           </p>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
             <InteractiveButton
               variant="ghost"
               onClick={(event) => {
                 event.stopPropagation();
+                if (isDropped) {
+                  return;
+                }
                 void onCelebrate(show);
               }}
               disabled={celebrateDisabled}
@@ -420,9 +463,12 @@ function LibraryCard({
                   : "hover:-translate-y-0.5 hover:bg-white/16 hover:text-white hover:shadow-[0_26px_60px_rgba(104,78,212,0.4)] focus-visible:ring-[#c6b5ff]"
               )}
               isLoading={celebrateLoading}
-              loadingLabel="Logging…"
             >
-              {hasUnlistened ? "Mark next episode complete" : "Listen again"}
+              {isDropped
+                ? "Dropped show"
+                : hasUnlistened
+                  ? "Mark next episode complete"
+                  : "Listen again"}
             </InteractiveButton>
             <InteractiveButton
               variant="outline"
@@ -432,7 +478,6 @@ function LibraryCard({
               }}
               disabled={unsubscribing}
               isLoading={unsubscribing}
-              loadingLabel="Removing…"
               aria-label="Remove show"
               className={cn(
                 "flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-semibold text-white/85 transition duration-300 sm:h-10 sm:w-10 sm:rounded-full sm:px-0 sm:py-0 sm:text-white/60",

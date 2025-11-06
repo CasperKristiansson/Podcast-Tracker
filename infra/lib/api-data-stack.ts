@@ -281,6 +281,17 @@ export class ApiDataStack extends cdk.Stack {
       ),
     });
 
+    tableDataSource.createResolver("DropShowResolver", {
+      typeName: "Mutation",
+      fieldName: "dropShow",
+      requestMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, "Mutation.dropShow.request.vtl")
+      ),
+      responseMappingTemplate: appsync.MappingTemplate.fromFile(
+        path.join(resolverDir, "Mutation.dropShow.response.vtl")
+      ),
+    });
+
     tableDataSource.createResolver("MarkProgressResolver", {
       typeName: "Mutation",
       fieldName: "markProgress",

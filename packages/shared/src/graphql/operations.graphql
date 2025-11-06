@@ -37,6 +37,7 @@ query ShowDetail(
       ratingReview
       ratingUpdatedAt
       subscriptionSyncedAt
+      droppedAt
     }
     episodes {
       items {
@@ -126,14 +127,32 @@ mutation SubscribeToShow(
     image
     addedAt
     totalEpisodes
+    subscriptionSyncedAt
     ratingStars
     ratingReview
     ratingUpdatedAt
+    droppedAt
   }
 }
 
 mutation UnsubscribeFromShow($showId: ID!) {
   unsubscribe(showId: $showId)
+}
+
+mutation DropShow($showId: ID!) {
+  dropShow(showId: $showId) {
+    showId
+    title
+    publisher
+    image
+    addedAt
+    totalEpisodes
+    subscriptionSyncedAt
+    ratingStars
+    ratingReview
+    ratingUpdatedAt
+    droppedAt
+  }
 }
 
 mutation RateShow($showId: ID!, $stars: Int!, $review: String) {
@@ -148,6 +167,7 @@ mutation RateShow($showId: ID!, $stars: Int!, $review: String) {
     ratingStars
     ratingReview
     ratingUpdatedAt
+    droppedAt
   }
 }
 
@@ -203,6 +223,7 @@ query MyProfile {
       ratingStars
       ratingReview
       ratingUpdatedAt
+      droppedAt
     }
     shows {
       showId
@@ -218,6 +239,7 @@ query MyProfile {
       ratingStars
       ratingReview
       ratingUpdatedAt
+      droppedAt
     }
   }
 }

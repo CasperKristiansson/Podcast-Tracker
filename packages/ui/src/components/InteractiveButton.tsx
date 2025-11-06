@@ -14,7 +14,6 @@ export interface InteractiveButtonProps
   variant?: InteractiveButtonVariant;
   isLoading?: boolean;
   icon?: ReactNode;
-  loadingLabel?: string;
   compact?: boolean;
   size?: "xs" | "sm" | "md" | "lg" | "custom";
   className?: ClassValue;
@@ -51,7 +50,6 @@ export const InteractiveButton = forwardRef<
     {
       variant = "primary",
       isLoading = false,
-      loadingLabel = "Working…",
       icon,
       compact = false,
       size = "md",
@@ -115,7 +113,6 @@ export const InteractiveButton = forwardRef<
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
             </span>
           </span>
-          {isLoading ? <span className="sr-only">{loadingLabel}</span> : null}
         </span>
       </span>
     </button>

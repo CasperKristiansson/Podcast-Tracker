@@ -11,8 +11,10 @@ interface HeroSectionProps {
   show: ShowDetailQuery["showDetail"]["show"];
   subscription: ShowDetailQuery["showDetail"]["subscription"] | null;
   isSubscribed: boolean;
+  isDropped: boolean;
   isMutatingSubscription: boolean;
   onSubscribeToggle: () => void;
+  onDropShow: () => void;
   onOpenRatingModal: () => void;
   onMarkAllEpisodes: () => void;
   markAllLoading: boolean;
@@ -20,16 +22,20 @@ interface HeroSectionProps {
   canRateShow: boolean;
   ratingDisplayValue: number;
   subscriptionAddedAt: string | null;
+  subscriptionDroppedAt: string | null;
   ratingUpdatedAt: string | null;
   watchedCount: number;
+  dropLoading: boolean;
 }
 
 export function HeroSection({
   show,
   subscription,
   isSubscribed,
+  isDropped,
   isMutatingSubscription,
   onSubscribeToggle,
+  onDropShow,
   onOpenRatingModal,
   onMarkAllEpisodes,
   markAllLoading,
@@ -37,19 +43,24 @@ export function HeroSection({
   canRateShow,
   ratingDisplayValue,
   subscriptionAddedAt,
+  subscriptionDroppedAt,
   ratingUpdatedAt,
   watchedCount,
+  dropLoading,
 }: HeroSectionProps): JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const glowVariant = useMemo<NonNullable<GlowCardProps["variant"]>>(() => {
+    if (isDropped) {
+      return "untracked";
+    }
     if (!isSubscribed) {
       return "untracked";
     }
     return hasEpisodesToMark ? "default" : "completed";
-  }, [hasEpisodesToMark, isSubscribed]);
+  }, [hasEpisodesToMark, isSubscribed, isDropped]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -83,6 +94,13 @@ export function HeroSection({
     () => show.languages?.filter(isNonEmptyString) ?? [],
     [show.languages]
   );
+
+  const droppedRelative = useMemo(() => {
+    if (!subscriptionDroppedAt) {
+      return null;
+    }
+    return formatRelative(subscriptionDroppedAt);
+  }, [subscriptionDroppedAt]);
 
   const menuActions = [
     canRateShow
@@ -121,6 +139,15 @@ export function HeroSection({
           destructive: false,
           disabled: markAllLoading,
           icon: markAllLoading ? "…" : "✓",
+        }
+      : null,
+    isSubscribed
+      ? {
+          label: dropLoading ? "Dropping…" : "Drop show",
+          onSelect: onDropShow,
+          destructive: true,
+          disabled: dropLoading,
+          icon: dropLoading ? "…" : "✕",
         }
       : null,
   ].filter(Boolean) as {
@@ -193,6 +220,16 @@ export function HeroSection({
                   {show.mediaType ?? "Podcast"}
                 </span>
               </span>
+              {isDropped ? (
+                <span className="inline-flex items-center gap-2 self-start rounded-full border border-red-300/35 bg-red-500/15 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-red-100 lg:self-center">
+                  Dropped
+                  {droppedRelative ? (
+                    <span className="text-[10px] font-medium normal-case tracking-[0.08em] text-red-200/80">
+                      · {droppedRelative}
+                    </span>
+                  ) : null}
+                </span>
+              ) : null}
 
               <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
                 {!isSubscribed ? (
@@ -200,10 +237,9 @@ export function HeroSection({
                     onClick={onSubscribeToggle}
                     variant="primary"
                     isLoading={isMutatingSubscription}
-                    loadingLabel="Adding…"
                     className="w-full rounded-full sm:w-auto transition-colors duration-200 hover:bg-[#7f4bff]/20 hover:text-white"
                   >
-                    Add to my shows
+                    {isDropped ? "Add back to my shows" : "Add to my shows"}
                   </InteractiveButton>
                 ) : null}
                 <div className="relative w-full sm:w-auto">
@@ -266,7 +302,7 @@ export function HeroSection({
                           <span aria-hidden>{item.icon}</span>
                         </button>
                       ))}
-                      {isSubscribed ? (
+                      {subscription ? (
                         <button
                           type="button"
                           role="menuitem"
@@ -291,6 +327,12 @@ export function HeroSection({
 
             <div className="space-y-3 text-sm text-white/65">
               <p>{show.description}</p>
+              {isDropped ? (
+                <div className="rounded-2xl border border-red-300/35 bg-red-500/10 px-4 py-3 text-xs text-red-100">
+                  You dropped this show. Add it back to resume tracking new
+                  episodes.
+                </div>
+              ) : null}
               <div className="flex flex-wrap gap-3 text-xs text-white/50">
                 {subscriptionAddedAt ? (
                   <span className="rounded-full border border-white/12 bg-white/[0.05] px-3 py-1 uppercase tracking-[0.3em]">
