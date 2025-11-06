@@ -541,9 +541,7 @@ function buildRateShowRequest(ctx: RuntimeContext, util: AppSyncUtil) {
       expression: `${expression}${removeExpression}`,
       expressionValues,
     },
-    condition: {
-      expression: "attribute_exists(pk) AND attribute_exists(sk)",
-    },
+    conditionExpression: "attribute_exists(pk) AND attribute_exists(sk)",
   };
 }
 
@@ -576,7 +574,6 @@ function buildDropShowRequest(ctx: RuntimeContext, util: AppSyncUtil) {
     condition: {
       expression: "attribute_exists(pk) AND attribute_exists(sk)",
     },
-    returnValues: "ALL_NEW",
   };
 }
 

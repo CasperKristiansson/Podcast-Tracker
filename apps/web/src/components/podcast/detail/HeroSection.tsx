@@ -220,16 +220,6 @@ export function HeroSection({
                   {show.mediaType ?? "Podcast"}
                 </span>
               </span>
-              {isDropped ? (
-                <span className="inline-flex items-center gap-2 self-start rounded-full border border-red-300/35 bg-red-500/15 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-red-100 lg:self-center">
-                  Dropped
-                  {droppedRelative ? (
-                    <span className="text-[10px] font-medium normal-case tracking-[0.08em] text-red-200/80">
-                      · {droppedRelative}
-                    </span>
-                  ) : null}
-                </span>
-              ) : null}
 
               <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
                 {!isSubscribed ? (
@@ -329,8 +319,9 @@ export function HeroSection({
               <p>{show.description}</p>
               {isDropped ? (
                 <div className="rounded-2xl border border-red-300/35 bg-red-500/10 px-4 py-3 text-xs text-red-100">
-                  You dropped this show. Add it back to resume tracking new
-                  episodes.
+                  <p>
+                    {`Dropped${droppedRelative ? ` - ${droppedRelative}` : ""} - You dropped this show. Add it back to resume tracking new episodes.`}
+                  </p>
                 </div>
               ) : null}
               <div className="flex flex-wrap gap-3 text-xs text-white/50">

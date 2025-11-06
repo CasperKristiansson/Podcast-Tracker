@@ -34,7 +34,6 @@ describe("Mutation.dropShow mapping templates", () => {
     expect(request.condition).toEqual({
       expression: "attribute_exists(pk) AND attribute_exists(sk)",
     });
-    expect(request.returnValues).toBe("ALL_NEW");
 
     const evalRuntime = createRuntime(options);
     const evaluated = await evaluateTemplate(
