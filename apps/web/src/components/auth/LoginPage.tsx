@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { AuroraBackground, GlowCard, GoogleButton } from "@ui";
+import { AuroraBackground, GlowCard, GoogleButton, InteractiveButton } from "@ui";
 import { beginLogin } from "../../lib/auth/flow";
 
 export default function LoginPage(): JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const handleSignIn = async (): Promise<void> => {
+    setNotice(null);
     setError(null);
     setIsLoading(true);
 
@@ -20,6 +22,11 @@ export default function LoginPage(): JSX.Element {
           : "Unexpected error initiating sign-in.";
       setError(message);
     }
+  };
+
+  const handleDemo = (): void => {
+    setError(null);
+    setNotice("Demo account access is coming soon.");
   };
 
   return (
@@ -52,17 +59,30 @@ export default function LoginPage(): JSX.Element {
             </div>
           </div>
 
-          <GoogleButton
-            onClick={() => {
-              void handleSignIn();
-            }}
-            loading={isLoading}
-            aria-label="Continue with Google"
-          />
+          <div className="space-y-3">
+            <InteractiveButton
+              variant="outline"
+              size="md"
+              onClick={handleDemo}
+            >
+              Try the demo account
+            </InteractiveButton>
+            <GoogleButton
+              onClick={() => {
+                void handleSignIn();
+              }}
+              loading={isLoading}
+              aria-label="Continue with Google"
+            />
+          </div>
 
           {error ? (
             <div className="mx-auto w-full max-w-sm rounded-full border border-rose-400/40 bg-gradient-to-r from-[#621838]/85 via-[#3a0c21]/80 to-[#1a0410]/85 px-4 py-2 text-sm text-[#ffd8e5] shadow-[0_18px_45px_rgba(107,20,56,0.45)]">
               {error}
+            </div>
+          ) : notice ? (
+            <div className="mx-auto w-full max-w-sm rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white/80 shadow-[0_18px_45px_rgba(49,24,120,0.35)]">
+              {notice}
             </div>
           ) : (
             <p className="text-sm text-white/65">
