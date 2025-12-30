@@ -10,6 +10,8 @@ import { ApolloProvider } from "@apollo/client/react";
 import type { ComponentProps, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { beginLogin, getTokens } from "../../lib/auth/flow";
+import { createDemoApolloClient } from "../../lib/demo/apollo";
+import { isDemoMode } from "../../lib/demo/mode";
 import { appsyncUrl } from "../../lib/graphql/config";
 
 interface ApolloResources {
@@ -107,6 +109,11 @@ const createApolloResources = (idToken: string): ApolloResources => {
   return { client };
 };
 
+const createDemoResources = (): ApolloResources => {
+  const client = createDemoApolloClient();
+  return { client };
+};
+
 function useApolloClient(): {
   resource: ApolloResources | null;
   error: string | null;
@@ -119,6 +126,12 @@ function useApolloClient(): {
 
     const initialize = async (): Promise<void> => {
       try {
+        if (isDemoMode()) {
+          if (!cancelled) {
+            setResource(createDemoResources());
+          }
+          return;
+        }
         const tokens = await getTokens();
         if (!tokens) {
           beginLogin().catch((err) => {

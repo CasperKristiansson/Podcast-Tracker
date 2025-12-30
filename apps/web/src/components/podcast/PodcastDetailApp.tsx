@@ -27,6 +27,7 @@ import {
 } from "@shared";
 import { AuroraBackground, InteractiveButton } from "@ui";
 import { GraphQLProvider } from "../graphql/GraphQLProvider";
+import DemoBadge from "../demo/DemoBadge";
 import { EpisodeSection } from "./detail/EpisodeSection";
 import { HeroSection } from "./detail/HeroSection";
 import { RatingModal } from "./detail/RatingModal";
@@ -775,6 +776,9 @@ function PodcastDetailAppContent({
       />
       <ActionToast status={toastStatus} />
       <BackToProfileLink />
+      <div className="fixed right-3 top-3 z-[999] hidden sm:block">
+        <DemoBadge />
+      </div>
       <AuroraBackground
         className="opacity-80"
         variant={hasEpisodesToMark ? "default" : "completed"}

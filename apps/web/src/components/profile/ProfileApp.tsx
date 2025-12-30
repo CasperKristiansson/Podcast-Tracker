@@ -15,7 +15,9 @@ import {
 import { AuroraBackground, InteractiveButton } from "@ui";
 import { normalizeDateInput } from "../../lib/datetime";
 import { signOut } from "../../lib/auth/flow";
+import { disableDemoMode, isDemoMode } from "../../lib/demo/mode";
 import { GraphQLProvider } from "../graphql/GraphQLProvider";
+import DemoBadge from "../demo/DemoBadge";
 import { StatsSection } from "./sections/StatsSection";
 import { SpotlightSection } from "./sections/SpotlightSection";
 import { LibrarySection } from "./sections/LibrarySection";
@@ -363,6 +365,11 @@ function ProfileAppContent(): JSX.Element {
   const handleSignOut = useCallback(async () => {
     try {
       setSigningOut(true);
+      if (isDemoMode()) {
+        disableDemoMode();
+        window.location.assign("/login");
+        return;
+      }
       await signOut();
     } catch (err) {
       console.error("Failed to sign out", err);
@@ -429,7 +436,8 @@ function ProfileAppContent(): JSX.Element {
                 each episode.
               </p>
             </header>
-            <div className="flex justify-end self-end md:self-auto">
+            <div className="flex flex-wrap items-center justify-end gap-3 self-end md:self-auto">
+              <DemoBadge className="hidden sm:inline-flex" />
               <InteractiveButton
                 variant="outline"
                 size="sm"
@@ -438,7 +446,7 @@ function ProfileAppContent(): JSX.Element {
                   void handleSignOut();
                 }}
               >
-                Log out
+                {isDemoMode() ? "Exit demo" : "Log out"}
               </InteractiveButton>
             </div>
           </div>

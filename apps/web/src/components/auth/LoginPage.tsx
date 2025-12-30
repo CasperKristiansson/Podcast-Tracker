@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AuroraBackground, GlowCard, GoogleButton, InteractiveButton } from "@ui";
 import { beginLogin } from "../../lib/auth/flow";
+import { disableDemoMode, enableDemoMode } from "../../lib/demo/mode";
 
 export default function LoginPage(): JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
@@ -11,6 +12,7 @@ export default function LoginPage(): JSX.Element {
     setNotice(null);
     setError(null);
     setIsLoading(true);
+    disableDemoMode();
 
     try {
       await beginLogin();
@@ -26,7 +28,9 @@ export default function LoginPage(): JSX.Element {
 
   const handleDemo = (): void => {
     setError(null);
-    setNotice("Demo account access is coming soon.");
+    setNotice(null);
+    enableDemoMode();
+    window.location.assign("/profile");
   };
 
   return (
