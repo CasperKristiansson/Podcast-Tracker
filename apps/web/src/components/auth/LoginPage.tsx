@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { AuroraBackground, GlowCard, GoogleButton, InteractiveButton } from "@ui";
+import {
+  AuroraBackground,
+  GlowCard,
+  GoogleButton,
+  InteractiveButton,
+} from "@ui";
 import { beginLogin } from "../../lib/auth/flow";
 import { disableDemoMode, enableDemoMode } from "../../lib/demo/mode";
 
@@ -64,11 +69,7 @@ export default function LoginPage(): JSX.Element {
           </div>
 
           <div className="space-y-3">
-            <InteractiveButton
-              variant="outline"
-              size="md"
-              onClick={handleDemo}
-            >
+            <InteractiveButton variant="outline" size="md" onClick={handleDemo}>
               Try the demo account
             </InteractiveButton>
             <GoogleButton

@@ -10,7 +10,7 @@ import type {
   SubscribeToShowMutation,
 } from "@shared";
 
-type DemoShow = {
+interface DemoShow {
   id: string;
   title: string;
   publisher: string;
@@ -25,15 +25,15 @@ type DemoShow = {
   categories: string[];
   explicit: boolean;
   languages: string[];
-};
+}
 
 type ProfileShow = MyProfileQuery["myProfile"]["shows"][number];
 type SpotlightShow = MyProfileQuery["myProfile"]["spotlight"][number];
 type ShowDetail = ShowDetailQuery["showDetail"];
 type Show = ShowDetailQuery["showDetail"]["show"];
-type Episode =
-  ShowDetailQuery["showDetail"]["episodes"]["items"][number];
+type Episode = ShowDetailQuery["showDetail"]["episodes"]["items"][number];
 type ProgressEntry = ShowDetailQuery["showDetail"]["progress"][number];
+type UserSubscription = NonNullable<ShowDetail["subscription"]>;
 
 const EPISODE_COUNT = 8;
 
@@ -366,8 +366,8 @@ const ensureEpisodes = (showId: string): Episode[] => {
   if (!show) {
     return [];
   }
-  const items = baseEpisodeTemplates.map((episode, index) => ({
-    __typename: "Episode",
+  const items: Episode[] = baseEpisodeTemplates.map((episode, index) => ({
+    __typename: "Episode" as const,
     episodeId: `${showId}-ep-${index + 1}`,
     showId,
     title: `${episode.title} · ${show.title}`,
@@ -459,6 +459,9 @@ const ensureProgressMap = (showId: string): Map<string, ProgressEntry> => {
   const initialCount = Math.min(show?.completedEpisodes ?? 0, episodes.length);
   for (let idx = 0; idx < initialCount; idx += 1) {
     const episode = episodes[idx];
+    if (!episode) {
+      continue;
+    }
     progressMap.set(episode.episodeId, {
       __typename: "Progress",
       episodeId: episode.episodeId,
@@ -478,25 +481,48 @@ demoShows.forEach((show, index) => {
   ensureProgressMap(show.id);
 });
 
+const buildSubscription = (
+  show: DemoShow,
+  overrides?: Partial<ProfileShow>
+): UserSubscription => {
+  const addedAt =
+    typeof overrides?.addedAt === "string" ? overrides.addedAt : makeIsoDate(3);
+  const subscriptionSyncedAt =
+    typeof overrides?.subscriptionSyncedAt === "string"
+      ? overrides.subscriptionSyncedAt
+      : makeIsoDate(9);
+  const ratingUpdatedAt =
+    typeof overrides?.ratingUpdatedAt === "string"
+      ? overrides.ratingUpdatedAt
+      : null;
+  const droppedAt =
+    typeof overrides?.droppedAt === "string" ? overrides.droppedAt : null;
+  return {
+    __typename: "UserSubscription",
+    showId: overrides?.showId ?? show.id,
+    title: overrides?.title ?? show.title,
+    publisher: overrides?.publisher ?? show.publisher,
+    image: overrides?.image ?? show.image,
+    addedAt,
+    totalEpisodes: overrides?.totalEpisodes ?? show.totalEpisodes,
+    ratingStars: overrides?.ratingStars ?? show.ratingStars,
+    ratingReview: overrides?.ratingReview ?? show.ratingReview,
+    ratingUpdatedAt,
+    subscriptionSyncedAt,
+    droppedAt,
+  };
+};
+
 const getSubscriptionPayload = (showId: string): ShowDetail["subscription"] => {
   const profileShow = demoProfileShows.get(showId);
   if (!profileShow) {
     return null;
   }
-  return {
-    __typename: "UserSubscription",
-    showId: profileShow.showId,
-    title: profileShow.title,
-    publisher: profileShow.publisher,
-    image: profileShow.image,
-    addedAt: profileShow.addedAt,
-    totalEpisodes: profileShow.totalEpisodes,
-    ratingStars: profileShow.ratingStars,
-    ratingReview: profileShow.ratingReview,
-    ratingUpdatedAt: profileShow.ratingUpdatedAt,
-    subscriptionSyncedAt: profileShow.subscriptionSyncedAt,
-    droppedAt: profileShow.droppedAt,
-  };
+  const show = demoShowMap.get(showId);
+  if (!show) {
+    return null;
+  }
+  return buildSubscription(show, profileShow);
 };
 
 export const getDemoProfile = (): MyProfileQuery => {
@@ -508,7 +534,8 @@ export const getDemoProfile = (): MyProfileQuery => {
     (acc, show) => {
       return {
         totalShows: acc.totalShows + 1,
-        episodesCompleted: acc.episodesCompleted + (show.completedEpisodes ?? 0),
+        episodesCompleted:
+          acc.episodesCompleted + (show.completedEpisodes ?? 0),
         episodesInProgress:
           acc.episodesInProgress + (show.inProgressEpisodes ?? 0),
       };
@@ -647,8 +674,9 @@ export const markDemoNextEpisode = (
   const progressMap = ensureProgressMap(showId);
   const episodes = ensureEpisodes(showId);
   const nextEpisode =
-    episodes.find((episode) => !progressMap.get(episode.episodeId)?.completed) ??
-    episodes[0];
+    episodes.find(
+      (episode) => !progressMap.get(episode.episodeId)?.completed
+    ) ?? episodes[0];
 
   if (!nextEpisode) {
     return {
@@ -680,7 +708,9 @@ export const markDemoNextEpisode = (
     );
     const unlistened = Math.max(
       0,
-      profileShow.totalEpisodes - completed - (profileShow.inProgressEpisodes ?? 0)
+      profileShow.totalEpisodes -
+        completed -
+        (profileShow.inProgressEpisodes ?? 0)
     );
     demoProfileShows.set(showId, {
       ...profileShow,
@@ -695,9 +725,7 @@ export const markDemoNextEpisode = (
   };
 };
 
-export const subscribeDemoShow = (
-  showId: string
-): SubscribeToShowMutation => {
+export const subscribeDemoShow = (showId: string): SubscribeToShowMutation => {
   const show = demoShowMap.get(showId);
   if (!show) {
     throw new Error("Demo show not found.");
@@ -717,20 +745,7 @@ export const subscribeDemoShow = (
   }
   return {
     __typename: "Mutation",
-    subscribe: subscription ?? {
-      __typename: "UserSubscription",
-      showId,
-      title: show.title,
-      publisher: show.publisher,
-      image: show.image,
-      addedAt: makeIsoDate(3),
-      totalEpisodes: show.totalEpisodes,
-      ratingStars: null,
-      ratingReview: null,
-      ratingUpdatedAt: null,
-      subscriptionSyncedAt: makeIsoDate(9),
-      droppedAt: null,
-    },
+    subscribe: subscription ?? buildSubscription(show),
   };
 };
 
@@ -745,10 +760,16 @@ export const unsubscribeDemoShow = (showId: string): boolean => {
 
 export const dropDemoShow = (showId: string): DropShowMutation => {
   const profileShow = demoProfileShows.get(showId);
+  const show = demoShowMap.get(showId);
+  if (!show) {
+    throw new Error("Demo show not found.");
+  }
   if (!profileShow) {
     return {
       __typename: "Mutation",
-      dropShow: null,
+      dropShow: buildSubscription(show, {
+        droppedAt: new Date().toISOString(),
+      }),
     };
   }
   const updated: ProfileShow = {
@@ -759,20 +780,7 @@ export const dropDemoShow = (showId: string): DropShowMutation => {
 
   return {
     __typename: "Mutation",
-    dropShow: {
-      __typename: "UserSubscription",
-      showId: updated.showId,
-      title: updated.title,
-      publisher: updated.publisher,
-      image: updated.image,
-      addedAt: updated.addedAt,
-      totalEpisodes: updated.totalEpisodes,
-      ratingStars: updated.ratingStars,
-      ratingReview: updated.ratingReview,
-      ratingUpdatedAt: updated.ratingUpdatedAt,
-      subscriptionSyncedAt: updated.subscriptionSyncedAt,
-      droppedAt: updated.droppedAt,
-    },
+    dropShow: buildSubscription(show, updated),
   };
 };
 
@@ -782,10 +790,18 @@ export const rateDemoShow = (
   review: string | null
 ): RateShowMutation => {
   const profileShow = demoProfileShows.get(showId);
+  const show = demoShowMap.get(showId);
+  if (!show) {
+    throw new Error("Demo show not found.");
+  }
   if (!profileShow) {
     return {
       __typename: "Mutation",
-      rateShow: null,
+      rateShow: buildSubscription(show, {
+        ratingStars: stars,
+        ratingReview: review,
+        ratingUpdatedAt: new Date().toISOString(),
+      }),
     };
   }
   const updated: ProfileShow = {
@@ -798,19 +814,6 @@ export const rateDemoShow = (
 
   return {
     __typename: "Mutation",
-    rateShow: {
-      __typename: "UserSubscription",
-      showId: updated.showId,
-      title: updated.title,
-      publisher: updated.publisher,
-      image: updated.image,
-      addedAt: updated.addedAt,
-      totalEpisodes: updated.totalEpisodes,
-      ratingStars: updated.ratingStars,
-      ratingReview: updated.ratingReview,
-      ratingUpdatedAt: updated.ratingUpdatedAt,
-      subscriptionSyncedAt: updated.subscriptionSyncedAt,
-      droppedAt: updated.droppedAt,
-    },
+    rateShow: buildSubscription(show, updated),
   };
 };

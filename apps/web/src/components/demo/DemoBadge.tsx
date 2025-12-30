@@ -5,7 +5,9 @@ interface DemoBadgeProps {
   className?: string;
 }
 
-export default function DemoBadge({ className }: DemoBadgeProps): JSX.Element | null {
+export default function DemoBadge({
+  className,
+}: DemoBadgeProps): JSX.Element | null {
   const [active, setActive] = useState(false);
 
   useEffect(() => {
