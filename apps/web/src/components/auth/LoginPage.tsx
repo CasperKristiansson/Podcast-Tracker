@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  AuroraBackground,
-  GlowCard,
-  GoogleButton,
-  InteractiveButton,
-} from "@ui";
+import { GlowCard, GoogleButton, InteractiveButton } from "@ui";
 import { beginLogin } from "../../lib/auth/flow";
 import { disableDemoMode, enableDemoMode } from "../../lib/demo/mode";
 
@@ -40,16 +35,6 @@ export default function LoginPage(): JSX.Element {
 
   return (
     <div className="relative isolate w-full">
-      <AuroraBackground className="opacity-45 saturate-200 mix-blend-screen" />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-      >
-        <div className="absolute -top-48 left-1/2 h-[32rem] w-[32rem] -translate-x-1/2 rounded-full bg-[#ded1ff]/22 blur-[190px]" />
-        <div className="absolute -bottom-40 left-[-18%] h-[28rem] w-[28rem] rounded-full bg-[#6f4cff]/18 blur-[160px]" />
-        <div className="absolute -right-36 top-14 h-[24rem] w-[24rem] rounded-full bg-[#5ce5ff]/16 blur-[150px]" />
-      </div>
-
       <GlowCard className="bg-[linear-gradient(140deg,rgba(147,115,255,0.3),rgba(26,13,70,0.75))] shadow-[0_45px_120px_rgba(32,14,84,0.55)] ring-white/[0.08]">
         <div className="space-y-8 text-center">
           <div className="space-y-4">
@@ -68,8 +53,13 @@ export default function LoginPage(): JSX.Element {
             </div>
           </div>
 
-          <div className="space-y-3">
-            <InteractiveButton variant="outline" size="md" onClick={handleDemo}>
+          <div className="mx-auto w-full max-w-sm space-y-3">
+            <InteractiveButton
+              variant="primary"
+              size="custom"
+              onClick={handleDemo}
+              className="w-full py-3.5"
+            >
               Try the demo account
             </InteractiveButton>
             <GoogleButton
@@ -78,6 +68,7 @@ export default function LoginPage(): JSX.Element {
               }}
               loading={isLoading}
               aria-label="Continue with Google"
+              className="w-full py-3.5"
             />
           </div>
 
