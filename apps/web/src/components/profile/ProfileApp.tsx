@@ -14,6 +14,7 @@ import {
 } from "@shared";
 import { AuroraBackground, InteractiveButton } from "@ui";
 import { normalizeDateInput } from "../../lib/datetime";
+import { signOut } from "../../lib/auth/flow";
 import { GraphQLProvider } from "../graphql/GraphQLProvider";
 import { StatsSection } from "./sections/StatsSection";
 import { SpotlightSection } from "./sections/SpotlightSection";
@@ -92,6 +93,7 @@ function ProfileAppContent(): JSX.Element {
   const [toast, setToast] = useState<string | null>(null);
   const [pendingShowId, setPendingShowId] = useState<string | null>(null);
   const [unsubscribingId, setUnsubscribingId] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     if (!toast) return;
@@ -358,6 +360,17 @@ function ProfileAppContent(): JSX.Element {
     setToast("Profile refreshed.");
   }, [refetchProfile]);
 
+  const handleSignOut = useCallback(async () => {
+    try {
+      setSigningOut(true);
+      await signOut();
+    } catch (err) {
+      console.error("Failed to sign out", err);
+      setToast("We couldn’t log you out. Please try again.");
+      setSigningOut(false);
+    }
+  }, []);
+
   if (loading) {
     return <ProfileSkeleton />;
   }
@@ -401,20 +414,34 @@ function ProfileAppContent(): JSX.Element {
       <AuroraBackground className="min-h-screen opacity-45 saturate-200 mix-blend-screen" />
       <div className="relative z-10">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-3 pb-12 pt-20 sm:px-5 sm:pb-16 sm:pt-14 md:px-10 md:pb-24 md:pt-20">
-          <header className="space-y-4 text-center md:text-left">
-            <span className="inline-flex items-center justify-center gap-2 self-center rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-[10px] font-semibold uppercase tracking-[0.45em] text-white/70 md:self-start">
-              Listening atlas
-              <span className="inline-block h-1 w-1 rounded-full bg-[#f6ecff]" />
-            </span>
-            <h1 className="bg-gradient-to-r from-[#f6ecff] via-[#c7adff] to-[#8cd4ff] bg-clip-text text-3xl font-semibold text-transparent md:text-4xl">
-              Your sound galaxy, refreshed.
-            </h1>
-            <p className="mx-auto max-w-xl text-sm text-white/75 md:mx-0 md:text-base">
-              Keep track of every story you follow with a luminous snapshot of
-              the shows you love. Stats update in real-time as you celebrate
-              each episode.
-            </p>
-          </header>
+          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <header className="space-y-4 text-center md:text-left">
+              <span className="inline-flex items-center justify-center gap-2 self-center rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-[10px] font-semibold uppercase tracking-[0.45em] text-white/70 md:self-start">
+                Listening atlas
+                <span className="inline-block h-1 w-1 rounded-full bg-[#f6ecff]" />
+              </span>
+              <h1 className="bg-gradient-to-r from-[#f6ecff] via-[#c7adff] to-[#8cd4ff] bg-clip-text text-3xl font-semibold text-transparent md:text-4xl">
+                Your sound galaxy, refreshed.
+              </h1>
+              <p className="mx-auto max-w-xl text-sm text-white/75 md:mx-0 md:text-base">
+                Keep track of every story you follow with a luminous snapshot of
+                the shows you love. Stats update in real-time as you celebrate
+                each episode.
+              </p>
+            </header>
+            <div className="flex justify-end self-end md:self-auto">
+              <InteractiveButton
+                variant="outline"
+                size="sm"
+                isLoading={signingOut}
+                onClick={() => {
+                  void handleSignOut();
+                }}
+              >
+                Log out
+              </InteractiveButton>
+            </div>
+          </div>
 
           <StatsSection stats={stats} />
 
