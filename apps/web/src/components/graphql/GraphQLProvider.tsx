@@ -9,7 +9,12 @@ import { Observable } from "@apollo/client/utilities";
 import { ApolloProvider } from "@apollo/client/react";
 import type { ComponentProps, ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { beginLogin, getTokens } from "../../lib/auth/flow";
+import {
+  beginLogin,
+  getTokens,
+  PendingApprovalError,
+  PENDING_APPROVAL_MESSAGE,
+} from "../../lib/auth/flow";
 import { createDemoApolloClient } from "../../lib/demo/apollo";
 import { isDemoMode } from "../../lib/demo/mode";
 import { appsyncUrl } from "../../lib/graphql/config";
@@ -155,6 +160,10 @@ function useApolloClient(): {
         setResource(resources);
       } catch (err) {
         if (cancelled) {
+          return;
+        }
+        if (err instanceof PendingApprovalError) {
+          setError(PENDING_APPROVAL_MESSAGE);
           return;
         }
         const message =

@@ -1,6 +1,8 @@
 import * as cdk from "aws-cdk-lib";
 import * as cognito from "aws-cdk-lib/aws-cognito";
+import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
+import { NodeLambda, resolveLambdaEntry } from "./constructs/node-lambda.js";
 
 export class AuthStack extends cdk.Stack {
   public readonly userPool: cognito.UserPool;
@@ -25,8 +27,38 @@ export class AuthStack extends cdk.Stack {
       standardAttributes: {
         email: { required: true, mutable: true },
       },
+      customAttributes: {
+        approved: new cognito.BooleanAttribute({ mutable: true }),
+      },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
+
+    const approvalLambda = new NodeLambda(this, "PreTokenApprovalLambda", {
+      entry: resolveLambdaEntry("cognitoPreTokenApproval", "src", "index.ts"),
+      handler: "handler",
+      environment: {
+        APPROVAL_ATTRIBUTE: "custom:approved",
+      },
+      timeout: cdk.Duration.seconds(5),
+    });
+
+    approvalLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["cognito-idp:AdminUpdateUserAttributes"],
+        resources: [
+          cdk.Stack.of(this).formatArn({
+            service: "cognito-idp",
+            resource: "userpool",
+            resourceName: "*",
+          }),
+        ],
+      })
+    );
+
+    this.userPool.addTrigger(
+      cognito.UserPoolOperation.PRE_TOKEN_GENERATION,
+      approvalLambda
+    );
 
     const googleIdentityProvider = new cognito.UserPoolIdentityProviderGoogle(
       this,
@@ -47,6 +79,21 @@ export class AuthStack extends cdk.Stack {
     this.domain = this.userPool.addDomain("UserPoolDomain", {
       cognitoDomain: { domainPrefix },
     });
+
+    const clientReadAttributes = new cognito.ClientAttributes()
+      .withStandardAttributes({
+        email: true,
+        givenName: true,
+        familyName: true,
+      })
+      .withCustomAttributes("approved");
+
+    const clientWriteAttributes =
+      new cognito.ClientAttributes().withStandardAttributes({
+        email: true,
+        givenName: true,
+        familyName: true,
+      });
 
     this.userPoolClient = this.userPool.addClient("WebAppClient", {
       userPoolClientName: "podcast-tracker-web",
@@ -73,6 +120,8 @@ export class AuthStack extends cdk.Stack {
       supportedIdentityProviders: [
         cognito.UserPoolClientIdentityProvider.GOOGLE,
       ],
+      readAttributes: clientReadAttributes,
+      writeAttributes: clientWriteAttributes,
     });
 
     this.userPoolClient.node.addDependency(googleIdentityProvider);

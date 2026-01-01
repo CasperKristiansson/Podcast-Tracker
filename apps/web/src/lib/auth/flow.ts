@@ -20,6 +20,23 @@ const PROMPT_MAP: Record<AuthorizePrompt, AmplifyPrompt> = {
   select_account: "SELECT_ACCOUNT",
 };
 
+export class PendingApprovalError extends Error {
+  constructor(message = "USER_NOT_APPROVED") {
+    super(message);
+    this.name = "PendingApprovalError";
+  }
+}
+
+export const PENDING_APPROVAL_MESSAGE =
+  "Your account is pending approval. An admin must approve access before you can sign in.";
+
+const PENDING_APPROVAL_TOKENS = [
+  "user_not_approved",
+  "pending approval",
+  "userlambdavalidationexception",
+  "pretokengeneration failed",
+];
+
 export interface StoredTokens {
   idToken: string;
   accessToken: string;
@@ -34,6 +51,89 @@ const isAuthError = (error: unknown): error is AuthError => {
 
 const isUserNotAuthenticatedError = (error: unknown): boolean => {
   return isAuthError(error) && error.name === "UserUnAuthenticatedException";
+};
+
+const collectErrorStrings = (error: unknown): string[] => {
+  const strings: string[] = [];
+  const queue: Array<{ value: unknown; depth: number }> = [
+    { value: error, depth: 0 },
+  ];
+  const seen = new WeakSet<object>();
+  const maxDepth = 3;
+
+  const addString = (value: unknown) => {
+    if (typeof value !== "string") {
+      return;
+    }
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === "[object Object]") {
+      return;
+    }
+    strings.push(trimmed);
+  };
+
+  while (queue.length) {
+    const item = queue.shift();
+    if (!item) {
+      break;
+    }
+
+    const { value, depth } = item;
+    if (!value) {
+      continue;
+    }
+
+    if (typeof value === "string") {
+      addString(value);
+      continue;
+    }
+
+    if (value instanceof Error) {
+      addString(value.message);
+      addString(value.name);
+      const cause = (value as { cause?: unknown }).cause;
+      if (cause) {
+        queue.push({ value: cause, depth: depth + 1 });
+      }
+      continue;
+    }
+
+    if (typeof value !== "object") {
+      addString(String(value));
+      continue;
+    }
+
+    if (seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+
+    if (depth >= maxDepth) {
+      continue;
+    }
+
+    const record = value as Record<string, unknown>;
+    Object.values(record).forEach((child) => {
+      queue.push({ value: child, depth: depth + 1 });
+    });
+  }
+
+  addString(String(error));
+
+  return Array.from(new Set(strings));
+};
+
+const isPendingApprovalError = (error: unknown): boolean => {
+  if (error instanceof PendingApprovalError) {
+    return true;
+  }
+
+  return collectErrorStrings(error).some((text) => {
+    const normalized = text.toLowerCase();
+    return PENDING_APPROVAL_TOKENS.some((token) =>
+      normalized.includes(token)
+    );
+  });
 };
 
 const toAmplifyPrompt = (prompt: AuthorizePrompt): AmplifyPrompt => {
@@ -70,6 +170,44 @@ const toStoredTokens = (sessionTokens: {
   };
 };
 
+const decodeBase64Url = (value: string): string => {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+
+  if (typeof atob === "function") {
+    return atob(padded);
+  }
+
+  return Buffer.from(padded, "base64").toString("binary");
+};
+
+const decodeJwtPayload = (token: string): Record<string, unknown> => {
+  const parts = token.split(".");
+  if (parts.length < 2) {
+    throw new Error("Invalid ID token format.");
+  }
+
+  const payload = decodeBase64Url(parts[1]);
+  return JSON.parse(payload) as Record<string, unknown>;
+};
+
+const isApprovedFromToken = (idToken: string): boolean => {
+  const payload = decodeJwtPayload(idToken);
+  const approvedClaim = payload["custom:approved"];
+  return (
+    approvedClaim === true ||
+    approvedClaim === "true" ||
+    approvedClaim === 1 ||
+    approvedClaim === "1"
+  );
+};
+
+const ensureApprovedToken = (idToken: string): void => {
+  if (!isApprovedFromToken(idToken)) {
+    throw new PendingApprovalError();
+  }
+};
+
 export interface BeginLoginOptions {
   prompt?: AuthorizePrompt;
 }
@@ -94,7 +232,7 @@ export const beginLogin = async (
 };
 
 export interface CallbackResult {
-  status: "success" | "error";
+  status: "success" | "error" | "pending-approval";
   message: string;
 }
 
@@ -116,6 +254,7 @@ export const completeLogin = async (): Promise<CallbackResult> => {
       };
     }
 
+    ensureApprovedToken(tokens.idToken.toString());
     clearPromptRetryStage();
 
     return {
@@ -123,6 +262,13 @@ export const completeLogin = async (): Promise<CallbackResult> => {
       message: "Signed in successfully.",
     };
   } catch (error) {
+    if (isPendingApprovalError(error)) {
+      clearPromptRetryStage();
+      return {
+        status: "pending-approval",
+        message: PENDING_APPROVAL_MESSAGE,
+      };
+    }
     if (isAuthError(error)) {
       return {
         status: "error",
@@ -144,10 +290,14 @@ export const getTokens = async (): Promise<StoredTokens | null> => {
     if (!tokens?.idToken || !tokens.accessToken) {
       return null;
     }
+    ensureApprovedToken(tokens.idToken.toString());
     return toStoredTokens(tokens as typeof tokens & { refreshToken?: string });
   } catch (error) {
     if (isUserNotAuthenticatedError(error)) {
       return null;
+    }
+    if (isPendingApprovalError(error)) {
+      throw new PendingApprovalError();
     }
     throw error;
   }

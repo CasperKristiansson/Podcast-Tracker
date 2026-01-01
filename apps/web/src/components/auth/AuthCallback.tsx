@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { AuroraBackground, InteractiveButton } from "@ui";
-import { beginLogin, completeLogin } from "../../lib/auth/flow";
+import {
+  beginLogin,
+  completeLogin,
+  PENDING_APPROVAL_MESSAGE,
+} from "../../lib/auth/flow";
+import { enableDemoMode } from "../../lib/demo/mode";
 import {
   clearPromptRetryStage,
   getPromptRetryStage,
@@ -8,7 +13,7 @@ import {
   type PromptRetryStage,
 } from "../../lib/auth/storage";
 
-type Status = "pending" | "success" | "error";
+type Status = "pending" | "success" | "error" | "pending-approval";
 
 const RETRY_SEQUENCE: PromptRetryStage[] = ["login", "consent"];
 
@@ -85,6 +90,13 @@ export default function AuthCallback(): JSX.Element {
           return;
         }
 
+        if (result.status === "pending-approval") {
+          updateRetryStage(null);
+          setStatus("pending-approval");
+          setMessage(result.message || PENDING_APPROVAL_MESSAGE);
+          return;
+        }
+
         const immutableEmailError = result.message.includes(
           "Attribute cannot be updated"
         );
@@ -138,32 +150,38 @@ export default function AuthCallback(): JSX.Element {
     };
   }, []);
 
-  const badgeText =
-    status === "error"
+  const isPendingApproval = status === "pending-approval";
+  const badgeText = isPendingApproval
+    ? "Approval needed"
+    : status === "error"
       ? "Re-auth required"
       : status === "success"
         ? "Signed in"
         : "Authenticating";
-  const headingText =
-    status === "success"
+  const headingText = isPendingApproval
+    ? "Awaiting approval"
+    : status === "success"
       ? "All set!"
       : status === "error"
         ? "We hit a snag"
         : "Authenticating…";
-  const badgeClasses =
-    status === "error"
+  const badgeClasses = isPendingApproval
+    ? "border-[#ffd8a8]/50 bg-[#4a2a0b]/60 text-[#ffe7c6]"
+    : status === "error"
       ? "border-[#ffb6d1]/50 bg-[#57162d]/60 text-[#ffdbe8]"
       : status === "success"
         ? "border-[#74ffe7]/45 bg-[#0c3e4f]/60 text-[#cafff7]"
         : "border-[#d2c2ff]/55 bg-[#281764]/60 text-[#f4ebff]";
-  const messageClasses =
-    status === "error"
+  const messageClasses = isPendingApproval
+    ? "text-[#ffe6c7]"
+    : status === "error"
       ? "text-[#ffd7e5]"
       : status === "success"
         ? "text-[#d4fff7]"
         : "text-white/75";
-  const hintText =
-    status === "success"
+  const hintText = isPendingApproval
+    ? "You can keep using demo mode while you wait for approval."
+    : status === "success"
       ? "Redirecting you to your profile."
       : status === "pending"
         ? "Hang tight while we verify your Google session."
@@ -227,6 +245,32 @@ export default function AuthCallback(): JSX.Element {
             <span className="text-xs text-white/55">
               If the issue persists, clear your cookies and restart the sign-in
               flow.
+            </span>
+          </div>
+        ) : null}
+
+        {status === "pending-approval" ? (
+          <div className="flex w-full max-w-xs flex-col items-center gap-3 text-sm text-white/70">
+            <InteractiveButton
+              className="w-full justify-center"
+              onClick={() => {
+                window.location.assign("/login");
+              }}
+            >
+              Return to login
+            </InteractiveButton>
+            <InteractiveButton
+              variant="outline"
+              className="w-full justify-center"
+              onClick={() => {
+                enableDemoMode();
+                window.location.assign("/profile");
+              }}
+            >
+              Try demo mode
+            </InteractiveButton>
+            <span className="text-xs text-white/55">
+              We will notify you once access is approved.
             </span>
           </div>
         ) : null}
