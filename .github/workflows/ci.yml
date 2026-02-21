@@ -34,6 +34,15 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: CLI tests
+        run: npm run cli:test
+
+      - name: Build CLI
+        run: npm run cli:build
+
+      - name: CLI smoke help
+        run: npm run cli:start -- help
+
       - name: Build Astro app
         run: npm run --workspace apps/web build
 

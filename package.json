@@ -26,6 +26,7 @@
     "cli:build": "npm run --workspace apps/cli build",
     "cli:verify": "npm run lint && npm run cli:test && npm run cli:build && npm run cli:start -- help",
     "cli:verify:e2e": "npm run cli:verify && npm run cli:test:e2e",
+    "ci:local": "npm run codegen && npm run lint && npm run typecheck && npm run cli:test && npm run cli:build && npm run cli:start -- help && npm run --workspace apps/web build && npm run --workspace infra build",
     "test:ci": "vitest run",
     "deploy:backend": "npm run --workspace infra cdk:deploy -- --all --require-approval never --profile Personal",
     "deploy:web": "bash ./scripts/deploy-web.sh"
