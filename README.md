@@ -24,13 +24,17 @@ The repo now includes a first-class CLI app in `apps/cli` with GraphQL feature p
 - Show rating/review and drop/unsubscribe actions
 - OAuth login (Cognito Authorization Code + PKCE)
 
-### Required environment variables
+### CLI backend config
+
+The CLI now ships with live, non-secret production defaults for:
 
 - `PODCAST_TRACKER_APPSYNC_URL`
 - `PODCAST_TRACKER_COGNITO_DOMAIN`
 - `PODCAST_TRACKER_COGNITO_CLIENT_ID`
 - `PODCAST_TRACKER_COGNITO_REDIRECT_URI` (default `http://localhost:4321/auth/callback`)
 - `PODCAST_TRACKER_COGNITO_LOGOUT_URI` (default `http://localhost:4321/`)
+
+You only need to set env vars when you want to override those defaults (for local/staging environments).
 
 ### Commands
 
@@ -74,7 +78,7 @@ npm config get prefix
 - Global: `/` search, `?` help, `q` back/quit
 - Lists: `j/k` move, `Enter` open/select
 - Home: `s` sort, `f` filter, `n` mark next, `u` unsubscribe
-- Show: `Enter` toggle episode progress, `n` mark next, `a` mark all, `s` subscribe toggle, `d` drop, `t` rate, `o` open URL, `]` load more episodes
+- Show: `Enter` toggle episode progress, `n` mark next, `a` mark all, `s` subscribe toggle, `d` drop, `t` rate, `f` cycle episode filter (`all/unplayed/watched`), `o` open URL, `]` load more episodes
 
 ### Live E2E Tests
 
@@ -82,7 +86,6 @@ The CLI now has live end-to-end tests in `apps/cli/src/__tests__/live.e2e.test.t
 They are non-destructive (read-only) and require:
 
 - built CLI artifacts (`npm run cli:build`)
-- local env file at `.env.local`
 - an authenticated session file (`podcast-tracker auth login`)
 
 Run:

@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Episode, ShowDetailQuery } from "@shared";
+import {
+  filterEpisodesByPlayback,
+  shouldAutoLoadMoreForEpisodeFilter,
+  type EpisodePlaybackFilter,
+} from "@shared/episodes/filtering";
 import { InteractiveButton } from "@ui";
 import {
   formatDate,
@@ -7,9 +12,7 @@ import {
   formatRelative,
 } from "../../../lib/format";
 
-type EpisodeFilterValue = "all" | "unplayed" | "played";
-
-const EPISODE_FILTERS: { value: EpisodeFilterValue; label: string }[] = [
+const EPISODE_FILTERS: { value: EpisodePlaybackFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "unplayed", label: "Unplayed" },
   { value: "played", label: "Watched" },
@@ -43,7 +46,8 @@ export function EpisodeSection({
   onLoadMore,
   loadingMore,
 }: EpisodeSectionProps): JSX.Element {
-  const [episodeFilter, setEpisodeFilter] = useState<EpisodeFilterValue>("all");
+  const [episodeFilter, setEpisodeFilter] =
+    useState<EpisodePlaybackFilter>("all");
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const filterButtonRef = useRef<HTMLButtonElement | null>(null);
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
@@ -54,15 +58,18 @@ export function EpisodeSection({
   }, [episodesConnection?.items]);
 
   const filteredEpisodes = useMemo(() => {
-    if (episodeFilter === "all") {
-      return episodes;
-    }
-    return episodes.filter((episode) => {
-      const progress = progressMap.get(episode.episodeId);
-      const isWatched = Boolean(progress?.completed);
-      return episodeFilter === "played" ? isWatched : !isWatched;
-    });
+    return filterEpisodesByPlayback(episodes, episodeFilter, (episodeId) =>
+      Boolean(progressMap.get(episodeId)?.completed)
+    );
   }, [episodeFilter, episodes, progressMap]);
+
+  const autoLoadingFilteredResults = shouldAutoLoadMoreForEpisodeFilter({
+    filter: episodeFilter,
+    filteredCount: filteredEpisodes.length,
+    hasNextPage: Boolean(episodesConnection?.nextToken),
+    initialLoading: episodesInitialLoading,
+    loadingMore,
+  });
 
   const activeFilterLabel = useMemo(() => {
     const current = EPISODE_FILTERS.find(
@@ -102,7 +109,14 @@ export function EpisodeSection({
 
   const canTrackProgress = isSubscribed;
 
-  const handleFilterSelect = (value: EpisodeFilterValue) => {
+  useEffect(() => {
+    if (!autoLoadingFilteredResults) {
+      return;
+    }
+    void onLoadMore();
+  }, [autoLoadingFilteredResults, onLoadMore]);
+
+  const handleFilterSelect = (value: EpisodePlaybackFilter) => {
     setEpisodeFilter(value);
     setFilterMenuOpen(false);
   };
@@ -190,7 +204,9 @@ export function EpisodeSection({
 
       {filteredEpisodes.length === 0 && !episodesInitialLoading ? (
         <div className="rounded-3xl border border-white/12 bg-white/[0.04] p-10 text-center text-sm text-white/70">
-          No episodes match this filter yet.
+          {autoLoadingFilteredResults
+            ? "No matches yet in loaded pages. Loading more episodes…"
+            : "No episodes match this filter yet."}
         </div>
       ) : null}
 

@@ -11,6 +11,12 @@ import type {
   SearchShowsQuery,
   ShowDetailQuery,
 } from "../../../../packages/shared/src/generated/graphql.js";
+import {
+  filterEpisodesByPlayback,
+  mergeEpisodesById,
+  shouldAutoLoadMoreForEpisodeFilter,
+  type EpisodePlaybackFilter,
+} from "../../../../packages/shared/src/episodes/filtering.js";
 import type { PodcastApi } from "../graphql/api.js";
 import { normalizeApiError } from "../graphql/errors.js";
 import type { SessionManager } from "../auth/session-manager.js";
@@ -24,7 +30,6 @@ import { openUrl } from "../utils/open-url.js";
 
 type SortMode = "unlistened" | "title" | "recent";
 type FilterMode = "all" | "active" | "dropped";
-
 type SearchFocus = "input" | "results";
 
 interface ToastState {
@@ -46,8 +51,10 @@ interface ShowScreenState {
   showId: string;
   detail: ShowDetailQuery["showDetail"] | null;
   loading: boolean;
+  loadingMoreEpisodes: boolean;
   error: string | null;
   selectedEpisodeIndex: number;
+  episodeFilter: EpisodePlaybackFilter;
 }
 
 interface ConfirmState {
@@ -77,6 +84,11 @@ const clamp = (value: number, min: number, max: number): number => {
 
 const pickSortModes: SortMode[] = ["unlistened", "title", "recent"];
 const pickFilterModes: FilterMode[] = ["all", "active", "dropped"];
+const pickEpisodeFilterModes: EpisodePlaybackFilter[] = [
+  "all",
+  "unplayed",
+  "played",
+];
 
 const nextInCycle = <T extends string>(items: readonly T[], current: T): T => {
   const index = items.indexOf(current);
@@ -335,14 +347,25 @@ export function PodcastTrackerApp({
             showId,
             detail: null,
             loading: true,
+            loadingMoreEpisodes: false,
             error: null,
             selectedEpisodeIndex: 0,
+            episodeFilter: "all",
+          };
+        }
+
+        if (append) {
+          return {
+            ...current,
+            loadingMoreEpisodes: true,
+            error: null,
           };
         }
 
         return {
           ...current,
           loading: true,
+          loadingMoreEpisodes: false,
           error: null,
         };
       });
@@ -358,30 +381,39 @@ export function PodcastTrackerApp({
         );
 
         if (!append || !current) {
-          setShowState({
+          setShowState((state) => ({
             showId,
             detail,
             loading: false,
+            loadingMoreEpisodes: false,
             error: null,
-            selectedEpisodeIndex: 0,
-          });
+            selectedEpisodeIndex:
+              state?.showId === showId ? state.selectedEpisodeIndex : 0,
+            episodeFilter:
+              state?.showId === showId ? state.episodeFilter : "all",
+          }));
           return;
         }
 
         const existingEpisodes = current.episodes.items ?? [];
         const nextEpisodes = detail.episodes.items ?? [];
-        const mergedEpisodes = [...existingEpisodes];
-        const seen = new Set(
-          existingEpisodes.map((item) => item?.episodeId).filter(Boolean)
+        const mergedEpisodes = mergeEpisodesById(
+          existingEpisodes,
+          nextEpisodes
         );
-
-        nextEpisodes.forEach((item) => {
-          if (!item?.episodeId || seen.has(item.episodeId)) {
-            return;
+        const progressMap = new Map(
+          (current.progress ?? [])
+            .filter((entry): entry is NonNullable<typeof entry> =>
+              Boolean(entry?.episodeId)
+            )
+            .map((entry) => [entry.episodeId, entry])
+        );
+        for (const entry of detail.progress ?? []) {
+          if (!entry?.episodeId) {
+            continue;
           }
-          seen.add(item.episodeId);
-          mergedEpisodes.push(item);
-        });
+          progressMap.set(entry.episodeId, entry);
+        }
 
         setShowState((state) => {
           if (state?.showId !== showId || !state.detail) {
@@ -390,12 +422,14 @@ export function PodcastTrackerApp({
           return {
             ...state,
             loading: false,
+            loadingMoreEpisodes: false,
             detail: {
               ...detail,
               episodes: {
                 ...detail.episodes,
                 items: mergedEpisodes,
               },
+              progress: Array.from(progressMap.values()),
             },
           };
         });
@@ -407,6 +441,7 @@ export function PodcastTrackerApp({
           return {
             ...current,
             loading: false,
+            loadingMoreEpisodes: false,
             error: normalizeApiError(error),
           };
         });
@@ -549,8 +584,50 @@ export function PodcastTrackerApp({
     return map;
   }, [showState?.detail?.progress]);
 
+  const filteredEpisodes = useMemo(() => {
+    return filterEpisodesByPlayback(
+      currentEpisodes,
+      showState?.episodeFilter ?? "all",
+      (episodeId) => progressMap.get(episodeId) ?? false
+    );
+  }, [currentEpisodes, progressMap, showState?.episodeFilter]);
+
+  useEffect(() => {
+    setShowState((current) => {
+      if (!current) {
+        return current;
+      }
+      const nextIndex = withBoundedIndex(
+        filteredEpisodes,
+        current.selectedEpisodeIndex
+      );
+      if (nextIndex === current.selectedEpisodeIndex) {
+        return current;
+      }
+      return {
+        ...current,
+        selectedEpisodeIndex: nextIndex,
+      };
+    });
+  }, [filteredEpisodes]);
+
+  const autoLoadingFilteredEpisodes = shouldAutoLoadMoreForEpisodeFilter({
+    filter: showState?.episodeFilter ?? "all",
+    filteredCount: filteredEpisodes.length,
+    hasNextPage: Boolean(showState?.detail?.episodes.nextToken),
+    initialLoading: Boolean(showState?.loading),
+    loadingMore: Boolean(showState?.loadingMoreEpisodes),
+  });
+
+  useEffect(() => {
+    if (!showState?.showId || !autoLoadingFilteredEpisodes) {
+      return;
+    }
+    void loadShowDetail(showState.showId, true);
+  }, [autoLoadingFilteredEpisodes, loadShowDetail, showState?.showId]);
+
   const selectedEpisode =
-    currentEpisodes[showState?.selectedEpisodeIndex ?? 0] ?? null;
+    filteredEpisodes[showState?.selectedEpisodeIndex ?? 0] ?? null;
 
   const openSearch = useCallback(() => {
     setSearch({
@@ -710,7 +787,7 @@ export function PodcastTrackerApp({
     }
 
     if (search.open) {
-      if (key.escape) {
+      if (key.escape || normalizedInput === "q") {
         closeSearch();
         return;
       }
@@ -803,7 +880,7 @@ export function PodcastTrackerApp({
     }
 
     if (isShowScreen && showState) {
-      const episodesLength = currentEpisodes.length;
+      const episodesLength = filteredEpisodes.length;
 
       if (normalizedInput === "q" || normalizedInput === "b") {
         closeShow();
@@ -852,6 +929,23 @@ export function PodcastTrackerApp({
       if (normalizedInput === "n") {
         const title = currentShow?.title ?? "show";
         void markNextForShow(showState.showId, title);
+        return;
+      }
+
+      if (normalizedInput === "f") {
+        setShowState((current) => {
+          if (!current) {
+            return current;
+          }
+          return {
+            ...current,
+            episodeFilter: nextInCycle(
+              pickEpisodeFilterModes,
+              current.episodeFilter
+            ),
+            selectedEpisodeIndex: 0,
+          };
+        });
         return;
       }
 
@@ -943,7 +1037,7 @@ export function PodcastTrackerApp({
 
       if (normalizedInput === "]") {
         const next = showState.detail?.episodes.nextToken;
-        if (next) {
+        if (next && !showState.loadingMoreEpisodes) {
           void loadShowDetail(showState.showId, true);
         }
         return;
@@ -1048,17 +1142,22 @@ export function PodcastTrackerApp({
   );
 
   const showRows = getWindowedRows(
-    currentEpisodes,
+    filteredEpisodes,
     showState?.selectedEpisodeIndex ?? 0,
     VISIBLE_ROWS
   );
+  const activeScreenLabel = search.open
+    ? "Search"
+    : isShowScreen
+      ? "Show Detail"
+      : "Home";
 
   return (
     <Box flexDirection="column">
       <Box borderStyle="single" paddingX={1} flexDirection="column">
         <Text>
-          Podcast Tracker CLI · {isShowScreen ? "Show Detail" : "Home"} · sort:{" "}
-          {sortMode} · filter: {filterMode}
+          Podcast Tracker CLI · {activeScreenLabel} · sort: {sortMode} · filter:{" "}
+          {filterMode}
         </Text>
         <Text color="gray">
           Stats: {formatNumber(stats.totalShows)} shows ·{" "}
@@ -1079,7 +1178,49 @@ export function PodcastTrackerApp({
         </Box>
       ) : null}
 
-      {!isShowScreen ? (
+      {search.open ? (
+        <Box
+          marginTop={1}
+          flexDirection="column"
+          borderStyle="round"
+          paddingX={1}
+        >
+          <Text color="cyan">Search podcasts</Text>
+          <Text color="gray">
+            Focus: {search.focus} · query: "{search.query}"{" "}
+            {search.loading ? "· loading…" : ""}
+          </Text>
+          <Text color="gray">
+            Type to search, Enter from input to move to results, Tab toggles
+            focus, Esc/q closes search.
+          </Text>
+          {search.error ? <Text color="red">{search.error}</Text> : null}
+          {search.results.length === 0 &&
+          search.query.trim().length >= 2 &&
+          !search.loading ? (
+            <Text color="gray">No results.</Text>
+          ) : null}
+          {search.results.slice(0, 10).map((item, index) => {
+            const active =
+              search.focus === "results" && index === search.selectedIndex;
+            return (
+              <Text
+                key={`search-${item.id}`}
+                color={active ? "green" : undefined}
+              >
+                {active ? "❯" : " "} {truncate(item.title, 42)} ·{" "}
+                {item.publisher} · {item.totalEpisodes} eps ·{" "}
+                {toSearchResultSubscription(item)
+                  ? "subscribed"
+                  : "not subscribed"}
+              </Text>
+            );
+          })}
+          <Text color="gray">
+            Results mode keys: j/k move · Enter open · s subscribe toggle
+          </Text>
+        </Box>
+      ) : !isShowScreen ? (
         <Box marginTop={1} flexDirection="column">
           <Text color="cyan">Spotlight</Text>
           {spotlightShows.length === 0 ? (
@@ -1114,6 +1255,9 @@ export function PodcastTrackerApp({
           {showState?.loading ? (
             <Text color="yellow">Loading show…</Text>
           ) : null}
+          {showState?.loadingMoreEpisodes ? (
+            <Text color="yellow">Loading more episodes…</Text>
+          ) : null}
           {showState?.error ? <Text color="red">{showState.error}</Text> : null}
           {currentShow ? (
             <>
@@ -1142,11 +1286,19 @@ export function PodcastTrackerApp({
 
           <Box marginTop={1} flexDirection="column">
             <Text color="cyan">
-              Episodes loaded: {currentEpisodes.length}
+              Episodes loaded: {currentEpisodes.length} · view:{" "}
+              {showState?.episodeFilter ?? "all"}
               {showState?.detail?.episodes.nextToken
                 ? " (more available: press ])"
                 : ""}
             </Text>
+            {filteredEpisodes.length === 0 && !showState?.loading ? (
+              <Text color="gray">
+                {autoLoadingFilteredEpisodes
+                  ? "No matches in current pages; loading more episodes..."
+                  : "No episodes match current filter."}
+              </Text>
+            ) : null}
             {showRows.rows.map((episode, idx) => {
               const absoluteIndex = showRows.start + idx;
               const active =
@@ -1177,49 +1329,6 @@ export function PodcastTrackerApp({
           ) : null}
         </Box>
       )}
-
-      {search.open ? (
-        <Box
-          borderStyle="round"
-          marginTop={1}
-          paddingX={1}
-          flexDirection="column"
-        >
-          <Text color="cyan">
-            Search podcasts ({search.focus}) · query: "{search.query}"{" "}
-            {search.loading ? "· loading…" : ""}
-          </Text>
-          <Text color="gray">
-            Input mode: type text, Enter {"->"} results, Tab toggle focus, Esc
-            close.
-          </Text>
-          {search.error ? <Text color="red">{search.error}</Text> : null}
-          {search.results.length === 0 &&
-          search.query.trim().length >= 2 &&
-          !search.loading ? (
-            <Text color="gray">No results.</Text>
-          ) : null}
-          {search.results.slice(0, 10).map((item, index) => {
-            const active =
-              search.focus === "results" && index === search.selectedIndex;
-            return (
-              <Text
-                key={`search-${item.id}`}
-                color={active ? "green" : undefined}
-              >
-                {active ? "❯" : " "} {truncate(item.title, 42)} ·{" "}
-                {item.publisher} · {item.totalEpisodes} eps ·{" "}
-                {toSearchResultSubscription(item)
-                  ? "subscribed"
-                  : "not subscribed"}
-              </Text>
-            );
-          })}
-          <Text color="gray">
-            Results mode keys: j/k move · Enter open · s subscribe toggle
-          </Text>
-        </Box>
-      ) : null}
 
       {rating.open ? (
         <Box
@@ -1273,8 +1382,8 @@ export function PodcastTrackerApp({
             mark all
           </Text>
           <Text>
-            Show: s subscribe toggle · d drop · t rate · u unsubscribe · o open
-            URL · ] load more · b back
+            Show: s subscribe toggle · d drop · t rate · u unsubscribe · f
+            episode filter · o open URL · ] load more · b back
           </Text>
         </Box>
       ) : null}
@@ -1288,9 +1397,11 @@ export function PodcastTrackerApp({
       <Box marginTop={1}>
         <Text color="gray">
           {busy ? "Working… " : "Ready. "}
-          {isShowScreen
-            ? "Show keys: j/k Enter n a s d t u o ] b / ?"
-            : "Home keys: j/k Enter s f n u / ? q"}
+          {search.open
+            ? "Search keys: type Enter/Tab j/k s Enter Esc/q"
+            : isShowScreen
+              ? "Show keys: j/k Enter n a s d t u f o ] b / ?"
+              : "Home keys: j/k Enter s f n u / ? q"}
         </Text>
       </Box>
     </Box>

@@ -25,6 +25,7 @@ import {
   type DropShowMutation,
   type DropShowMutationVariables,
 } from "@shared";
+import { mergeEpisodesById } from "@shared/episodes/filtering";
 import { AuroraBackground, InteractiveButton } from "@ui";
 import { GraphQLProvider } from "../graphql/GraphQLProvider";
 import DemoBadge from "../demo/DemoBadge";
@@ -681,9 +682,9 @@ function PodcastDetailAppContent({
     }
   };
 
-  const handleLoadMore = async () => {
+  const handleLoadMore = useCallback(async () => {
     const nextToken = episodesConnection?.nextToken;
-    if (!nextToken) return;
+    if (!nextToken || loadingMore) return;
     setLoadingMore(true);
     try {
       await fetchMore({
@@ -703,10 +704,10 @@ function PodcastDetailAppContent({
           const prevDetail = previous.showDetail;
           const nextDetail = fetchMoreResult.showDetail;
 
-          const mergedEpisodes = [
-            ...(prevDetail.episodes?.items ?? []),
-            ...(nextDetail.episodes?.items ?? []),
-          ];
+          const mergedEpisodes = mergeEpisodesById(
+            prevDetail.episodes?.items ?? [],
+            nextDetail.episodes?.items ?? []
+          );
 
           const progressMap = new Map<
             string,
@@ -742,7 +743,7 @@ function PodcastDetailAppContent({
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [episodesConnection?.nextToken, fetchMore, loadingMore, showId]);
 
   const handleScrollToTop = useCallback(() => {
     window.scrollTo({

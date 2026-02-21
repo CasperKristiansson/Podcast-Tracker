@@ -15,7 +15,7 @@ describe("loadConfig", () => {
     resetEnv();
   });
 
-  it("marks appsync and cognito as unconfigured when env is absent", () => {
+  it("uses shipped production defaults when env is absent", () => {
     delete process.env.PODCAST_TRACKER_APPSYNC_URL;
     delete process.env.PUBLIC_APPSYNC_URL;
     delete process.env.PODCAST_TRACKER_COGNITO_DOMAIN;
@@ -26,11 +26,18 @@ describe("loadConfig", () => {
 
     const config = loadConfig();
 
-    expect(config.appsyncConfigured).toBe(false);
-    expect(config.cognitoConfigured).toBe(false);
+    expect(config.appsyncConfigured).toBe(true);
+    expect(config.cognitoConfigured).toBe(true);
+    expect(config.appsyncUrl).toBe(
+      "https://jsdj6tjxp5fsjfn5gpr6a7hamu.appsync-api.eu-north-1.amazonaws.com/graphql"
+    );
+    expect(config.cognitoDomain).toBe(
+      "https://podcast-tracker-auth2.auth.eu-north-1.amazoncognito.com"
+    );
+    expect(config.cognitoClientId).toBe("4n34nq1h9pnpo41dvcvg0c2uhu");
   });
 
-  it("marks configs as configured when required values exist", () => {
+  it("allows overriding shipped defaults via env", () => {
     process.env.PODCAST_TRACKER_APPSYNC_URL = "https://example.appsync-api.aws";
     process.env.PODCAST_TRACKER_COGNITO_DOMAIN =
       "https://example.auth.eu-north-1.amazoncognito.com";
@@ -41,5 +48,9 @@ describe("loadConfig", () => {
     expect(config.appsyncConfigured).toBe(true);
     expect(config.cognitoConfigured).toBe(true);
     expect(config.appsyncUrl).toContain("https://example.appsync-api.aws");
+    expect(config.cognitoDomain).toBe(
+      "https://example.auth.eu-north-1.amazoncognito.com"
+    );
+    expect(config.cognitoClientId).toBe("client-123");
   });
 });
