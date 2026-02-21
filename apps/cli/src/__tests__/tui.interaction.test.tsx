@@ -173,7 +173,9 @@ describe("tui interaction", () => {
     await sleep(30);
     expect(readFrame()).toContain("Search podcasts");
 
-    instance.stdin.write("po");
+    instance.stdin.write("p");
+    await sleep(30);
+    instance.stdin.write("o");
     await sleep(420);
     expect(api.searchShows).toHaveBeenCalled();
 
