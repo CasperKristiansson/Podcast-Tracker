@@ -67,13 +67,12 @@ export const loadConfig = (): CliConfig => {
 
   const cognitoRedirectUri = ensureHttpsUrl(
     process.env.PODCAST_TRACKER_COGNITO_REDIRECT_URI ??
-      "http://127.0.0.1:54545/callback",
+      "http://localhost:4321/auth/callback",
     "PODCAST_TRACKER_COGNITO_REDIRECT_URI"
   );
 
   const cognitoLogoutUri = ensureHttpsUrl(
-    process.env.PODCAST_TRACKER_COGNITO_LOGOUT_URI ??
-      "http://127.0.0.1:54545/logout",
+    process.env.PODCAST_TRACKER_COGNITO_LOGOUT_URI ?? "http://localhost:4321/",
     "PODCAST_TRACKER_COGNITO_LOGOUT_URI"
   );
 
