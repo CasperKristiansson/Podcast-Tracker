@@ -504,4 +504,35 @@ describe("tui interaction", () => {
 
     instance.unmount();
   });
+
+  it("marks episode progress locally without refetching show detail", async () => {
+    const api = createApiMock();
+    api.markEpisodeProgress = vi.fn().mockResolvedValue(undefined);
+
+    const instance = render(
+      React.createElement(PodcastTrackerApp, {
+        api: api as never,
+        sessionManager: {} as never,
+      })
+    );
+
+    await sleep(40);
+    instance.stdin.write("\r");
+    await sleep(80);
+    expect(api.showDetail).toHaveBeenCalledTimes(1);
+
+    instance.stdin.write(" ");
+    await sleep(120);
+
+    expect(api.markEpisodeProgress).toHaveBeenCalledWith(
+      "show-1",
+      "ep-1",
+      true
+    );
+    expect(api.showDetail).toHaveBeenCalledTimes(1);
+    const frame = stripAnsi(instance.lastFrame() ?? "");
+    expect(frame).toContain("[x] Episode 1");
+
+    instance.unmount();
+  });
 });

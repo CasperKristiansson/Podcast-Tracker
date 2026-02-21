@@ -667,6 +667,50 @@ export function PodcastTrackerApp({
     [api, loadShowDetail, refreshProfile, runSafeAction, showState?.showId]
   );
 
+  const applyLocalEpisodeProgress = useCallback(
+    (showId: string, episodeId: string, completed: boolean) => {
+      setShowState((current) => {
+        if (current?.showId !== showId || !current.detail) {
+          return current;
+        }
+
+        const updatedAt = new Date().toISOString();
+        let replaced = false;
+        const nextProgress = (current.detail.progress ?? []).map((entry) => {
+          if (!entry?.episodeId || entry.episodeId !== episodeId) {
+            return entry;
+          }
+          replaced = true;
+          return {
+            ...entry,
+            completed,
+            updatedAt,
+            showId: entry.showId ?? showId,
+          };
+        });
+
+        if (!replaced) {
+          nextProgress.push({
+            __typename: "Progress",
+            episodeId,
+            completed,
+            updatedAt,
+            showId,
+          });
+        }
+
+        return {
+          ...current,
+          detail: {
+            ...current.detail,
+            progress: nextProgress,
+          },
+        };
+      });
+    },
+    []
+  );
+
   const openRating = useCallback(() => {
     const stars = currentSubscription?.ratingStars ?? 3;
     const review = currentSubscription?.ratingReview ?? "";
@@ -1056,7 +1100,11 @@ export function PodcastTrackerApp({
               episode.episodeId,
               !completed
             );
-            await loadShowDetail(showState.showId, false);
+            applyLocalEpisodeProgress(
+              showState.showId,
+              episode.episodeId,
+              !completed
+            );
             await refreshProfile();
           },
           completed
