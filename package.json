@@ -19,6 +19,11 @@
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:watch": "graphql-codegen --config codegen.ts --watch",
     "dev": "npm run --workspace apps/web dev",
+    "cli:dev": "npm run --workspace apps/cli dev",
+    "cli:start": "npm run cli:build && npm run --workspace apps/cli start --",
+    "cli:test": "npm run --workspace apps/cli test",
+    "cli:build": "npm run --workspace apps/cli build",
+    "cli:verify": "npm run lint && npm run cli:test && npm run cli:build && npm run cli:start -- help",
     "test:ci": "vitest run",
     "deploy:backend": "npm run --workspace infra cdk:deploy -- --all --require-approval never --profile Personal",
     "deploy:web": "bash ./scripts/deploy-web.sh"

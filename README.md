@@ -11,6 +11,51 @@ Podcast Tracker keeps tabs on every show you follow by syncing with the Spotify 
 - [AWS Lambda](https://aws.amazon.com/lambda/) and [DynamoDB](https://aws.amazon.com/dynamodb/) store and serve podcast data through lightweight serverless functions.
 - [AWS CDK](https://aws.amazon.com/cdk/) defines repeatable cloud infrastructure for the web, API, and supporting services.
 - [Vitest](https://vitest.dev/), [ESLint](https://eslint.org/), and [Prettier](https://prettier.io/) keep the codebase tested, linted, and consistently formatted.
+- [Ink](https://github.com/vadimdemedes/ink) powers a keyboard-first terminal UI for the same podcast workflows as the web app.
+
+## CLI (Terminal UI)
+
+The repo now includes a first-class CLI app in `apps/cli` with GraphQL feature parity:
+
+- Profile stats + library browsing
+- Global podcast search with subscribe/unsubscribe
+- Show detail + episode pagination
+- Episode progress actions (single, next, all)
+- Show rating/review and drop/unsubscribe actions
+- OAuth login (Cognito Authorization Code + PKCE)
+
+### Required environment variables
+
+- `PODCAST_TRACKER_APPSYNC_URL`
+- `PODCAST_TRACKER_COGNITO_DOMAIN`
+- `PODCAST_TRACKER_COGNITO_CLIENT_ID`
+- `PODCAST_TRACKER_COGNITO_REDIRECT_URI` (default `http://127.0.0.1:54545/callback`)
+- `PODCAST_TRACKER_COGNITO_LOGOUT_URI` (default `http://127.0.0.1:54545/logout`)
+
+### Commands
+
+```bash
+npm run cli:dev
+npm run cli:build
+npm run cli:start
+npm run cli:test
+```
+
+Direct usage:
+
+```bash
+podcast-tracker auth login
+podcast-tracker auth status
+podcast-tracker auth logout
+podcast-tracker
+```
+
+### Keybindings
+
+- Global: `/` search, `?` help, `q` back/quit
+- Lists: `j/k` move, `Enter` open/select
+- Home: `s` sort, `f` filter, `n` mark next, `u` unsubscribe
+- Show: `Enter` toggle episode progress, `n` mark next, `a` mark all, `s` subscribe toggle, `d` drop, `t` rate, `o` open URL, `]` load more episodes
 
 Below are a few interface captures from the latest build. They highlight the profile dashboard, podcast search flow, listening library, and show detail experience.
 

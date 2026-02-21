@@ -55,7 +55,7 @@ const isUserNotAuthenticatedError = (error: unknown): boolean => {
 
 const collectErrorStrings = (error: unknown): string[] => {
   const strings: string[] = [];
-  const queue: Array<{ value: unknown; depth: number }> = [
+  const queue: { value: unknown; depth: number }[] = [
     { value: error, depth: 0 },
   ];
   const seen = new WeakSet<object>();
@@ -99,7 +99,13 @@ const collectErrorStrings = (error: unknown): string[] => {
     }
 
     if (typeof value !== "object") {
-      addString(String(value));
+      if (
+        typeof value === "number" ||
+        typeof value === "boolean" ||
+        typeof value === "bigint"
+      ) {
+        addString(String(value));
+      }
       continue;
     }
 
@@ -130,9 +136,7 @@ const isPendingApprovalError = (error: unknown): boolean => {
 
   return collectErrorStrings(error).some((text) => {
     const normalized = text.toLowerCase();
-    return PENDING_APPROVAL_TOKENS.some((token) =>
-      normalized.includes(token)
-    );
+    return PENDING_APPROVAL_TOKENS.some((token) => normalized.includes(token));
   });
 };
 
@@ -183,11 +187,12 @@ const decodeBase64Url = (value: string): string => {
 
 const decodeJwtPayload = (token: string): Record<string, unknown> => {
   const parts = token.split(".");
-  if (parts.length < 2) {
+  const payloadPart = parts[1];
+  if (!payloadPart) {
     throw new Error("Invalid ID token format.");
   }
 
-  const payload = decodeBase64Url(parts[1]);
+  const payload = decodeBase64Url(payloadPart);
   return JSON.parse(payload) as Record<string, unknown>;
 };
 

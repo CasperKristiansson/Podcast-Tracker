@@ -1,0 +1,20 @@
+{
+  "name": "@podcast-tracker/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ink-based terminal UI for Podcast Tracker.",
+  "bin": {
+    "podcast-tracker": "dist/apps/cli/src/index.js"
+  },
+  "scripts": {
+    "dev": "npm run build && node dist/apps/cli/src/index.js",
+    "build": "tsc --project tsconfig.build.json",
+    "start": "node dist/apps/cli/src/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "ink": "^5.2.1",
+    "react": "^19.2.0"
+  }
+}

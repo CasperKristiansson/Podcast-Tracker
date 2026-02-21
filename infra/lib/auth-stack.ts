@@ -13,8 +13,16 @@ export class AuthStack extends cdk.Stack {
     super(scope, id, props);
 
     const domainPrefix = AuthStack.requireEnv("COGNITO_DOMAIN_PREFIX");
-    const callbackUrls = AuthStack.requireCsvEnv("COGNITO_CALLBACK_URLS");
-    const logoutUrls = AuthStack.requireCsvEnv("COGNITO_LOGOUT_URLS");
+    const callbackUrls = AuthStack.withCliLoopbackDefaults(
+      AuthStack.requireCsvEnv("COGNITO_CALLBACK_URLS"),
+      "COGNITO_CLI_CALLBACK_URLS",
+      ["http://127.0.0.1:54545/callback"]
+    );
+    const logoutUrls = AuthStack.withCliLoopbackDefaults(
+      AuthStack.requireCsvEnv("COGNITO_LOGOUT_URLS"),
+      "COGNITO_CLI_LOGOUT_URLS",
+      ["http://127.0.0.1:54545/logout"]
+    );
     const googleClientId = AuthStack.requireEnv("GOOGLE_CLIENT_ID");
     const googleClientSecret = AuthStack.requireEnv("GOOGLE_CLIENT_SECRET");
 
@@ -155,5 +163,31 @@ export class AuthStack extends cdk.Stack {
       .split(",")
       .map((entry) => entry.trim())
       .filter((entry) => entry.length > 0);
+  }
+
+  private static optionalCsvEnv(name: string): string[] {
+    const raw = process.env[name];
+    if (!raw) {
+      return [];
+    }
+    return raw
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+  }
+
+  private static withCliLoopbackDefaults(
+    values: string[],
+    envName: string,
+    defaults: string[]
+  ): string[] {
+    const set = new Set<string>(values);
+    for (const value of defaults) {
+      set.add(value);
+    }
+    for (const value of AuthStack.optionalCsvEnv(envName)) {
+      set.add(value);
+    }
+    return Array.from(set);
   }
 }
