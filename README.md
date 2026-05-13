@@ -73,12 +73,14 @@ npm config get prefix
 # add "<prefix>/bin" to PATH in ~/.zshrc, then restart shell
 ```
 
-### Keybindings
+### TUI controls
 
-- Global: `/` search, `?` help, `q` back/quit
+- Global: `/` opens a slash-command input with inline hints, `?` help, `q` back/quit
 - Lists: `j/k` move, `Enter` open/select
-- Home: `s` sort, `f` filter, `n` mark next, `u` unsubscribe
-- Show: `Enter` toggle episode progress, `n` mark next, `a` mark all, `s` subscribe toggle, `d` drop, `t` rate, `f` cycle episode filter (`all/unplayed/watched`), `o` open URL, `]` load more episodes
+- Home commands: `/search <term>`, `/filter all|active|dropped|unlistened`, `/sort unlistened|title|recent`, `/prompt`
+- Home keys: `s` cycle sort, `f` cycle filter, `n` mark next, `u` unsubscribe
+- Show commands: `/episode-filter all|unplayed|played`, `/load-more`, `/back`
+- Show keys: `Enter` toggle episode progress, `n` mark next, `a` mark all, `s` subscribe toggle, `d` drop, `t` rate, `u` unsubscribe, `f` cycle episode filter, `o` open URL, `]` load more episodes
 
 ### Live E2E Tests
 

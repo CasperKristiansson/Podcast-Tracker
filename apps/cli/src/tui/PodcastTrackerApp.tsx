@@ -27,10 +27,15 @@ import {
   truncate,
 } from "../utils/format.js";
 import { openUrl } from "../utils/open-url.js";
+import { writeListeningAtlasPromptToDesktop } from "./prompt-export.js";
 
 type SortMode = "unlistened" | "title" | "recent";
-type FilterMode = "all" | "active" | "dropped";
+type FilterMode = "all" | "active" | "dropped" | "unlistened";
 type SearchFocus = "input" | "results";
+interface CommandSuggestion {
+  value: string;
+  description: string;
+}
 
 interface ToastState {
   message: string;
@@ -70,6 +75,16 @@ interface RatingState {
   saving: boolean;
 }
 
+interface CommandState {
+  active: boolean;
+  input: string;
+  error: string | null;
+}
+
+interface RefreshProfileOptions {
+  silent?: boolean;
+}
+
 interface PodcastTrackerAppProps {
   api: PodcastApi;
   sessionManager: SessionManager;
@@ -83,11 +98,28 @@ const clamp = (value: number, min: number, max: number): number => {
 };
 
 const pickSortModes: SortMode[] = ["unlistened", "title", "recent"];
-const pickFilterModes: FilterMode[] = ["all", "active", "dropped"];
+const pickFilterModes: FilterMode[] = [
+  "all",
+  "active",
+  "dropped",
+  "unlistened",
+];
 const pickEpisodeFilterModes: EpisodePlaybackFilter[] = [
   "all",
   "unplayed",
   "played",
+];
+const slashCommands: CommandSuggestion[] = [
+  { value: "/search ", description: "search podcasts" },
+  { value: "/filter ", description: "set library filter" },
+  { value: "/sort ", description: "set library sort" },
+  { value: "/episode-filter ", description: "set episode filter" },
+  { value: "/prompt", description: "write listening prompt to Desktop" },
+  { value: "/refresh", description: "reload current data" },
+  { value: "/load-more", description: "load next episode page" },
+  { value: "/help", description: "open help" },
+  { value: "/back", description: "go back from show/search" },
+  { value: "/quit", description: "quit from home" },
 ];
 
 const nextInCycle = <T extends string>(items: readonly T[], current: T): T => {
@@ -130,6 +162,9 @@ const sortAndFilterShows = (
     }
     if (filterMode === "dropped") {
       return isDropped;
+    }
+    if (filterMode === "unlistened") {
+      return !isDropped && show.unlistenedEpisodes > 0;
     }
     return true;
   });
@@ -199,6 +234,110 @@ const useDebouncedSearch = (
       clearTimeout(timer);
     };
   }, [enabled, onSearch, query]);
+};
+
+const parseSlashCommand = (
+  input: string
+): {
+  name: string;
+  arg: string;
+} | null => {
+  if (!input.startsWith("/")) {
+    return null;
+  }
+  const withoutSlash = input.slice(1);
+  const spaceIndex = withoutSlash.indexOf(" ");
+  if (spaceIndex < 0) {
+    return {
+      name: withoutSlash.trim().toLowerCase(),
+      arg: "",
+    };
+  }
+  return {
+    name: withoutSlash.slice(0, spaceIndex).trim().toLowerCase(),
+    arg: withoutSlash.slice(spaceIndex + 1),
+  };
+};
+
+const getSlashCommandSuggestions = (
+  input: string,
+  isShowScreen: boolean
+): CommandSuggestion[] => {
+  const parsed = parseSlashCommand(input);
+  if (!parsed || parsed.name.length === 0) {
+    return slashCommands;
+  }
+
+  const commandPrefix = `/${parsed.name}`;
+  if (!input.includes(" ")) {
+    return slashCommands.filter((command) =>
+      command.value.startsWith(commandPrefix)
+    );
+  }
+
+  const argPrefix = parsed.arg.trim().toLowerCase();
+  if (parsed.name === "filter") {
+    return pickFilterModes
+      .filter((value) => value.startsWith(argPrefix))
+      .map((value) => ({
+        value: `/filter ${value}`,
+        description: `show ${value} library items`,
+      }));
+  }
+  if (parsed.name === "sort") {
+    return pickSortModes
+      .filter((value) => value.startsWith(argPrefix))
+      .map((value) => ({
+        value: `/sort ${value}`,
+        description: `sort by ${value}`,
+      }));
+  }
+  if (parsed.name === "episode-filter") {
+    return pickEpisodeFilterModes
+      .filter((value) => value.startsWith(argPrefix))
+      .map((value) => ({
+        value: `/episode-filter ${value}`,
+        description: isShowScreen
+          ? `show ${value} episodes`
+          : "available in show detail",
+      }));
+  }
+  return [];
+};
+
+const getSlashCommandHintText = (
+  input: string,
+  isShowScreen: boolean
+): string => {
+  const parsed = parseSlashCommand(input);
+  if (!parsed || parsed.name.length === 0 || !input.includes(" ")) {
+    return [
+      "/search <term>",
+      `/filter [${pickFilterModes.join(",")}]`,
+      `/sort [${pickSortModes.join(",")}]`,
+      isShowScreen
+        ? `/episode-filter [${pickEpisodeFilterModes.join(",")}]`
+        : null,
+      "/prompt",
+      "/refresh",
+    ]
+      .filter((entry): entry is string => Boolean(entry))
+      .join(" · ");
+  }
+
+  if (parsed.name === "filter") {
+    return `/filter [${pickFilterModes.join(",")}]`;
+  }
+  if (parsed.name === "sort") {
+    return `/sort [${pickSortModes.join(",")}]`;
+  }
+  if (parsed.name === "episode-filter") {
+    return `/episode-filter [${pickEpisodeFilterModes.join(",")}]`;
+  }
+  if (parsed.name === "search") {
+    return "/search <term>";
+  }
+  return "/prompt · /refresh · /help · /back · /quit";
 };
 
 const lineForShow = (show: ProfileShow): string => {
@@ -273,6 +412,11 @@ export function PodcastTrackerApp({
     review: "",
     saving: false,
   });
+  const [command, setCommand] = useState<CommandState>({
+    active: false,
+    input: "",
+    error: null,
+  });
 
   const [search, setSearch] = useState<SearchState>({
     open: false,
@@ -310,30 +454,39 @@ export function PodcastTrackerApp({
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const refreshProfile = useCallback(async () => {
-    setProfileLoading(true);
-    setProfileError(null);
-    try {
-      const data = await api.myProfile();
-      setStats({
-        totalShows: data.stats.totalShows,
-        episodesCompleted: data.stats.episodesCompleted,
-        episodesInProgress: data.stats.episodesInProgress,
-      });
-      setProfileShows(
-        (data.shows ?? []).filter((item): item is ProfileShow => Boolean(item))
-      );
-      setSpotlightShows(
-        (data.spotlight ?? []).filter((item): item is ProfileShow =>
-          Boolean(item)
-        )
-      );
-    } catch (error) {
-      setProfileError(normalizeApiError(error));
-    } finally {
-      setProfileLoading(false);
-    }
-  }, [api]);
+  const refreshProfile = useCallback(
+    async ({ silent = false }: RefreshProfileOptions = {}) => {
+      if (!silent) {
+        setProfileLoading(true);
+      }
+      setProfileError(null);
+      try {
+        const data = await api.myProfile();
+        setStats({
+          totalShows: data.stats.totalShows,
+          episodesCompleted: data.stats.episodesCompleted,
+          episodesInProgress: data.stats.episodesInProgress,
+        });
+        setProfileShows(
+          (data.shows ?? []).filter((item): item is ProfileShow =>
+            Boolean(item)
+          )
+        );
+        setSpotlightShows(
+          (data.spotlight ?? []).filter((item): item is ProfileShow =>
+            Boolean(item)
+          )
+        );
+      } catch (error) {
+        setProfileError(normalizeApiError(error));
+      } finally {
+        if (!silent) {
+          setProfileLoading(false);
+        }
+      }
+    },
+    [api]
+  );
 
   useEffect(() => {
     void refreshProfile();
@@ -511,7 +664,7 @@ export function PodcastTrackerApp({
             };
           });
 
-          await refreshProfile();
+          await refreshProfile({ silent: true });
           if (showState?.showId === item.id) {
             await loadShowDetail(item.id, false);
           }
@@ -629,15 +782,15 @@ export function PodcastTrackerApp({
   const selectedEpisode =
     filteredEpisodes[showState?.selectedEpisodeIndex ?? 0] ?? null;
 
-  const openSearch = useCallback(() => {
+  const openSearch = useCallback((initialQuery = "") => {
     setSearch({
       open: true,
-      query: "",
+      query: initialQuery,
       loading: false,
       error: null,
       results: [],
       selectedIndex: 0,
-      focus: "input",
+      focus: initialQuery.trim().length > 0 ? "results" : "input",
     });
   }, []);
 
@@ -658,7 +811,7 @@ export function PodcastTrackerApp({
     async (showId: string, title: string) => {
       await runSafeAction(async () => {
         await api.markNextEpisodeComplete(showId);
-        await refreshProfile();
+        await refreshProfile({ silent: true });
         if (showState?.showId === showId) {
           await loadShowDetail(showId, false);
         }
@@ -722,8 +875,239 @@ export function PodcastTrackerApp({
     });
   }, [currentSubscription?.ratingReview, currentSubscription?.ratingStars]);
 
+  const closeCommand = useCallback(() => {
+    setCommand({ active: false, input: "", error: null });
+  }, []);
+
+  const submitSlashCommand = useCallback(
+    (rawInput: string) => {
+      const parsed = parseSlashCommand(rawInput.trimEnd());
+      if (!parsed?.name) {
+        setCommand((current) => ({
+          ...current,
+          error: "Type a command, for example /filter active.",
+        }));
+        return;
+      }
+
+      const arg = parsed.arg.trim();
+      if (parsed.name === "search") {
+        if (arg.length < 2) {
+          setCommand((current) => ({
+            ...current,
+            error: "Usage: /search <podcast name>",
+          }));
+          return;
+        }
+        closeCommand();
+        openSearch(arg);
+        void searchShows(arg);
+        return;
+      }
+
+      if (parsed.name === "filter") {
+        if (!pickFilterModes.includes(arg as FilterMode)) {
+          setCommand((current) => ({
+            ...current,
+            error: "Usage: /filter all|active|dropped|unlistened",
+          }));
+          return;
+        }
+        setFilterMode(arg as FilterMode);
+        setSelectedHomeIndex(0);
+        closeCommand();
+        return;
+      }
+
+      if (parsed.name === "sort") {
+        if (!pickSortModes.includes(arg as SortMode)) {
+          setCommand((current) => ({
+            ...current,
+            error: "Usage: /sort unlistened|title|recent",
+          }));
+          return;
+        }
+        setSortMode(arg as SortMode);
+        setSelectedHomeIndex(0);
+        closeCommand();
+        return;
+      }
+
+      if (parsed.name === "episode-filter") {
+        if (!showState) {
+          setCommand((current) => ({
+            ...current,
+            error: "/episode-filter is available in show detail.",
+          }));
+          return;
+        }
+        if (!pickEpisodeFilterModes.includes(arg as EpisodePlaybackFilter)) {
+          setCommand((current) => ({
+            ...current,
+            error: "Usage: /episode-filter all|unplayed|played",
+          }));
+          return;
+        }
+        setShowState((current) => {
+          if (!current) {
+            return current;
+          }
+          return {
+            ...current,
+            episodeFilter: arg as EpisodePlaybackFilter,
+            selectedEpisodeIndex: 0,
+          };
+        });
+        closeCommand();
+        return;
+      }
+
+      if (parsed.name === "prompt") {
+        if (busy) {
+          return;
+        }
+        closeCommand();
+        setBusy(true);
+        void (async () => {
+          try {
+            const target =
+              await writeListeningAtlasPromptToDesktop(profileShows);
+            setToast({
+              message: `Wrote prompt to ${target}.`,
+              tone: "success",
+            });
+          } catch (error) {
+            setToast({ message: normalizeApiError(error), tone: "error" });
+          } finally {
+            setBusy(false);
+          }
+        })();
+        return;
+      }
+
+      if (parsed.name === "refresh") {
+        closeCommand();
+        if (showState?.showId) {
+          void loadShowDetail(showState.showId, false);
+          return;
+        }
+        void refreshProfile();
+        return;
+      }
+
+      if (parsed.name === "help") {
+        closeCommand();
+        setHelpOpen(true);
+        return;
+      }
+
+      if (parsed.name === "back") {
+        closeCommand();
+        if (search.open) {
+          closeSearch();
+          return;
+        }
+        if (showState) {
+          closeShow();
+        }
+        return;
+      }
+
+      if (parsed.name === "quit") {
+        closeCommand();
+        app.exit();
+        return;
+      }
+
+      if (parsed.name === "load-more") {
+        const next = showState?.detail?.episodes.nextToken;
+        if (showState?.showId && next && !showState.loadingMoreEpisodes) {
+          closeCommand();
+          void loadShowDetail(showState.showId, true);
+          return;
+        }
+        setCommand((current) => ({
+          ...current,
+          error: "No additional episode page is available.",
+        }));
+        return;
+      }
+
+      setCommand((current) => ({
+        ...current,
+        error: `Unknown command: /${parsed.name}`,
+      }));
+    },
+    [
+      app,
+      busy,
+      closeCommand,
+      closeSearch,
+      closeShow,
+      loadShowDetail,
+      openSearch,
+      profileShows,
+      refreshProfile,
+      search.open,
+      searchShows,
+      showState,
+    ]
+  );
+
   useInput((input, key) => {
     const normalizedInput = input.toLowerCase();
+
+    if (command.active) {
+      if (key.escape) {
+        closeCommand();
+        return;
+      }
+
+      if (key.return) {
+        submitSlashCommand(command.input);
+        return;
+      }
+
+      if (key.tab) {
+        const suggestion = getSlashCommandSuggestions(
+          command.input,
+          isShowScreen
+        )[0];
+        if (suggestion) {
+          setCommand((current) => ({
+            ...current,
+            input: suggestion.value,
+            error: null,
+          }));
+        }
+        return;
+      }
+
+      if (key.backspace || key.delete) {
+        setCommand((current) => {
+          const nextInput = current.input.slice(0, -1);
+          if (nextInput.length === 0) {
+            return { active: false, input: "", error: null };
+          }
+          return { ...current, input: nextInput, error: null };
+        });
+        return;
+      }
+
+      if (isPrintableInput(input) && !key.ctrl && !key.meta) {
+        setCommand((current) => ({
+          ...current,
+          input: `${current.input}${input}`,
+          error: null,
+        }));
+      }
+      return;
+    }
+
+    if (normalizedInput === "/") {
+      setCommand({ active: true, input: "/", error: null });
+      return;
+    }
 
     if (helpOpen) {
       if (normalizedInput === "?" || normalizedInput === "q" || key.escape) {
@@ -740,7 +1124,7 @@ export function PodcastTrackerApp({
           async () => {
             if (confirmAction.action === "unsubscribe") {
               await api.unsubscribe(confirmAction.showId);
-              await refreshProfile();
+              await refreshProfile({ silent: true });
               if (showState?.showId === confirmAction.showId) {
                 setShowState(null);
               }
@@ -748,7 +1132,7 @@ export function PodcastTrackerApp({
             }
 
             await api.dropShow(confirmAction.showId);
-            await refreshProfile();
+            await refreshProfile({ silent: true });
             if (showState?.showId === confirmAction.showId) {
               await loadShowDetail(confirmAction.showId, false);
             }
@@ -777,7 +1161,7 @@ export function PodcastTrackerApp({
           setRating((current) => ({ ...current, saving: true }));
           await api.rateShow(showState.showId, rating.stars, rating.review);
           await loadShowDetail(showState.showId, false);
-          await refreshProfile();
+          await refreshProfile({ silent: true });
           setRating({
             open: false,
             stars: rating.stars,
@@ -918,11 +1302,6 @@ export function PodcastTrackerApp({
       return;
     }
 
-    if (normalizedInput === "/") {
-      openSearch();
-      return;
-    }
-
     if (isShowScreen && showState) {
       const episodesLength = filteredEpisodes.length;
 
@@ -997,7 +1376,7 @@ export function PodcastTrackerApp({
         void runSafeAction(async () => {
           const count = await api.markAllEpisodesComplete(showState.showId);
           await loadShowDetail(showState.showId, false);
-          await refreshProfile();
+          await refreshProfile({ silent: true });
           setToast({
             message: `Marked ${count} episodes complete.`,
             tone: "success",
@@ -1025,7 +1404,7 @@ export function PodcastTrackerApp({
               });
             }
             await loadShowDetail(showState.showId, false);
-            await refreshProfile();
+            await refreshProfile({ silent: true });
           },
           showState.detail?.subscription &&
             !showState.detail.subscription.droppedAt
@@ -1105,7 +1484,7 @@ export function PodcastTrackerApp({
               episode.episodeId,
               !completed
             );
-            await refreshProfile();
+            await refreshProfile({ silent: true });
           },
           completed
             ? "Marked episode as uncompleted."
@@ -1133,6 +1512,7 @@ export function PodcastTrackerApp({
 
     if (normalizedInput === "f") {
       setFilterMode((current) => nextInCycle(pickFilterModes, current));
+      setSelectedHomeIndex(0);
       return;
     }
 
@@ -1199,7 +1579,39 @@ export function PodcastTrackerApp({
     : isShowScreen
       ? "Show Detail"
       : "Home";
-
+  const globalStatus = profileError
+    ? {
+        color: "red" as const,
+        message: `Profile error: ${profileError}`,
+      }
+    : profileLoading
+      ? {
+          color: "yellow" as const,
+          message: "Loading profile…",
+        }
+      : {
+          color: "gray" as const,
+          message: " ",
+        };
+  const showStatus = showState?.error
+    ? {
+        color: "red" as const,
+        message: showState.error,
+      }
+    : showState?.loadingMoreEpisodes
+      ? {
+          color: "yellow" as const,
+          message: "Loading more episodes…",
+        }
+      : showState?.loading
+        ? {
+            color: "yellow" as const,
+            message: "Loading show…",
+          }
+        : {
+            color: "gray" as const,
+            message: " ",
+          };
   return (
     <Box flexDirection="column">
       <Box borderStyle="single" paddingX={1} flexDirection="column">
@@ -1212,19 +1624,32 @@ export function PodcastTrackerApp({
           {formatNumber(stats.episodesCompleted)} completed ·{" "}
           {formatNumber(stats.episodesInProgress)} in-progress
         </Text>
+        <Text color={globalStatus.color}>{globalStatus.message}</Text>
       </Box>
 
-      {profileLoading ? (
-        <Box marginTop={1}>
-          <Text color="yellow">Loading profile…</Text>
-        </Box>
-      ) : null}
-
-      {profileError ? (
-        <Box marginTop={1}>
-          <Text color="red">Profile error: {profileError}</Text>
-        </Box>
-      ) : null}
+      <Box
+        marginTop={1}
+        borderStyle={command.active ? "double" : "single"}
+        paddingX={1}
+        flexDirection="column"
+      >
+        <Text color={command.active ? "green" : "gray"}>
+          Command: {command.active ? command.input : "type / for commands"}
+        </Text>
+        {command.error ? <Text color="red">{command.error}</Text> : null}
+        {command.active ? (
+          <Text color="gray">Enter run · Tab complete · Esc cancel</Text>
+        ) : (
+          <Text color="gray">
+            Examples: /search radiolab · /filter active · /prompt
+          </Text>
+        )}
+        {command.active ? (
+          <Text color="cyan">
+            {getSlashCommandHintText(command.input, isShowScreen)}
+          </Text>
+        ) : null}
+      </Box>
 
       {search.open ? (
         <Box
@@ -1300,13 +1725,7 @@ export function PodcastTrackerApp({
         </Box>
       ) : (
         <Box marginTop={1} flexDirection="column">
-          {showState?.loading ? (
-            <Text color="yellow">Loading show…</Text>
-          ) : null}
-          {showState?.loadingMoreEpisodes ? (
-            <Text color="yellow">Loading more episodes…</Text>
-          ) : null}
-          {showState?.error ? <Text color="red">{showState.error}</Text> : null}
+          <Text color={showStatus.color}>{showStatus.message}</Text>
           {currentShow ? (
             <>
               <Text color="cyan">
@@ -1420,10 +1839,10 @@ export function PodcastTrackerApp({
           flexDirection="column"
         >
           <Text color="cyan">Keyboard Help</Text>
-          <Text>Global: / search · ? help · q back/quit</Text>
+          <Text>Global: / commands · ? help · q back/quit</Text>
           <Text>
-            Home: j/k move · Enter open show · s sort · f filter · n mark next ·
-            u unsubscribe
+            Home: j/k move · Enter open show · s sort · f filter · /sort ·
+            /filter · /search · /prompt · n mark next · u unsubscribe
           </Text>
           <Text>
             Show: j/k move episode · Enter toggle progress · n mark next · a
@@ -1431,7 +1850,7 @@ export function PodcastTrackerApp({
           </Text>
           <Text>
             Show: s subscribe toggle · d drop · t rate · u unsubscribe · f
-            episode filter · o open URL · ] load more · b back
+            episode filter · /episode-filter · o open URL · ] load more · b back
           </Text>
         </Box>
       ) : null}

@@ -9,9 +9,9 @@ const printHelp = (): void => {
   process.stdout.write(`  podcast-tracker auth status\n`);
   process.stdout.write(`  podcast-tracker auth logout\n`);
   process.stdout.write(`  podcast-tracker smoke\n\n`);
-  process.stdout.write(`Keyboard in TUI:\n`);
+  process.stdout.write(`TUI controls:\n`);
   process.stdout.write(
-    `  j/k move · Enter open/select · / search · ? help · q back/quit\n`
+    `  j/k move · Enter open/select · / commands with hints · ? help · q back/quit\n`
   );
 };
 
