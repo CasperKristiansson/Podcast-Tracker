@@ -8,95 +8,75 @@ export interface ListeningAtlasPromptShow {
   droppedAt?: unknown;
 }
 
+function cleanPromptText(value: string | null | undefined): string {
+  return value?.replace(/\s+/g, " ").trim() ?? "";
+}
+
+function formatSeedShows(shows: ListeningAtlasPromptShow[]): string {
+  const seedShows = shows.filter((show) => !show.droppedAt);
+
+  if (seedShows.length === 0) {
+    return "No listened shows were exported.";
+  }
+
+  return seedShows
+    .map((show, index) => {
+      const title = cleanPromptText(show.title) || "Untitled show";
+      const publisher = cleanPromptText(show.publisher);
+      const review = cleanPromptText(show.ratingReview);
+      const rating =
+        typeof show.ratingStars === "number"
+          ? `${show.ratingStars}/5 stars`
+          : "Not rated";
+
+      return [
+        `${index + 1}. ${title}`,
+        `   Publisher: ${publisher || "Unknown"}`,
+        `   My rating: ${rating}`,
+        `   My notes: ${review || "No written notes"}`,
+      ].join("\n");
+    })
+    .join("\n\n");
+}
+
 export function buildListeningAtlasPrompt(
   shows: ListeningAtlasPromptShow[]
 ): string {
-  const seedShows = shows
-    .filter((show) => !show.droppedAt)
-    .map((show) => ({
-      podcast_name: show.title ?? "",
-      publisher: show.publisher ?? "",
-      stats: {
-        user_rating_stars:
-          typeof show.ratingStars === "number" ? show.ratingStars : null,
-        user_review:
-          typeof show.ratingReview === "string" ? show.ratingReview : "",
-      },
-    }));
-  const seedJson = JSON.stringify(seedShows, null, 2);
+  const seedList = formatSeedShows(shows);
 
   return `
 You have web access. Your job: find new **scripted audio drama** podcasts available **on Spotify** only. No talk shows, interviews, news, education, true-crime documentary, recap, comedy chat, RPG actual-play, or non-fiction. Scripted fiction only.
 
 GOAL
-Return {{MAX_RESULTS}} high-quality Spotify audio dramas I have not logged below, ranked by fit to my tastes inferred from my seed list and reviews.
+Find the single next audio drama that is most likely to be perfect for me. Infer my taste from the listening profile below, especially my written notes and high/low ratings.
 
 REGION
 Assume availability in {{COUNTRY}}. If uncertain, prefer global availability.
 
-INPUT — SEED PODCASTS I’VE HEARD
-Paste JSON between the tags. Keep names exactly as shown on Spotify. “publisher” is the studio/network behind the show. “stats.user_rating_stars” and “stats.user_review” are my own ratings and notes.
+LISTENING PROFILE
+These are shows I have already logged. The title is the Spotify show title when available, the publisher is the studio/network, and the rating/notes are my own.
 
-<SEED_SHOWS_JSON>
-${seedJson}
-</SEED_SHOWS_JSON>
+${seedList}
 
 RESEARCH RULES
 1) Search and cite only Spotify show pages. If a candidate lacks a valid Spotify show URL, exclude it.
 2) Verify it is scripted fiction. Look for Spotify category tags, descriptions, cast, season labeling, and production notes that indicate drama/fiction. If uncertain, exclude.
-3) Diversity: include a spread across subgenres when possible (mystery, thriller, sci-fi, horror, fantasy, noir).
-4) Freshness: prefer series with recent releases or complete, acclaimed mini-series.
+3) Freshness: prefer series with recent releases or complete, acclaimed mini-series, but fit matters more than recency.
+4) Do not recommend anything already in my listening profile.
 5) No duplicates of seed shows. No regional dead ends if {{COUNTRY}} cannot access.
 
 RANKING
-Compute:
-- match_score [0–100]: textual similarity between seed reviews and candidate themes, tone, pacing, sound design.
-- novelty_score [0–100]: how different it is from the largest clusters in my seed set while still aligned.
-Final rank = round(0.7*match_score + 0.3*novelty_score).
+Research broadly, then decide. Do not mechanically optimize a score table. Prefer the show that best combines taste match, quality, availability, and enough novelty that it is not just a duplicate of what I already know.
 
-OUTPUT FORMAT — JSON ONLY
-Return a single JSON object with this shape:
-
-{
-  "summary": {
-    "seed_count": <int>,
-    "key_themes": ["<theme>", "..."],         // inferred from my reviews
-    "method_note": "Spotify-only, scripted fiction verified"
-  },
-  "recommendations": [
-    {
-      "title": "<Spotify show title>",
-      "publisher": "<studio/network>",
-      "spotify_url": "https://open.spotify.com/show/....",
-      "is_audio_drama": true,
-      "status": "<ongoing|completed|miniseries>",
-      "years": "YYYY–YYYY or YYYY–present",
-      "typical_episode_length_min": <int|null>,
-      "subgenres": ["mystery","thriller"],
-      "why_it_matches": "One sentence that references my seed reviews directly.",
-      "similar_to_seeds": ["<seed match 1>", "<seed match 2>"],
-      "content_notes": ["violence","language"],     // if applicable
-      "last_release_date": "YYYY-MM-DD",
-      "match_score": <0-100>,
-      "novelty_score": <0-100>,
-      "rank": <1-based int>
-    }
-  ],
-  "excluded_candidates": [
-    {
-      "title": "<name>",
-      "reason": "<not on Spotify|not scripted fiction|region-locked|duplicate>"
-    }
-  ]
-}
+OUTPUT
+Write in natural prose, not JSON. Start with the one show I should listen to next, including its Spotify show URL. Then explain why it is the right pick for me, grounded in patterns from my listening profile. Mention any useful caveats only if they affect whether I should start it now.
 
 CONSTRAINTS
-- Output must be valid JSON. No commentary before or after.
-- Every recommendation must include a working Spotify show URL.
-- If fewer than {{MAX_RESULTS}} valid scripted audio dramas are found, return the maximum valid number and explain shortage in summary.method_note.
+- Do not output JSON.
+- Do not include a long candidate list unless it is needed to explain a close call.
+- The final recommendation must include a working Spotify show URL.
 
 VARIABLES TO SET BEFORE RUN
-- {{MAX_RESULTS}} = 10
 - {{COUNTRY}} = "Sweden"
 `;
 }
