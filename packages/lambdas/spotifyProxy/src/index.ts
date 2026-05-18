@@ -331,9 +331,12 @@ async function getEpisodes(showId: string, limit = 20, cursor?: string) {
   const data = await spotifyFetch<SpotifyEpisodesResponse>(
     `/shows/${encodeURIComponent(showId)}/episodes?${params.toString()}`
   );
+  const items = data.items ?? [];
 
   return {
-    items: (data.items ?? []).map(mapEpisode),
+    items: items
+      .map(mapEpisode)
+      .filter((episode): episode is MappedEpisode => episode !== null),
     nextToken: data.next ? new URL(data.next).searchParams.get("offset") : null,
   };
 }
@@ -583,7 +586,15 @@ function mapShow(show: SpotifyShow, overrides?: { isSubscribed?: boolean }) {
   };
 }
 
-function mapEpisode(episode: SpotifyEpisode) {
+type MappedEpisode = ReturnType<typeof mapEpisode> extends infer Result
+  ? Exclude<Result, null>
+  : never;
+
+function mapEpisode(episode: SpotifyEpisode | null | undefined) {
+  if (!episode) {
+    return null;
+  }
+
   const derivedShowId = episode.show?.id ?? episode.id.split(":")[0];
   const languages = normalizeEpisodeLanguages(episode);
   const releaseDate = normalizeReleaseDate(
@@ -698,7 +709,7 @@ interface SpotifyEpisode {
 }
 
 interface SpotifyEpisodesResponse {
-  items: SpotifyEpisode[];
+  items: Array<SpotifyEpisode | null>;
   next?: string | null;
 }
 

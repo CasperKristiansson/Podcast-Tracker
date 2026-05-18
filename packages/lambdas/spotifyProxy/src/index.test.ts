@@ -458,7 +458,7 @@ describe("spotify proxy handler", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("returns mapped episodes and parses next cursor", async () => {
+  it("returns mapped episodes, skips null Spotify items, and parses next cursor", async () => {
     const dynamoMock = getDynamoMock();
     dynamoMock.on(GetCommand).resolves({});
     dynamoMock.on(PutCommand).resolves({});
@@ -478,6 +478,7 @@ describe("spotify proxy handler", () => {
             duration_ms: 123000,
             show: { id: "show-1" },
           },
+          null,
           {
             id: "show-2:episode-2",
             name: "Episode 2",
@@ -1014,6 +1015,10 @@ describe("internal helpers", () => {
     };
 
     const mappedEpisode = __internal.mapEpisode(dirtyEpisode);
+    expect(mappedEpisode).not.toBeNull();
+    if (!mappedEpisode) {
+      throw new Error("Expected dirty episode to map successfully");
+    }
     expect(mappedEpisode.htmlDescription).toBe(
       '<div><p>Line one</p><p><a href="mailto:test@example.com" rel="noopener noreferrer">mail</a></p></div>'
     );
